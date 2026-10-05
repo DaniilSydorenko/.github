@@ -1,0 +1,32 @@
+name: GRS Governance
+
+on:
+  pull_request:
+    paths:
+      - ".github/repository.json"
+      - ".github/workflows/grs.yml"
+  push:
+    branches: [main]
+    paths:
+      - ".github/repository.json"
+      - ".github/workflows/grs.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  manifest:
+    name: Validate repository manifest
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - name: Checkout GRS control plane
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          repository: DaniilSydorenko/.github
+          ref: main
+          path: .grs-control
+      - name: Validate GRS manifest
+        run: python3 .grs-control/grs/validator.py .github/repository.json
