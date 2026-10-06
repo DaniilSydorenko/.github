@@ -1,47 +1,38 @@
-# GitHub Autopilot — manual large-batch continuation
+# GitHub Autopilot — manual high-throughput repair
 
-Timestamp: 2026-10-06T08:55:00Z
+Timestamp: 2026-10-06T12:12:00Z
 Status: **SUCCESS**
-Roadmap: **M2 closeout + executable GRS consumer enforcement**
+Roadmap: **Autopilot throughput repair + M2/GRS execution**
 
 ## RESULT
-- Added the first deterministic class-aware repository-surface auditor.
-- Added tests proving the minimal profile surface passes, missing profile secret scanning fails, incomplete OSS governance fails truthfully, and a complete OSS governance surface passes.
-- Upgraded the reusable consumer workflow from manifest-only validation to manifest + repository-surface enforcement.
-- Expanded workflow triggers to the governed files so governance reruns when relevant surfaces change.
-- Added and validated a central Haversine `oss-library` pilot manifest alongside the profile pilot.
-- GRS Control Plane run #23 completed **SUCCESS** after the auditor + two-pilot integration.
-- Verified the public `12+ years` GitHub claim against current CAREER sources; no README change required.
-- External verification of `daniilsydorenko.com` remains unresolved because the available public retrieval path did not return an accessible/indexed page; this is not evidence of downtime.
-- Refreshed PR #1 description to match the now-executable consumer-governance scope.
+- Reconfigured hourly Autopilot so reporting failures are fail-open and local write failures cannot consume a run.
+- Added explicit large-batch, run-budget, owner-gate bypass and alternate-write-path rules.
+- Implemented the previously blocked historical-repository controls: README/status REQUIRED, .gitignore RECOMMENDED, secret hygiene REQUIRED.
+- Added deterministic tests for historical FAIL/WARN semantics.
+- Added a bounded Engineering Labs rollout preflight without modifying the Labs repository.
 
 ## VALUE
-GRS has crossed from validating configuration syntax to enforcing real class-specific repository surfaces. The first consumer rollout can now produce truthful governance failures instead of a false green manifest-only result.
+The scheduler is now instructed to spend most run time on engineering, continue across independent READY work, and treat reporting as a second channel rather than the workload. GRS now covers a third repository class and the next rollout candidate has concrete measured starting state.
 
 ## PROBLEM → FIX
-Manifest-only validation could label a repository compliant while required files were absent.
-→ Added deterministic class-aware surface auditing and consumer workflow enforcement.
+Scheduled runs were losing throughput when a source/report mutation failed or when PR #1 remained owner-gated.
+→ Mutation failures are now local with one retry/alternate path; durable reporting is fail-open after one repair attempt; owner-gated lanes cannot stop independent work.
 
-## BLOCKERS / OWNER ACTION
-- PR #1 remains the intentional owner merge gate; it is open, non-draft and mergeable.
-- Metadata/pins still require unsupported GitHub mutations or owner UI.
-- Website navigation/rendering still needs final M2 UI verification.
+## HEALTH
+- GitHub Autopilot remains enabled and hourly.
+- Historical control/test writes succeeded on the existing GRS branch.
+- Engineering Labs preflight write succeeded.
+- CI had not yet produced a run for the newest head at checkpoint time; verification is pending rather than claimed green.
+- PR #1 remains the intentional owner merge gate.
+
+## BLOCKER / OWNER ACTION
+No new owner action required for this batch. PR #1 still requires owner merge when ready.
 
 ## NEXT
-1. If PR #1 merges: install profile manifest + consumer workflow and verify PASS.
-2. Then install Haversine manifest/workflow; expect truthful initial governance FAILs for missing OSS surfaces.
-3. Remediate measured Haversine GitHub-governance gaps without touching GEO-owned architecture.
-4. Extend deterministic controls to tests/engineering workflow only where false-positive risk is low.
-5. Finish remaining M2 metadata/pins/rendered QA.
-
-## QUEUE
-- READY: GRS PR #1 owner merge.
-- READY-AFTER-MERGE: profile consumer installation.
-- NEXT: Haversine consumer audit + measured remediation.
-- NEXT: additional low-noise class-aware controls.
-- NEXT: M2 presentation closeout.
-- BLOCKED/UI: metadata and pins.
-- DEFERRED: historical Google Maps key revoke/delete-or-verify-dead.
+1. Verify newest GRS head CI; diagnose/fix if needed.
+2. Continue low-false-positive class enforcement and rollout preflights while #1 is open.
+3. After #1 merge: Profile consumer PASS → Haversine truthful audit/remediation → active-repo rollout.
+4. Finish M2 presentation/navigation closeout where tool/UI permits.
 
 ## SAFETY
-No consumer repository, visibility, credentials, destructive administration, Ladvero code, or release gate was changed.
+No visibility, credential, destructive admin, Ladvero-owned surface, consumer repo, or release gate was changed.
