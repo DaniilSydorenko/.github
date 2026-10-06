@@ -27,6 +27,11 @@ CLASS_FILE_CONTROLS = {
         ("SECURITY.md", LEVEL_FAIL, ("SECURITY.md", ".github/SECURITY.md")),
         ("CONTRIBUTING.md", LEVEL_FAIL, ("CONTRIBUTING.md", ".github/CONTRIBUTING.md")),
     ],
+    "historical": [
+        ("README/status", LEVEL_FAIL, ("README.md", "README")),
+        (".gitignore", LEVEL_WARN, (".gitignore",)),
+        ("secret hygiene workflow", LEVEL_FAIL, (".github/workflows/secret-scan.yml",)),
+    ],
 }
 
 def exists_any(root: Path, candidates: tuple[str, ...]) -> bool:
