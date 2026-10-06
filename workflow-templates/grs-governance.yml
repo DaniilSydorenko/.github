@@ -5,19 +5,35 @@ on:
     paths:
       - ".github/repository.json"
       - ".github/workflows/grs.yml"
+      - "README.md"
+      - ".gitignore"
+      - "LICENSE*"
+      - "SECURITY.md"
+      - "CONTRIBUTING.md"
+      - ".github/PULL_REQUEST_TEMPLATE.md"
+      - ".github/ISSUE_TEMPLATE/**"
+      - ".github/workflows/secret-scan.yml"
   push:
     branches: [main]
     paths:
       - ".github/repository.json"
       - ".github/workflows/grs.yml"
+      - "README.md"
+      - ".gitignore"
+      - "LICENSE*"
+      - "SECURITY.md"
+      - "CONTRIBUTING.md"
+      - ".github/PULL_REQUEST_TEMPLATE.md"
+      - ".github/ISSUE_TEMPLATE/**"
+      - ".github/workflows/secret-scan.yml"
   workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  manifest:
-    name: Validate repository manifest
+  governance:
+    name: Validate GRS contract
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -30,3 +46,5 @@ jobs:
           path: .grs-control
       - name: Validate GRS manifest
         run: python3 .grs-control/grs/validator.py .github/repository.json
+      - name: Audit deterministic repository surfaces
+        run: python3 .grs-control/grs/audit_repository.py .github/repository.json --root .
