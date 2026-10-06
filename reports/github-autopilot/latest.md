@@ -1,33 +1,40 @@
 # GitHub Autopilot — manual continuation
 
-Timestamp: 2026-10-06T08:08:00Z
+Timestamp: 2026-10-06T08:15:00Z
 Status: **SUCCESS**
-Roadmap: **M2 / GRS v1 bootstrap**
+Roadmap: **M2 / GRS v1 bootstrap hardening**
 
 ## RESULT
-- Resolved a real contract drift: policy said `.github/repository.yml` while validator/workflow implemented JSON.
-- Standardized GRS v1 on dependency-free `.github/repository.json`.
-- Added deterministic validator fixtures/tests for valid profile, invalid class, and unknown-property rejection.
-- Added control-plane CI and wired it to validate the profile pilot manifest.
-- Added the first central profile pilot manifest.
-- Updated PR #1 to reflect executable scope and moved it from Draft to **Ready for review**.
-- GRS Control Plane run #5 completed **SUCCESS**.
+- Performed a full PR #1 diff review instead of treating green CI as sufficient.
+- Found and removed duplicate validator fixtures left by parallel/manual evolution of the bootstrap branch.
+- Expanded deterministic validator coverage from 3 to 6 cases: valid profile, unknown class, unknown property, missing portfolio, invalid boolean type, and unsupported schema version.
+- GRS Control Plane run #13 completed **SUCCESS** on the expanded suite.
+- Updated bootstrap Issue #3 with the resolved `.github` creation blocker and current rollout frontier.
 
 ## VALUE
-GRS v1 now has an internally consistent manifest contract and an executable green verification path rather than policy/schema-only documentation.
+PR #1 is cleaner and its validator contract is better defended against malformed manifests before the standard is propagated into consumer repositories.
 
 ## PROBLEM → FIX
-Manifest serialization drift could have produced incompatible rollout PRs.
-→ Canonicalized JSON for v1 and documented the dependency-free rationale.
+Parallel bootstrap work had created two fixture locations with overlapping cases.
+→ Consolidated fixtures under `grs/tests/fixtures/` and removed the redundant set.
 
 ## BLOCKERS / OWNER ACTION
-PR #1 is ready for owner review/merge. It is intentionally not auto-merged.
+PR #1 remains Ready for review and is the only intentional gate before consumer-repository installation. No other safe bootstrap blocker remains.
 
 ## NEXT
-1. After PR #1 merge, install the profile pilot manifest/workflow in `DaniilSydorenko/DaniilSydorenko`.
-2. Verify the first consumer-repository governance run.
-3. Pilot Haversine as `oss-library`.
-4. Continue deterministic class-aware controls and M2 repository presentation work.
+1. Merge PR #1 after owner acceptance.
+2. Install the profile consumer manifest/workflow.
+3. Verify governance from the consumer repository.
+4. Pilot Haversine as `oss-library`.
+5. Continue M2 metadata/recruiter QA in parallel where repository-admin tooling permits.
+
+## QUEUE
+- READY: GRS bootstrap PR #1.
+- NEXT: profile consumer pilot.
+- NEXT: Haversine pilot.
+- NEXT: deterministic class-aware repository checks.
+- BLOCKED: repository metadata/pins requiring unsupported GitHub mutations or owner UI.
+- DEFERRED: historical Google Maps key revoke/delete-or-verify-dead.
 
 ## SAFETY
 No visibility, credentials, destructive administration, Ladvero code, or release gates were changed.
