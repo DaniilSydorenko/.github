@@ -29,7 +29,8 @@ jobs:
             | length
           ')"
 
-          failing_pr_count="$(gh pr list --state open --limit 20 --json number,statusCheckRollup --jq '
+          prs_json="$(gh pr list --state open --limit 20 --json number,statusCheckRollup 2>/dev/null || echo '[]')"
+          failing_pr_count="$(printf '%s' "$prs_json" | jq '
             [.[] | select(any(.statusCheckRollup[]?; .conclusion == "FAILURE" or .conclusion == "TIMED_OUT" or .conclusion == "ACTION_REQUIRED"))]
             | length
           ')"
