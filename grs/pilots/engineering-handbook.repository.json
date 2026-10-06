@@ -1,0 +1,6 @@
+{
+  "schema": 1,
+  "standard": { "version": 1 },
+  "repository": { "class": "knowledge", "maturity": "active", "visibility": "private" },
+  "portfolio": { "flagship": true, "pin_candidate": true }
+}
