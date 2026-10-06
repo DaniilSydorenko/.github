@@ -15,47 +15,5 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  signal:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Inspect repository health
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-
-          latest_bad="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs?per_page=30" --jq '
-            [.workflow_runs[]
-             | select(.name != "Autopilot Help Signal")
-             | select(.status == "completed")
-             | {name, conclusion, html_url, created_at}]
-            | sort_by(.created_at) | reverse
-            | .[0]
-            | select(.conclusion == "failure" or .conclusion == "timed_out" or .conclusion == "action_required")
-          ' || true)"
-
-          failing_prs="$(gh pr list --state open --limit 20 --json number,title,statusCheckRollup --jq '
-            [.[] | select(any(.statusCheckRollup[]?; .conclusion == "FAILURE" or .conclusion == "TIMED_OUT" or .conclusion == "ACTION_REQUIRED"))
-             | {number,title}]
-          ' || true)"
-
-          if [ -n "$latest_bad" ] || [ "$failing_prs" != "[]" ]; then
-            echo "## AUTOPILOT HELP REQUEST" >> "$GITHUB_STEP_SUMMARY"
-            echo "Repository: $GITHUB_REPOSITORY" >> "$GITHUB_STEP_SUMMARY"
-            if [ -n "$latest_bad" ]; then
-              echo "Latest completed non-signal workflow is unhealthy:" >> "$GITHUB_STEP_SUMMARY"
-              echo '\`\`\`json' >> "$GITHUB_STEP_SUMMARY"
-              echo "$latest_bad" >> "$GITHUB_STEP_SUMMARY"
-              echo '\`\`\`' >> "$GITHUB_STEP_SUMMARY"
-            fi
-            if [ "$failing_prs" != "[]" ]; then
-              echo "Open PRs with failing checks:" >> "$GITHUB_STEP_SUMMARY"
-              echo '\`\`\`json' >> "$GITHUB_STEP_SUMMARY"
-              echo "$failing_prs" >> "$GITHUB_STEP_SUMMARY"
-              echo '\`\`\`' >> "$GITHUB_STEP_SUMMARY"
-            fi
-            echo "Repository is asking the Autopilot Manager for attention." >> "$GITHUB_STEP_SUMMARY"
-            exit 1
-          fi
-
-          echo "Repository health signal is clear." >> "$GITHUB_STEP_SUMMARY"
+  help:
+    uses: DaniilSydorenko/.github/.github/workflows/reusable-autopilot-health.yml@main
