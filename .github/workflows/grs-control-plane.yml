@@ -21,12 +21,14 @@ permissions:
 
 jobs:
   validator:
-    name: Test GRS validator
+    name: Test GRS control plane
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
-      - name: Run validator tests
+      - name: Run validator and repository-audit tests
         run: python3 -m unittest discover -s grs/tests -p "test_*.py" -v
       - name: Validate profile pilot manifest
         run: python3 grs/validator.py grs/pilots/DaniilSydorenko.repository.json
+      - name: Validate Haversine pilot manifest
+        run: python3 grs/validator.py grs/pilots/haversine-geolocation.repository.json
