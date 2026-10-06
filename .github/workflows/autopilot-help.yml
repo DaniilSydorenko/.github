@@ -1,6 +1,10 @@
 name: Autopilot Help Signal
 
 on:
+  workflow_run:
+    workflows:
+      - "GRS Control Plane"
+    types: [completed]
   schedule:
     - cron: "41 */3 * * *"
   workflow_dispatch:
