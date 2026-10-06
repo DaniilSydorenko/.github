@@ -14,6 +14,17 @@ ALLOWED_CLASSES = {
 }
 ALLOWED_MATURITY = {"experimental", "active", "maintained", "stable", "frozen", "archived"}
 ALLOWED_VISIBILITY = {"public", "private"}
+TOP_LEVEL_KEYS = {"schema", "standard", "repository", "portfolio"}
+STANDARD_KEYS = {"version"}
+REPOSITORY_KEYS = {"class", "maturity", "visibility"}
+PORTFOLIO_KEYS = {"flagship", "pin_candidate"}
+
+
+def reject_unknown(obj: dict, allowed: set[str], path: str) -> int | None:
+    unknown = sorted(set(obj) - allowed)
+    if unknown:
+        return fail(f"{path} contains unsupported properties: {', '.join(unknown)}")
+    return None
 
 
 def fail(message: str) -> int:
@@ -31,15 +42,30 @@ def main() -> int:
     except (OSError, json.JSONDecodeError) as exc:
         return fail(f"cannot read JSON manifest: {exc}")
 
+    if not isinstance(data, dict):
+        return fail("manifest root must be an object")
+    if result := reject_unknown(data, TOP_LEVEL_KEYS, "manifest"):
+        return result
+
+    standard = data.get("standard")
+    if not isinstance(standard, dict):
+        return fail("standard object is required")
+    if result := reject_unknown(standard, STANDARD_KEYS, "standard"):
+        return result
+
     if data.get("schema") != 1:
         return fail("schema must equal 1")
-    if data.get("standard", {}).get("version") != 1:
+    if standard.get("version") != 1:
         return fail("standard.version must equal 1")
 
     repository = data.get("repository")
     portfolio = data.get("portfolio")
     if not isinstance(repository, dict) or not isinstance(portfolio, dict):
         return fail("repository and portfolio objects are required")
+    if result := reject_unknown(repository, REPOSITORY_KEYS, "repository"):
+        return result
+    if result := reject_unknown(portfolio, PORTFOLIO_KEYS, "portfolio"):
+        return result
 
     checks = (
         ("repository.class", repository.get("class"), ALLOWED_CLASSES),
