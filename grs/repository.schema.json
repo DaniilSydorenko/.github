@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/DaniilSydorenko/.github/blob/main/grs/repository.schema.json",
+  "title": "GRS v1 Repository Manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "standard", "repository", "portfolio"],
+  "properties": {
+    "schema": { "const": 1 },
+    "standard": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version"],
+      "properties": { "version": { "const": 1 } }
+    },
+    "repository": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["class", "maturity", "visibility"],
+      "properties": {
+        "class": {
+          "enum": ["profile", "oss-library", "product", "engineering-labs", "knowledge", "platform", "historical"]
+        },
+        "maturity": {
+          "enum": ["experimental", "active", "maintained", "stable", "frozen", "archived"]
+        },
+        "visibility": { "enum": ["public", "private"] }
+      }
+    },
+    "portfolio": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["flagship", "pin_candidate"],
+      "properties": {
+        "flagship": { "type": "boolean" },
+        "pin_candidate": { "type": "boolean" }
+      }
+    }
+  }
+}
