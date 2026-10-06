@@ -33,7 +33,7 @@ Class profiles explicitly decide applicability and level for identity/status, li
 
 ## Per-repository manifest
 
-Managed repositories will carry `.github/repository.yml`, validated against the canonical GRS schema.
+Managed repositories carry `.github/repository.json`, validated against the canonical GRS schema. JSON is the canonical GRS v1 serialization so validation remains dependency-free and deterministic across repositories.
 
 Repository-specific overrides must be explicit, schema-valid and limited to controls GRS marks overridable. An override must never silently weaken a non-overridable security control.
 
