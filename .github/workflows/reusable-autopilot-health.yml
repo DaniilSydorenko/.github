@@ -18,33 +18,27 @@ jobs:
         run: |
           set -euo pipefail
 
-          latest_bad="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs?per_page=30" --jq '
+          latest_bad_count="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs?per_page=30" --jq '
             [.workflow_runs[]
              | select(.name != "Autopilot Help Signal")
              | select(.name != "Reusable Autopilot Health")
-             | select(.status == "completed")
-             | {name, conclusion, html_url, created_at}]
+             | select(.status == "completed")]
             | sort_by(.created_at) | reverse
-            | .[0]
-            | select(.conclusion == "failure" or .conclusion == "timed_out" or .conclusion == "action_required")
-          ' || true)"
+            | .[0:1]
+            | map(select(.conclusion == "failure" or .conclusion == "timed_out" or .conclusion == "action_required"))
+            | length
+          ')"
 
-          failing_prs="$(gh pr list --state open --limit 20 --json number,title,statusCheckRollup --jq '
-            [.[] | select(any(.statusCheckRollup[]?; .conclusion == "FAILURE" or .conclusion == "TIMED_OUT" or .conclusion == "ACTION_REQUIRED"))
-             | {number,title}]
-          ' || true)"
+          failing_pr_count="$(gh pr list --state open --limit 20 --json number,statusCheckRollup --jq '
+            [.[] | select(any(.statusCheckRollup[]?; .conclusion == "FAILURE" or .conclusion == "TIMED_OUT" or .conclusion == "ACTION_REQUIRED"))]
+            | length
+          ')"
 
-          if [ -n "$latest_bad" ] || [ "$failing_prs" != "[]" ]; then
+          if [ "$latest_bad_count" -gt 0 ] || [ "$failing_pr_count" -gt 0 ]; then
             echo "## AUTOPILOT HELP REQUEST" >> "$GITHUB_STEP_SUMMARY"
             echo "Repository: $GITHUB_REPOSITORY" >> "$GITHUB_STEP_SUMMARY"
-            if [ -n "$latest_bad" ]; then
-              echo "Latest completed non-signal workflow is unhealthy:" >> "$GITHUB_STEP_SUMMARY"
-              echo "$latest_bad" >> "$GITHUB_STEP_SUMMARY"
-            fi
-            if [ "$failing_prs" != "[]" ]; then
-              echo "Open PRs with failing checks:" >> "$GITHUB_STEP_SUMMARY"
-              echo "$failing_prs" >> "$GITHUB_STEP_SUMMARY"
-            fi
+            echo "latest_bad_workflow_count=$latest_bad_count" >> "$GITHUB_STEP_SUMMARY"
+            echo "open_failing_pr_count=$failing_pr_count" >> "$GITHUB_STEP_SUMMARY"
             echo "Repository is asking the Autopilot Manager for attention." >> "$GITHUB_STEP_SUMMARY"
             exit 1
           fi
