@@ -45,19 +45,24 @@ Security baseline includes secret scanning, minimal GitHub Actions permissions, 
 
 ## 5. Per-repository manifest
 
-Managed repositories declare their contract in `.github/repository.yml`.
+Managed repositories declare their v1 contract in `.github/repository.json`.
 
-```yaml
-schema: 1
-standard:
-  version: 1
-repository:
-  class: oss-library
-  maturity: maintained
-  visibility: public
-portfolio:
-  flagship: true
-  pin_candidate: true
+JSON is intentionally canonical in v1: the validator uses only the Python standard library, so every governed repository can validate the same contract without adding a YAML parser or repository-local dependency. A future GRS version may add another serialization only through an explicit migration.
+
+```json
+{
+  "schema": 1,
+  "standard": { "version": 1 },
+  "repository": {
+    "class": "oss-library",
+    "maturity": "maintained",
+    "visibility": "public"
+  },
+  "portfolio": {
+    "flagship": true,
+    "pin_candidate": true
+  }
+}
 ```
 
 Overrides must be explicit, narrow, and justified. A repository may not override critical security requirements merely to make validation green.
