@@ -59,6 +59,26 @@ class RepositoryAuditTests(unittest.TestCase):
         self.assertIn("FAIL: PR template", result.stdout)
         self.assertIn("FAIL: issue taxonomy", result.stdout)
 
+    def test_historical_requires_status_and_warns_on_gitignore(self) -> None:
+        missing_status = self.run_audit("historical", [
+            ".github/workflows/secret-scan.yml",
+        ])
+        self.assertNotEqual(missing_status.returncode, 0)
+        self.assertIn("FAIL: README/status", missing_status.stdout)
+        self.assertIn("WARN: .gitignore", missing_status.stdout)
+
+        warning_only = self.run_audit("historical", [
+            "README.md", ".github/workflows/secret-scan.yml",
+        ])
+        self.assertEqual(warning_only.returncode, 0, warning_only.stdout + warning_only.stderr)
+        self.assertIn("WARN: .gitignore", warning_only.stdout)
+        self.assertIn("SUMMARY: 0 FAIL, 1 WARN", warning_only.stdout)
+
+    def test_historical_requires_secret_hygiene(self) -> None:
+        result = self.run_audit("historical", ["README.md", ".gitignore"])
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("FAIL: secret hygiene workflow", result.stdout)
+
     def test_oss_library_complete_surface_passes(self) -> None:
         result = self.run_audit("oss-library", [
             "README.md", ".gitignore", "LICENSE", ".github/workflows/secret-scan.yml",
