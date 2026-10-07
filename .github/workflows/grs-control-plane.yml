@@ -32,3 +32,5 @@ jobs:
         run: python3 grs/validator.py grs/pilots/DaniilSydorenko.repository.json
       - name: Validate Haversine pilot manifest
         run: python3 grs/validator.py grs/pilots/haversine-geolocation.repository.json
+      - name: Validate Engineering Labs pilot manifest
+        run: python3 grs/validator.py grs/pilots/engineering-labs.repository.json
