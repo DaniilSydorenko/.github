@@ -25,7 +25,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
       - name: Run validator and repository-audit tests
         run: python3 -m unittest discover -s grs/tests -p "test_*.py" -v
       - name: Validate profile pilot manifest
@@ -34,3 +34,7 @@ jobs:
         run: python3 grs/validator.py grs/pilots/haversine-geolocation.repository.json
       - name: Validate Engineering Labs pilot manifest
         run: python3 grs/validator.py grs/pilots/engineering-labs.repository.json
+      - name: Validate Engineering Handbook pilot manifest
+        run: python3 grs/validator.py grs/pilots/engineering-handbook.repository.json
+      - name: Validate Career Intelligence pilot manifest
+        run: python3 grs/validator.py grs/pilots/career-intelligence.repository.json
