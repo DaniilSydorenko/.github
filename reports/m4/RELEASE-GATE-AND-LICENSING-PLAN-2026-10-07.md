@@ -13,9 +13,24 @@ This is a central governance plan only. It does not modify consumer repositories
 
 ### Current target
 
-Preferred publication model: **full repository**, after owning-lane release gates are green and the owner approves visibility.
+Preferred publication model: **full repository**, but only after the product proves its first real learning loop. Repository/governance readiness alone does not make Engineering Labs publication-ready.
 
-### Required release gates
+### Product-readiness gate
+
+Before GitHub publication gates are treated as actionable release blockers, the Labs-owning product lane should prove:
+
+1. Platform Core is usable for a real Mission.
+2. Mission → Stage → Scenario → Task works as an actual training experience, not only as documentation/data structures.
+3. One canonical Mission reaches an end-to-end usable state, with BUILD → HARDEN → EVOLVE where the subject fits.
+4. Daniil dogfoods that Mission and performs the learning objective himself.
+5. The dogfooding cycle produces reviewable practice artifacts and concrete platform feedback.
+6. Product corrections from that first cycle are incorporated or explicitly triaged.
+
+This is a product gate owned by the Engineering Labs lane, not by GitHub governance.
+
+### Required GitHub release gates
+
+After product proof:
 
 1. Public-safe README/status remains current.
 2. Explicit license decision is recorded and applied.
@@ -97,7 +112,7 @@ No gate may be weakened merely to produce a green badge.
 
 The minimum future owner decisions remain:
 
-1. Engineering Labs: approve publication timing and license after gates are green.
+1. Engineering Labs: approve publication timing and license only after the Labs product lane proves Platform Core + first Mission dogfooding and the GitHub release gates are green.
 2. Engineering Handbook: choose full repo after sanitization vs sanitized projection, then choose licensing model.
 3. Career Intelligence: confirm canonical repo remains private or explicitly request a separate public-source design.
 

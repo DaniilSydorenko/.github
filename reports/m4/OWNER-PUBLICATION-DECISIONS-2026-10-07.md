@@ -17,12 +17,22 @@ Current repo shape is strongly aligned with a future full-repository public rele
 - employer attribution boundaries are already explicit;
 - the repository contains implementation, architecture, tests and learning-system evidence that are useful to a hiring audience.
 
-**Recommended default:** prepare the **full repository** for public release, then ask for owner approval only after license, GRS consumer, quality/build and secret gates are green.
+**Recommended default:** keep the repository private while Engineering Labs is still proving its product/learning loop. The preferred eventual publication model remains the **full repository**, but GitHub readiness alone is not sufficient.
+
+Before the publication decision is requested, the Labs-owning product lane should prove at least one real end-to-end training loop:
+
+- Platform Core is usable for a real Mission;
+- the canonical Mission → Stage → Scenario → Task model works in practice;
+- one canonical Mission reaches BUILD → HARDEN → EVOLVE where appropriate;
+- Daniil dogfoods the Mission by performing the learning work himself;
+- the dogfooding cycle produces reviewable practice artifacts and concrete platform feedback.
+
+Only after that product proof should the GitHub release gates (license, GRS consumer, quality/build, secret scan, metadata) become the final publication checklist.
 
 Owner decision:
 
-- [ ] APPROVE full-repository public release when all gates are green
-- [ ] KEEP private
+- [ ] APPROVE full-repository public release after product proof **and** GitHub release gates are green
+- [ ] KEEP private longer while product/dogfooding matures
 - [ ] REQUIRE sanitized projection instead
 
 No option is selected by automation.
@@ -94,7 +104,7 @@ Automation may not:
 
 Only these decisions are genuinely owner-gated:
 
-1. Engineering Labs publication model/timing.
+1. Engineering Labs publication timing **after** Platform Core + first real Mission/dogfooding proof and GitHub release gates are green.
 2. Engineering Handbook full-repo vs sanitized projection.
 3. Career Intelligence canonical repo vs public artifact strategy.
 
