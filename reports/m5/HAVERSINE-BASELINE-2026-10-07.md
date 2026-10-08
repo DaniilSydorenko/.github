@@ -1,7 +1,7 @@
 # M5 — Haversine OSS Flagship baseline
 
 Date: 2026-10-07
-Status: **ACTIVE — governance ready, engineering modernization pending**
+Status: **ACTIVE — M5-A executable CI baseline verified; modernization pending**
 
 ## Purpose
 
@@ -32,9 +32,7 @@ The package remains on a legacy build/test stack:
 - Babel 7-era transform stack;
 - latest GitHub release: v1.6.0, published in 2021.
 
-There is currently no dedicated general-purpose CI workflow on the default branch that proves `npm test` and `npm run build` on ordinary pull requests. The active GitHub workflows are governance, secret scanning, and autopilot assistance.
-
-This means M5 should prioritize executable engineering proof before cosmetic modernization.
+Update (2026-10-08): M5-A is verified complete. PR #40 introduced executable CI. On default-branch commit `4316daf0d5b6b1fbe2b208e54ac6d80cfe9824f6`, CI run `37705358554` executed dependency installation, tests and build successfully; independent Secret Scan `37705358578` also passed. Characterization PR #39 remains open and needs its own exact-head checks. Next independent work: M5-B dependency/toolchain inventory.
 
 ## Open maintenance debt
 
@@ -51,7 +49,7 @@ Closing or merging stale dependency PRs is a deliberate maintenance action, not 
 
 ## M5 recommended sequence
 
-### M5-A — Executable CI baseline
+### M5-A — Executable CI baseline — VERIFIED DONE (2026-10-08)
 
 Goal: make every future change provable.
 
@@ -149,6 +147,6 @@ Substantive API changes remain a dedicated Haversine engineering decision.
 
 ## Current conclusion
 
-Haversine has completed governance readiness, but the next highest-value improvement is **real build/test CI on the current package before dependency modernization**.
+Haversine has completed governance readiness and executable CI baseline. Next independent M5 milestone: **M5-B dependency/toolchain inventory**. No consumer code changes are authorized by this report.
 
 That CI baseline is the first recommended implementation unit for the Haversine-owning engineering lane.
