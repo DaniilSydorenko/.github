@@ -62,13 +62,18 @@ def main() -> int:
         print(f"FAIL: cannot load repository class from manifest: {exc}")
         return 1
 
-    controls = list(CLASS_FILE_CONTROLS.get(repo_class, []))
+    # Reject unsupported values before selecting controls. Unknown classes must
+    # never be treated as an audit PASS, even when no files are present.
+    if not isinstance(repo_class, str) or repo_class not in CLASS_FILE_CONTROLS:
+        print(f"FAIL: unsupported repository class {repo_class!r}")
+        return 1
+    if not isinstance(visibility, str) or visibility not in {"public", "private"}:
+        print(f"FAIL: unsupported repository visibility {visibility!r}")
+        return 1
+
+    controls = list(CLASS_FILE_CONTROLS[repo_class])
     if repo_class == "knowledge" and visibility == "public":
         controls.append(LICENSE)
-
-    if not controls:
-        print(f"PASS: no deterministic file-surface controls implemented yet for class {repo_class!r}")
-        return 0
 
     failures = 0
     warnings = 0
