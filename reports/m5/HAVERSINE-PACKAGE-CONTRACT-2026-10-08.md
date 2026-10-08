@@ -146,3 +146,12 @@ characterization evidence
 ```
 
 Central GitHub governance should continue to record evidence and enforce truthful gates without taking ownership of Haversine product behavior.
+
+
+## M5-D/E — exact-blob evidence addendum (2026-10-08)
+
+On Haversine `master@4316daf0d5b6b1fbe2b208e54ac6d80cfe9824f6`, live Git tree confirms `package.json` blob `5ef275a3e6a19b3bc64cbd2aa0408f8285dfc91f` (1,573 bytes), `dist/build.js` blob `a262f6f96fa534587339cf670970b877d1f2cfec` (5,237 bytes), and `package-lock.json` blob `e8464ab8cb1405690e3ebbcf3a9784dd85834d74` (349,986 bytes).
+
+**M5-D:** Earlier read-only local Node.js 22.16.0 reproduction using exact package and bundle blobs failed on plain package-root `require()` with `ReferenceError: window is not defined`. A diagnostic-only `global.window={}` shim allowed import and a 111.2 km distance calculation. This confirms a repository-entry Node initialization failure, not npm tarball identity or a supported shim. Historical issue #12 reports the same error. Still missing: actual `npm pack` inventory, tarball install, browser UMD test, declaration intent and support matrix.
+
+**M5-E:** Prior static inspection of lockfile v2 found 422 package entries and historical Dependabot-target package names still locked: terser 5.9.0, socket.io-parser 4.0.4, loader-utils 1.4.0, engine.io 6.0.1, socket.io 4.3.2, qs 6.7.0, body-parser 1.19.0, json5 2.2.0/1.0.1, ua-parser-js 0.7.31 and minimist 1.2.5. These are transitive dev entries, not verified vulnerabilities. Owning lane must provide exact-head `npm ls --all`, `npm audit --json`, install/test/build evidence before old PR dispositions. No consumer edits or release authority are implied.
