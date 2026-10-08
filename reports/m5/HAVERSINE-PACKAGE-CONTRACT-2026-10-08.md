@@ -1,148 +1,153 @@
 # M5 — Haversine package contract and maintenance gate
 
 Date: 2026-10-08
-Status: **ACTIVE — package/release contract measured; modernization decisions pending**
+Status: **ACTIVE — characterization, CI, V2 core, package curation and declarations verified; dual exports still in progress**
 
 ## Purpose
 
 Advance M5 beyond the CI/toolchain baseline by recording the current shipped package contract and separating safe maintenance work from changes that require explicit Haversine engineering decisions.
 
-This is read-only evidence. It does not modify the package, dependencies, release, API, or visibility.
+This is central read-only evidence. Haversine product/package implementation remains owned by the Haversine engineering lane.
 
-## Verified current package contract
+## Verified progress since the initial package-contract baseline
 
-Observed on `master` after M5-A:
+The Haversine-owning lane has now materially advanced the repository beyond the initial M5 baseline.
+
+Merged evidence includes:
+
+- PR #39 — shipped V1 characterization coverage, exact-head CI + Gitleaks GREEN;
+- PR #42 — spherical Haversine reference suite;
+- PR #43 — floating-point domain guard;
+- PR #45 — V2 architecture contract;
+- PR #48 — V2 coordinate validation primitives;
+- PR #50 — V2 distance-unit primitives;
+- PR #52 — V2 pure spherical distance;
+- PR #54 — generic single-pass nearest;
+- PR #56 — isolated browser geolocation adapter;
+- PR #58 — internal V2 core barrel;
+- PR #60 — TypeScript typecheck gate;
+- PR #62 — V2 core exposed through a Node-safe legacy bridge;
+- PR #65 — legacy compatibility facade extracted;
+- PR #67 — npm package contents curated;
+- PR #69 — V1 → V2 migration guide;
+- PR #71 — declaration generation + browser entry.
+
+Current master after PR #71:
+`796a159d37c8856aeb37abae7b2044d39555af5c`.
+
+## Current package contract on master
+
+Observed after PR #71:
 
 - package: `haversine-geolocation@1.6.0`;
-- package entry point: `dist/build.js`;
-- build: Webpack production bundle;
-- bundle format: UMD;
-- source language: TypeScript;
-- TypeScript compiler target: ES6;
-- TypeScript module target: CommonJS;
-- Babel target configuration includes browser defaults and IE >= 11;
-- no `types` field declared;
-- no `exports` field declared;
-- no `engines` field declared;
-- no runtime dependencies declared in `package.json`;
-- build/test tooling is devDependency-only;
-- `.npmignore` is minimal and does not itself prove a narrow published tarball.
+- package entry point remains `dist/build.js`;
+- build now runs runtime bundle + declaration build;
+- package content is curated with `files: ["dist"]`;
+- TypeScript declarations are first-class at `dist/types/index.d.ts`;
+- package root declares `types: dist/types/index.d.ts`;
+- V2 browser entry source exists;
+- CI now includes typecheck and package-content validation through the owning lane's merged work;
+- no dependency or lockfile change was required for declaration generation.
 
-These observations describe configuration. They are **not** proof that every implied browser/Node environment is supported.
+The old finding “no `types` field” is therefore superseded.
 
-## Current CI proof
+## M5-C — characterization and test strategy
 
-M5-A established executable CI with:
+**Status: substantially complete for the current migration decision.**
 
-- Node.js 22;
-- `npm ci`;
-- Karma/Jasmine test execution through Xvfb;
-- `npm run build`;
-- immutable-SHA-pinned GitHub Actions.
+PR #39 is merged. Its synchronized exact head passed both:
 
-This provides a real modernization gate, but it proves one current environment rather than a full support matrix.
+- Test and build — SUCCESS;
+- Gitleaks — SUCCESS.
 
-## M5-C — test strategy decision
+This establishes a behavioral safety net before V2 changes.
 
-The existing Karma/Jasmine suite is now executable in CI. Therefore there is no justification for replacing it merely because it is old.
+The existing Karma/Jasmine path remains executable and useful for browser behavior. M5 does not require replacing it merely because it is old.
 
-Recommended sequence:
-
-1. land characterization coverage through the Haversine-owning lane after exact-head CI proof;
-2. identify which tests actually need a browser;
-3. separate pure distance/selection behavior from browser Geolocation behavior;
-4. only then decide whether to retain Karma/Jasmine, migrate pure tests, or split the suite.
-
-Acceptance for a migration decision:
-
-- current V1 behavior is captured;
-- old and new test paths agree on supported behavior;
-- no product behavior changes are hidden inside tooling migration;
-- exact-head CI remains green.
+A future test-runner migration remains optional and should be justified only by maintenance/reliability benefits, not fashion.
 
 ## M5-D — package contract verification
 
-Before changing packaging fields, the owning lane should produce evidence for:
+**Status: strongly advanced.**
 
-1. `npm pack --dry-run --json`;
-2. fresh install of the generated tarball;
-3. CommonJS/Node consumption of the declared `main` entry;
-4. browser/UMD consumption;
-5. whether TypeScript declarations are intentionally supported;
-6. package contents and size;
-7. supported Node/browser matrix;
-8. whether `src`, tests, docs, maps, or other files are unintentionally shipped.
+Verified by merged owning-lane work:
 
-Only after this evidence should `files`, `exports`, `types`, `engines`, ESM/CJS dual packaging, or declaration generation be proposed.
+- package contents are curated through `files: ["dist"]`;
+- TypeScript declarations are generated;
+- root declaration entry is declared;
+- Node package smoke testing and npm package-content validation have been added to the owning-lane verification;
+- V1/V2 compatibility structure is explicit;
+- browser entry source is explicit.
 
-## M5-E — stale dependency maintenance classification
+Still open:
 
-The repository currently has old Dependabot PRs #24–#31 from 2022–2023.
+- final dual ESM/CJS runtime contract;
+- conditional `exports` map;
+- final root/browser/legacy subpath contract;
+- exact supported Node/browser matrix;
+- final packed-tarball proof after exports are complete.
 
-Current classification:
+## Active package-contract experiment
 
-| PR | Dependency area | M5 handling |
-| --- | --- | --- |
-| #24 | terser | stale; re-evaluate through current dependency tree |
-| #25 | socket.io-parser | stale/transitive; do not merge independently without current graph |
-| #26 | loader-utils | stale/transitive; do not merge independently without current graph |
-| #27 | engine.io / socket.io | stale/transitive; do not merge independently without current graph |
-| #28 | qs / body-parser | stale/transitive; do not merge independently without current graph |
-| #29 | json5 | stale/transitive; do not merge independently without current graph |
-| #30 | ua-parser-js | stale/transitive; do not merge independently without current graph |
-| #31 | minimist | stale/transitive; do not merge independently without current graph |
+Draft PR #73 — `build: add dual ESM/CJS package exports` — is the current Haversine-owning lane frontier.
 
-These PRs are historical security/maintenance signals, not current merge candidates.
+Its scope proposes:
 
-Recommended owning-lane action after a fresh `npm ls --all` + `npm audit --json`:
+- root ESM/CJS artifacts;
+- browser ESM/CJS artifacts;
+- legacy ESM/CJS artifacts;
+- conditional exports for root, browser, legacy and package.json;
+- `main`, `module`, `types`, and `sideEffects`;
+- real packed-tarball installs into temporary CommonJS and ESM consumers.
 
-- close as superseded when the dependency is no longer present or the required version is already reached by a broader update;
-- replace with a current focused remediation PR when still relevant;
-- keep only when exact-head install/test/build proves the old PR remains a clean, minimal fix.
+Current exact head `7192d764cee609b0d79eef580277605f25faeb9d` has Secret Scan SUCCESS.
 
-No stale Dependabot PR should be merged merely to reduce the open-PR count.
+Because PR #73 remains draft, central governance must not treat the proposed exports contract as accepted or merged.
 
-## Characterization PR #39
+## M5-E — dependency maintenance
 
-PR #39 is a valuable M5 input because it documents shipped V1 behavior without production changes.
+The old Dependabot PRs #24–#31 remain open and stale.
 
-However its current head predates the merged CI baseline. M5 should not infer GREEN status from the default branch.
+They must not be merged merely to reduce open PR count.
 
-Required before merge:
+The correct order remains:
 
-- synchronize/recreate through the Haversine-owning lane;
-- require exact-head CI + secret/governance checks;
-- confirm it remains test-only;
-- then merge under the owning lane's authority.
+1. current dependency graph;
+2. current audit evidence;
+3. classify each old PR as obsolete, superseded, current, or intentionally deferred;
+4. remediate through fresh focused PRs only when still relevant;
+5. exact-head install/test/build proof.
 
 ## M5-F — release readiness
 
-A new npm release is **not yet justified solely by repository modernization**.
+A new npm release should occur only when there is a coherent user-facing package contract to release.
 
-Before any release:
+The strongest likely release boundary is after:
 
-- define the user-facing reason for the release;
-- verify package tarball contract;
-- decide version semantics;
-- prepare changelog/release notes;
-- verify publish authentication and provenance model;
-- prefer short-lived trusted/OIDC publishing where supported;
-- verify the exact package artifact before publish.
+- the V2 compatibility architecture is stable;
+- the exports contract is accepted;
+- package tarball consumers pass in both module systems;
+- migration documentation is aligned with shipped behavior;
+- dependency/security review is current;
+- version semantics and release notes are explicit;
+- publishing uses a safe short-lived/provenance-capable model.
 
-No release should be created merely to make the repository look active.
+No release should be created solely to make the repository appear active.
 
-## Current decision
+## Current M5 assessment
 
-M5-A is complete and M5-B inventory is complete.
+M5 is no longer primarily a modernization-planning milestone.
 
-The next substantive Haversine-owning work should be:
+It has become an implementation-and-release-readiness milestone with substantial engineering proof already merged.
 
-```text
-characterization evidence
-→ package contract verification
-→ current dependency/security inventory
-→ bounded toolchain/dependency decisions
-→ release readiness
-```
+Current state:
 
-Central GitHub governance should continue to record evidence and enforce truthful gates without taking ownership of Haversine product behavior.
+- M5-A executable CI — **DONE**;
+- M5-B toolchain inventory — **DONE**;
+- M5-C characterization — **DONE for current V2 migration**;
+- M5-D package contract — **ADVANCED; dual exports pending**;
+- M5-E dependency/security remediation — **PENDING CURRENT GRAPH/AUDIT**;
+- M5-F release readiness — **PARTIAL**;
+- M5-G flagship polish — **PARTIAL**.
+
+Central governance should now follow the Haversine-owning lane's real engineering evidence rather than duplicate it.
