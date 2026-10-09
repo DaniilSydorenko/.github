@@ -44,8 +44,18 @@ CLASS_FILE_CONTROLS = {
     ],
 }
 
+def candidate_exists(root: Path, candidate: str) -> bool:
+    path = root / candidate
+    # GRS controls distinguish required files from required directories.
+    # A directory named README.md/ must never satisfy a README requirement,
+    # and a plain file named .github/ISSUE_TEMPLATE must never satisfy the
+    # issue-template directory requirement.
+    if candidate == ".github/ISSUE_TEMPLATE":
+        return path.is_dir()
+    return path.is_file()
+
 def exists_any(root: Path, candidates: tuple[str, ...]) -> bool:
-    return any((root / candidate).exists() for candidate in candidates)
+    return any(candidate_exists(root, candidate) for candidate in candidates)
 
 def main() -> int:
     parser = argparse.ArgumentParser()
