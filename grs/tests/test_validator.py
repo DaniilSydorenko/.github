@@ -46,7 +46,7 @@ class ValidatorCliTests(unittest.TestCase):
         self.assert_fails("invalid-schema-version.json", "schema must equal 1")
 
     def test_schema_type_fails(self) -> None:
-        self.assert_fails("invalid-schema-type.json", "schema must equal 1")
+        self.assert_fails("invalid-schema-number-type.json", "schema must equal 1")
 
     def test_standard_version_type_fails(self) -> None:
         self.assert_fails("invalid-standard-version-type.json", "standard.version must equal 1")
