@@ -1,0 +1,6 @@
+{
+  "schema": 1,
+  "standard": { "version": true },
+  "repository": { "class": "profile", "maturity": "active", "visibility": "public" },
+  "portfolio": { "flagship": false, "pin_candidate": false }
+}
