@@ -53,9 +53,9 @@ def main() -> int:
     if result := reject_unknown(standard, STANDARD_KEYS, "standard"):
         return result
 
-    if data.get("schema") != 1:
+    if type(data.get("schema")) is not int or data["schema"] != 1:
         return fail("schema must equal 1")
-    if standard.get("version") != 1:
+    if type(standard.get("version")) is not int or standard["version"] != 1:
         return fail("standard.version must equal 1")
 
     repository = data.get("repository")
@@ -73,7 +73,7 @@ def main() -> int:
         ("repository.visibility", repository.get("visibility"), ALLOWED_VISIBILITY),
     )
     for name, value, allowed in checks:
-        if value not in allowed:
+        if not isinstance(value, str) or value not in allowed:
             return fail(f"{name} has unsupported value {value!r}")
 
     for key in ("flagship", "pin_candidate"):
