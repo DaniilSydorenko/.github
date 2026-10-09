@@ -47,6 +47,29 @@ class RepositoryAuditTests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("FAIL: secret hygiene workflow", result.stdout)
 
+    def test_directory_cannot_masquerade_as_required_file(self) -> None:
+        result = self.run_audit(
+            "profile",
+            ["README.md/", ".gitignore", ".github/workflows/secret-scan.yml"],
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("FAIL: README/status", result.stdout)
+
+    def test_file_cannot_masquerade_as_issue_template_directory(self) -> None:
+        result = self.run_audit(
+            "product",
+            [
+                "README.md",
+                ".gitignore",
+                "LICENSE",
+                ".github/workflows/secret-scan.yml",
+                ".github/PULL_REQUEST_TEMPLATE.md",
+                ".github/ISSUE_TEMPLATE",
+            ],
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("FAIL: issue taxonomy", result.stdout)
+
     def test_oss_library_missing_governance_fails_truthfully(self) -> None:
         result = self.run_audit("oss-library", ["README.md", ".gitignore", "LICENSE.txt", ".github/workflows/secret-scan.yml"])
         self.assertNotEqual(result.returncode, 0)
