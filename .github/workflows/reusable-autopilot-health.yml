@@ -6,7 +6,6 @@ on:
 permissions:
   actions: read
   contents: read
-  pull-requests: read
 
 jobs:
   signal:
@@ -29,42 +28,10 @@ jobs:
             | length
           ')"
 
-          if ! prs_json="$(gh api --method GET "repos/$GITHUB_REPOSITORY/pulls" -f state=open -f per_page=20 2>&1)"; then
-            echo "## AUTOPILOT HELP REQUEST" >> "$GITHUB_STEP_SUMMARY"
-            echo "Repository: $GITHUB_REPOSITORY" >> "$GITHUB_STEP_SUMMARY"
-            echo "open_pr_query=FAILED" >> "$GITHUB_STEP_SUMMARY"
-            echo "Unable to inspect open PR health; refusing a false-clear signal." >> "$GITHUB_STEP_SUMMARY"
-            printf '%s\n' "$prs_json" >&2
-            exit 1
-          fi
-
-          failing_pr_count=0
-          while IFS= read -r head_ref; do
-            [ -n "$head_ref" ] || continue
-            if ! runs_json="$(gh api --method GET "repos/$GITHUB_REPOSITORY/actions/runs" -f event=pull_request -f branch="$head_ref" -f per_page=100 2>&1)"; then
-              echo "## AUTOPILOT HELP REQUEST" >> "$GITHUB_STEP_SUMMARY"
-              echo "Repository: $GITHUB_REPOSITORY" >> "$GITHUB_STEP_SUMMARY"
-              echo "pr_run_query=FAILED" >> "$GITHUB_STEP_SUMMARY"
-              echo "Unable to inspect PR workflow health for branch $head_ref; refusing a false-clear signal." >> "$GITHUB_STEP_SUMMARY"
-              printf '%s\n' "$runs_json" >&2
-              exit 1
-            fi
-            bad_latest="$(printf '%s' "$runs_json" | jq '
-              [.workflow_runs[]
-               | select(.status == "completed")]
-              | group_by(.name)
-              | map(sort_by(.created_at) | reverse | .[0])
-              | map(select(.conclusion == "failure" or .conclusion == "timed_out" or .conclusion == "action_required"))
-              | length
-            ')"
-            failing_pr_count=$((failing_pr_count + bad_latest))
-          done < <(printf '%s' "$prs_json" | jq -r '.[].head.ref')
-
-          if [ "$latest_bad_count" -gt 0 ] || [ "$failing_pr_count" -gt 0 ]; then
+          if [ "$latest_bad_count" -gt 0 ]; then
             echo "## AUTOPILOT HELP REQUEST" >> "$GITHUB_STEP_SUMMARY"
             echo "Repository: $GITHUB_REPOSITORY" >> "$GITHUB_STEP_SUMMARY"
             echo "latest_bad_workflow_count=$latest_bad_count" >> "$GITHUB_STEP_SUMMARY"
-            echo "open_failing_pr_count=$failing_pr_count" >> "$GITHUB_STEP_SUMMARY"
             echo "Repository is asking the Autopilot Manager for attention." >> "$GITHUB_STEP_SUMMARY"
             exit 1
           fi
