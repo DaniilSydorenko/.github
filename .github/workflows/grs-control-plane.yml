@@ -6,7 +6,7 @@ on:
       - "governance/**"
       - "grs/**"
       - "workflow-templates/**"
-      - ".github/workflows/grs-control-plane.yml"
+      - ".github/workflows/grs-control-plane.yml"\n      - ".github/workflows/reusable-autopilot-health.yml"\n      - ".github/workflows/reusable-autopilot-health.yml"
   push:
     branches: [main]
     paths:
