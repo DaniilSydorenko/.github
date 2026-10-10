@@ -29,19 +29,28 @@ jobs:
             | length
           ')"
 
-          if ! prs_json="$(gh pr list --repo "$GITHUB_REPOSITORY" --state open --limit 20 --json number,statusCheckRollup 2>&1)"; then
+          # GitHub's GraphQL statusCheckRollup may be inaccessible to GITHUB_TOKEN.
+          # Use REST for PR enumeration and commit check runs instead.
+          if ! prs_json="$(gh api --paginate "repos/$GITHUB_REPOSITORY/pulls?state=open&per_page=100" --jq '[.[] | {number, head_sha: .head.sha}]' 2>&1)"; then
             echo "## AUTOPILOT HELP REQUEST" >> "$GITHUB_STEP_SUMMARY"
             echo "Repository: $GITHUB_REPOSITORY" >> "$GITHUB_STEP_SUMMARY"
             echo "open_pr_query=FAILED" >> "$GITHUB_STEP_SUMMARY"
-            echo "Unable to inspect open PR health; refusing a false-clear signal." >> "$GITHUB_STEP_SUMMARY"
             printf '%s\n' "$prs_json" >&2
             exit 1
           fi
 
-          failing_pr_count="$(printf '%s' "$prs_json" | jq '
-            [.[] | select(any(.statusCheckRollup[]?; .conclusion == "FAILURE" or .conclusion == "TIMED_OUT" or .conclusion == "ACTION_REQUIRED"))]
-            | length
-          ')"
+          failing_pr_count=0
+          while IFS= read -r sha; do
+            [ -n "$sha" ] || continue
+            if ! checks_json="$(gh api "repos/$GITHUB_REPOSITORY/commits/$sha/check-runs?per_page=100" 2>&1)"; then
+              echo "check_run_query=FAILED sha=$sha" >> "$GITHUB_STEP_SUMMARY"
+              printf '%s\n' "$checks_json" >&2
+              exit 1
+            fi
+            if [ "$(printf '%s' "$checks_json" | jq '[.check_runs[] | select(.conclusion == "failure" or .conclusion == "timed_out" or .conclusion == "action_required")] | length')" -gt 0 ]; then
+              failing_pr_count=$((failing_pr_count + 1))
+            fi
+          done < <(printf '%s' "$prs_json" | jq -r '.[].head_sha')
 
           if [ "$latest_bad_count" -gt 0 ] || [ "$failing_pr_count" -gt 0 ]; then
             echo "## AUTOPILOT HELP REQUEST" >> "$GITHUB_STEP_SUMMARY"
