@@ -12,6 +12,7 @@ class ReusableAutopilotHealthContractTest(unittest.TestCase):
         text = HEALTH.read_text()
         self.assertNotIn("|| echo '[]'", text)
         self.assertIn('if ! prs_json="$(gh pr list', text)
+        self.assertIn('--repo "$GITHUB_REPOSITORY"', text)
         self.assertIn("open_pr_query=FAILED", text)
         self.assertIn("refusing a false-clear signal", text)
         self.assertIn("exit 1", text)
