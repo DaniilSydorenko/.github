@@ -8,17 +8,14 @@ CONTROL = ROOT / ".github" / "workflows" / "grs-control-plane.yml"
 
 
 class ReusableAutopilotHealthContractTest(unittest.TestCase):
-    def test_pr_query_fails_closed(self):
+    def test_health_signal_stays_actions_only(self):
         text = HEALTH.read_text()
-        self.assertNotIn("|| echo '[]'", text)
         self.assertNotIn("statusCheckRollup", text)
         self.assertNotIn("gh pr list", text)
-        self.assertIn('gh api --method GET "repos/$GITHUB_REPOSITORY/pulls"', text)
-        self.assertIn('gh api --method GET "repos/$GITHUB_REPOSITORY/actions/runs"', text)
-        self.assertIn("open_pr_query=FAILED", text)
-        self.assertIn("pr_run_query=FAILED", text)
-        self.assertIn("refusing a false-clear signal", text)
-        self.assertIn("exit 1", text)
+        self.assertNotIn("/pulls", text)
+        self.assertNotIn("open_failing_pr_count", text)
+        self.assertIn('actions/runs?per_page=30', text)
+        self.assertIn('latest_bad_workflow_count', text)
 
     def test_health_workflow_changes_are_ci_guarded(self):
         text = CONTROL.read_text()
