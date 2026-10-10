@@ -29,7 +29,15 @@ jobs:
             | length
           ')"
 
-          prs_json="$(gh pr list --state open --limit 20 --json number,statusCheckRollup 2>/dev/null || echo '[]')"
+          if ! prs_json="$(gh pr list --state open --limit 20 --json number,statusCheckRollup 2>&1)"; then
+            echo "## AUTOPILOT HELP REQUEST" >> "$GITHUB_STEP_SUMMARY"
+            echo "Repository: $GITHUB_REPOSITORY" >> "$GITHUB_STEP_SUMMARY"
+            echo "open_pr_query=FAILED" >> "$GITHUB_STEP_SUMMARY"
+            echo "Unable to inspect open PR health; refusing a false-clear signal." >> "$GITHUB_STEP_SUMMARY"
+            printf '%s\n' "$prs_json" >&2
+            exit 1
+          fi
+
           failing_pr_count="$(printf '%s' "$prs_json" | jq '
             [.[] | select(any(.statusCheckRollup[]?; .conclusion == "FAILURE" or .conclusion == "TIMED_OUT" or .conclusion == "ACTION_REQUIRED"))]
             | length
