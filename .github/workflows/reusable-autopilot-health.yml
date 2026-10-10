@@ -29,7 +29,7 @@ jobs:
             | length
           ')"
 
-          if ! prs_json="$(gh pr list --state open --limit 20 --json number,statusCheckRollup 2>&1)"; then
+          if ! prs_json="$(gh pr list --repo "$GITHUB_REPOSITORY" --state open --limit 20 --json number,statusCheckRollup 2>&1)"; then
             echo "## AUTOPILOT HELP REQUEST" >> "$GITHUB_STEP_SUMMARY"
             echo "Repository: $GITHUB_REPOSITORY" >> "$GITHUB_STEP_SUMMARY"
             echo "open_pr_query=FAILED" >> "$GITHUB_STEP_SUMMARY"
