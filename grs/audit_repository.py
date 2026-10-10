@@ -65,11 +65,22 @@ def main() -> int:
 
     try:
         data = json.loads(args.manifest.read_text(encoding="utf-8"))
+        schema = data["schema"]
+        standard_version = data["standard"]["version"]
         repository = data["repository"]
         repo_class = repository["class"]
         visibility = repository["visibility"]
     except (OSError, json.JSONDecodeError, KeyError, TypeError) as exc:
         print(f"FAIL: cannot load repository class from manifest: {exc}")
+        return 1
+
+    # The auditor must independently reject unsupported manifest contracts.
+    # A passing file-surface audit is not valid for an unknown GRS version.
+    if type(schema) is not int or schema != 1:
+        print(f"FAIL: unsupported manifest schema version {schema!r}")
+        return 1
+    if type(standard_version) is not int or standard_version != 1:
+        print(f"FAIL: unsupported GRS standard version {standard_version!r}")
         return 1
 
     # Reject unsupported values before selecting controls. Unknown classes must
