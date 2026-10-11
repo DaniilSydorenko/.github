@@ -4,7 +4,7 @@
 
 | Task | Color | % |
 | --- | --- | ---: |
-| Whole GitHub program | 🔵 | 82% |
+| Whole GitHub program | 🔵 | 83% |
 
 ## M0 — Final Forensic Audit
 
@@ -111,7 +111,7 @@
 
 | Task | Color | % |
 | --- | --- | ---: |
-| M5 — Haversine OSS Flagship | 🔵 | 98% |
+| M5 — Haversine OSS Flagship | 🔵 | 99% |
 | Haversine forensic baseline | 🟢 | 100% |
 | Haversine governance | 🟢 | 100% |
 | Haversine README modernization | 🟢 | 100% |
@@ -150,7 +150,9 @@
 | Haversine 2 prerelease gate | 🟢 | 100% |
 | [NEW] Legacy issue #12 resolution/closeout | 🟢 | 100% |
 | [NEW] Historical issue #1 triage/closeout | 🟢 | 100% |
-| M5 final release-readiness closeout | 🔵 | 96% |
+| [NEW] Haversine lint/format quality gate | 🟢 | 100% |
+| [NEW] Haversine CHANGELOG/release-notes baseline | 🟢 | 100% |
+| M5 final release-readiness closeout | 🔵 | 98% |
 
 ## M6 — Norway Geo
 
@@ -259,7 +261,7 @@
 
 | Task | Color | % |
 | --- | --- | ---: |
-| Engineering Governance v1 workstream | 🔵 | 47% |
+| Engineering Governance v1 workstream | 🔵 | 58% |
 | GOV-M01 — Baseline Inventory | 🟢 | 100% |
 | GOV-M02 — Authority & Conflict Matrix | 🟢 | 100% |
 | GOV-M03 — Governance Contract v1 | 🔵 | 35% |
@@ -274,10 +276,10 @@
 | Central seven-repository registry specification | 🔵 | 30% |
 | Registry schema / GRS integration | 🔵 | 55% |
 | No-duplicate-status-storage rule | 🟢 | 100% |
-| GOV-M05 — Haversine Pilot | ⚪ | 0% |
-| Pilot discovery and task identity | ⚪ | 0% |
-| Pilot execution/evidence trace | ⚪ | 0% |
-| Pilot roadmap reconciliation | ⚪ | 0% |
+| GOV-M05 — Haversine Pilot | 🟢 | 100% |
+| Pilot discovery and task identity | 🟢 | 100% |
+| Pilot execution/evidence trace | 🟢 | 100% |
+| Pilot roadmap reconciliation | 🟢 | 100% |
 | GOV-M06 — Seven-Repository Adoption | 🌱 | 15% |
 | Career Intelligence discovery entrypoint | ⚪ | 0% |
 | Engineering Handbook discovery entrypoint | ⚪ | 0% |
