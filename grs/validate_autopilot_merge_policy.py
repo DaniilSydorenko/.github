@@ -52,6 +52,11 @@ def main() -> int:
 
     if not isinstance(data, dict):
         return fail("policy root must be an object")
+
+    allowed_top_level = {"version", "mode", "merge_pr", "operations", "safe_merge_scope"}
+    unknown_top_level = sorted(set(data) - allowed_top_level)
+    if unknown_top_level:
+        return fail(f"policy contains unsupported properties: {', '.join(unknown_top_level)}")
     if data.get("version") != 1:
         return fail("policy version must equal 1")
     if data.get("mode") != "default-deny":
@@ -64,6 +69,9 @@ def main() -> int:
     conditions = merge_pr.get("required_conditions")
     if not isinstance(conditions, list) or not all(isinstance(value, str) for value in conditions):
         return fail("merge_pr.required_conditions must be a string list")
+
+    if len(conditions) != len(set(conditions)):
+        return fail("merge_pr.required_conditions must not contain duplicates")
 
     missing_conditions = sorted(REQUIRED_CONDITIONS - set(conditions))
     if missing_conditions:

@@ -55,6 +55,69 @@ class AutopilotMergePolicyTests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("exact-head-sha-verified", result.stdout)
 
+    def test_history_rewrite_cannot_become_automatic(self) -> None:
+        data = json.loads(POLICY.read_text(encoding="utf-8"))
+        data["operations"]["history_rewrite"] = "automatic"
+        result = self.run_policy(data)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("history_rewrite must remain owner-only", result.stdout)
+
+    def test_credential_change_cannot_become_automatic(self) -> None:
+        data = json.loads(POLICY.read_text(encoding="utf-8"))
+        data["operations"]["credential_rotation_or_revocation"] = "automatic"
+        result = self.run_policy(data)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("credential_rotation_or_revocation must remain owner-only", result.stdout)
+
+    def test_stable_release_publish_remains_owner_only(self) -> None:
+        data = json.loads(POLICY.read_text(encoding="utf-8"))
+        data["operations"]["stable_release_publish"] = "automatic"
+        result = self.run_policy(data)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("stable_release_publish must remain owner-only", result.stdout)
+
+    def test_other_worker_roadmap_remains_forbidden(self) -> None:
+        data = json.loads(POLICY.read_text(encoding="utf-8"))
+        data["operations"]["other_worker_roadmap"] = "conditional"
+        result = self.run_policy(data)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("other_worker_roadmap must remain forbidden", result.stdout)
+
+    def test_changed_head_merge_remains_forbidden(self) -> None:
+        data = json.loads(POLICY.read_text(encoding="utf-8"))
+        data["operations"]["merge_changed_head"] = "conditional"
+        result = self.run_policy(data)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("merge_changed_head must remain forbidden", result.stdout)
+
+    def test_domain_product_code_remains_domain_owner_only(self) -> None:
+        data = json.loads(POLICY.read_text(encoding="utf-8"))
+        data["operations"]["domain_product_code"] = "automatic"
+        result = self.run_policy(data)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("domain_product_code must remain domain-owner-only", result.stdout)
+
+    def test_required_ci_green_condition_is_required(self) -> None:
+        data = json.loads(POLICY.read_text(encoding="utf-8"))
+        data["merge_pr"]["required_conditions"].remove("required-ci-green")
+        result = self.run_policy(data)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("required-ci-green", result.stdout)
+
+    def test_duplicate_required_condition_fails_closed(self) -> None:
+        data = json.loads(POLICY.read_text(encoding="utf-8"))
+        data["merge_pr"]["required_conditions"].append("required-ci-green")
+        result = self.run_policy(data)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("must not contain duplicates", result.stdout)
+
+    def test_unknown_top_level_policy_property_fails_closed(self) -> None:
+        data = json.loads(POLICY.read_text(encoding="utf-8"))
+        data["future_implicit_authority"] = True
+        result = self.run_policy(data)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("unsupported properties", result.stdout)
+
 
 if __name__ == "__main__":
     unittest.main()
