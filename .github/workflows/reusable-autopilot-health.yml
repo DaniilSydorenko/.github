@@ -17,13 +17,21 @@ jobs:
         run: |
           set -euo pipefail
 
-          latest_bad_count="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs?per_page=100" --jq '
+          active_workflow_ids="$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows?per_page=100" --jq '
+            [.workflows[]
+             | select(.state == "active")
+             | .id]
+            | join(",")
+          ')"
+
+          latest_bad_count="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs?per_page=100" --jq --arg active_ids ",$active_workflow_ids," '
             [.workflow_runs[]
              | select(.name != "Autopilot Help Signal")
              | select(.name != "Reusable Autopilot Health")
              | select(.head_branch == "main")
-             | select(.status == "completed")]
-            | group_by(.name)
+             | select(.status == "completed")
+             | select($active_ids | contains("," + (.workflow_id | tostring) + ","))]
+            | group_by(.workflow_id)
             | map(sort_by(.created_at) | reverse | .[0])
             | map(select(.conclusion == "failure" or .conclusion == "timed_out" or .conclusion == "action_required"))
             | length
