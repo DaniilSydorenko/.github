@@ -1,0 +1,46 @@
+{
+  "schema": 1,
+  "repository": "DaniilSydorenko/career-intelligence",
+  "target": {
+    "visibility": "public",
+    "mode": "public-code-private-data",
+    "status": "extraction-required"
+  },
+  "sensitive_surfaces": [
+    {
+      "path": "packages/importer/src/constants.ts",
+      "disposition": "externalize",
+      "reason": "private source filename, fingerprint and reconciliation expectations belong to a private import manifest"
+    },
+    {
+      "path": "docs/PUBLIC_ACTIVATION.md",
+      "disposition": "sanitize",
+      "reason": "internal entity keys and private activation/deferred state should not be source-controlled publicly"
+    },
+    {
+      "path": "src/lib/career-fixtures.ts",
+      "disposition": "syntheticize",
+      "reason": "test fixtures should not mix real company labels with synthetic career data"
+    },
+    {
+      "path": "src/data/",
+      "disposition": "review",
+      "reason": "real career-derived aggregates and editorial data must be explicit public projection or externalized"
+    },
+    {
+      "path": ".local/migration/",
+      "disposition": "private-runtime",
+      "reason": "raw workbook and private import manifest remain outside Git"
+    }
+  ],
+  "history": {
+    "audit_required": true,
+    "rewrite_owner_gated": true
+  },
+  "gates": {
+    "current_tree_public_safe": false,
+    "history_public_safe": false,
+    "exact_head_ci_green": false,
+    "owner_visibility_approval": false
+  }
+}
