@@ -49,3 +49,7 @@ Human-controlled gates remain mandatory for consequential operations including p
 ## Rollout order
 
 Specification → schema/class profiles → validator → reusable workflow → community defaults → pilots → active repositories → historical contract → drift detection → Career Ecosystem/Autopilot integration.
+
+## Operating model
+
+See [OPERATING-MODEL.md](OPERATING-MODEL.md) for the executable sources of truth, drift-protection rules, publication boundary and HQ/Autopilot ownership model.
