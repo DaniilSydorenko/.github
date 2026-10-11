@@ -4,7 +4,7 @@
 
 | Task | Color | % |
 | --- | --- | ---: |
-| Whole GitHub program | 🔵 | 76% |
+| Whole GitHub program | 🔵 | 77% |
 
 ## M0 — Final Forensic Audit
 
@@ -203,7 +203,7 @@
 
 | Task | Color | % |
 | --- | --- | ---: |
-| M9 — Living Governance | 🚀 | 85% |
+| M9 — Living Governance | 🚀 | 90% |
 | GRS schema baseline | 🟢 | 100% |
 | Strict manifest-version validation | 🟢 | 100% |
 | Required-path type validation | 🟢 | 100% |
@@ -216,8 +216,10 @@
 | Health workflow permission minimization | 🟢 | 100% |
 | REST-backed health inspection | 🟢 | 100% |
 | Governance workflow regression coverage | 🔵 | 90% |
-| Repository-class-specific governance | 🔵 | 75% |
-| Governance drift detection | 🔵 | 75% |
+| Repository-class-specific governance | 🟢 | 100% |
+| [NEW] Machine-readable repository class profiles | 🟢 | 100% |
+| [NEW] Fail-closed class-profile loading and validation | 🟢 | 100% |
+| Governance drift detection | 🔵 | 85% |
 | Governance documentation closeout | 🔵 | 80% |
 
 ## M10 — GitHub Autopilot
