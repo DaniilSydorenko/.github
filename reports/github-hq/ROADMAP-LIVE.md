@@ -176,13 +176,21 @@
 
 | Task | Color | % |
 | --- | --- | ---: |
-| M8 — Super Profile | 🌱 | 30% |
+| M8 — Super Profile | 🌱 | 32% |
 | Recruiter-first GitHub profile narrative | 🔵 | 55% |
 | Senior Product/Frontend positioning | 🔵 | 65% |
 | Repository pin strategy | 🌱 | 40% |
 | Cross-repository visual consistency | 🌱 | 25% |
 | Ecosystem navigation | 🌱 | 25% |
-| Flagship repository metadata consistency | 🌱 | 35% |
+| Flagship repository metadata consistency | 🌱 | 40% |
+| [NEW] Portfolio repository topics / hashtags taxonomy | 🔵 | 20% |
+| Repository topics audit | 🟢 | 100% |
+| Haversine repository topics | 🟢 | 100% |
+| .github repository topics | 🟠 | 0% |
+| Engineering Labs repository topics | 🟠 | 0% |
+| Engineering Handbook repository topics | 🟠 | 0% |
+| Career Intelligence repository topics | 🟠 | 0% |
+| Listing Kit repository topics | 🟠 | 0% |
 | Profile evidence hierarchy | 🌱 | 30% |
 | 30-second recruiter comprehension QA | ⚪ | 0% |
 | Final public-profile visual QA | ⚪ | 0% |
