@@ -231,7 +231,7 @@
 
 | Task | Color | % |
 | --- | --- | ---: |
-| M10 — GitHub Autopilot | 🚀 | 97% |
+| M10 — GitHub Autopilot | 🚀 | 96% |
 | Scheduled Autopilot execution | 🟢 | 100% |
 | Live-state-before-mutation rule | 🟢 | 100% |
 | Exact-head merge safety | 🟢 | 100% |
@@ -250,4 +250,5 @@
 | Autonomous merge policy hardening | 🟢 | 100% |
 | [NEW] Machine-readable default-deny merge policy | 🟢 | 100% |
 | [NEW] Merge-policy regression validator | 🟢 | 100% |
-| Autopilot final operating closeout | 🔵 | 92% |
+| [NEW] Control Plane Manager unexpected disablement #124 | 🟠 | 20% |
+| Autopilot final operating closeout | 🔵 | 88% |
