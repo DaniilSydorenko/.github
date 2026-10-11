@@ -33,6 +33,14 @@ class ReusableAutopilotHealthContractTest(unittest.TestCase):
                 f"{path} must be included in both PR and main-push GRS path filters",
             )
 
+    def test_public_readme_changes_are_ci_guarded(self):
+        text = CONTROL.read_text()
+        self.assertEqual(
+            text.count('      - "README.md"'),
+            2,
+            "README.md must trigger GRS on both PRs and main pushes",
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
