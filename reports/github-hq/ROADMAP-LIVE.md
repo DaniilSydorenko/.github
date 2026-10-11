@@ -220,14 +220,16 @@
 
 | Task | Color | % |
 | --- | --- | ---: |
-| M10 — GitHub Autopilot | 🚀 | 90% |
+| M10 — GitHub Autopilot | 🚀 | 92% |
 | Scheduled Autopilot execution | 🟢 | 100% |
 | Live-state-before-mutation rule | 🟢 | 100% |
 | Exact-head merge safety | 🟢 | 100% |
 | Force-with-lease branch safety | 🟢 | 100% |
 | Owner visibility gate | 🟢 | 100% |
 | Bounded repository ownership | 🟢 | 100% |
-| Collision avoidance with domain workers | 🔵 | 95% |
+| [NEW] HQ / Autopilot operating-boundary contract | 🟢 | 100% |
+| Separate HQ and Autopilot roadmap ownership | 🟢 | 100% |
+| Collision avoidance with domain workers | 🔵 | 97% |
 | CI PRESTART/infrastructure classification | 🟢 | 100% |
 | Retry-churn suppression | 🔵 | 95% |
 | Autopilot Help signal | 🔵 | 90% |
