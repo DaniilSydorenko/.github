@@ -1,0 +1,36 @@
+{
+  "schema": 1,
+  "repository": "DaniilSydorenko/engineering-handbook",
+  "target": {
+    "visibility": "public",
+    "mode": "canonical-public",
+    "status": "extraction-required"
+  },
+  "sensitive_surfaces": [
+    {
+      "path": "daniil/",
+      "disposition": "externalize",
+      "reason": "personal evidence, gap, knowledge and learning-roadmap state belongs to a private overlay"
+    },
+    {
+      "path": "README.md",
+      "disposition": "sanitize",
+      "reason": "remove public Handbook dependence on Daniil-specific project/evidence mapping"
+    },
+    {
+      "path": "automation/AUTONOMOUS_WORKER_PROMPT.md",
+      "disposition": "sanitize",
+      "reason": "worker must not require checked-in personal gap state"
+    }
+  ],
+  "history": {
+    "audit_required": true,
+    "rewrite_owner_gated": true
+  },
+  "gates": {
+    "current_tree_public_safe": false,
+    "history_public_safe": false,
+    "exact_head_ci_green": false,
+    "owner_visibility_approval": false
+  }
+}
