@@ -4,7 +4,7 @@
 
 | Task | Color | % |
 | --- | --- | ---: |
-| Whole GitHub program | 🔵 | 78% |
+| Whole GitHub program | 🔵 | 79% |
 
 ## M0 — Final Forensic Audit
 
@@ -180,23 +180,25 @@
 
 | Task | Color | % |
 | --- | --- | ---: |
-| M8 — Super Profile | 🌱 | 32% |
-| Recruiter-first GitHub profile narrative | 🔵 | 55% |
-| Senior Product/Frontend positioning | 🔵 | 65% |
+| M8 — Super Profile | 🔵 | 48% |
+| Recruiter-first GitHub profile narrative | 🔵 | 85% |
+| Senior Product/Frontend positioning | 🔵 | 90% |
 | Repository pin strategy | 🌱 | 40% |
 | Cross-repository visual consistency | 🌱 | 25% |
 | Ecosystem navigation | 🌱 | 25% |
-| Flagship repository metadata consistency | 🌱 | 40% |
+| Flagship repository metadata consistency | 🌱 | 45% |
 | [NEW] Portfolio repository topics / hashtags taxonomy | 🔵 | 20% |
 | Repository topics audit | 🟢 | 100% |
 | Haversine repository topics | 🟢 | 100% |
+| [NEW] DaniilSydorenko profile repository topics | 🟠 | 0% |
 | .github repository topics | 🟠 | 0% |
 | Engineering Labs repository topics | 🟠 | 0% |
 | Engineering Handbook repository topics | 🟠 | 0% |
 | Career Intelligence repository topics | 🟠 | 0% |
 | Listing Kit repository topics | 🟠 | 0% |
-| Profile evidence hierarchy | 🌱 | 30% |
-| 30-second recruiter comprehension QA | ⚪ | 0% |
+| [NEW] Recruiter-first profile README pass | 🟢 | 100% |
+| Profile evidence hierarchy | 🔵 | 55% |
+| 30-second recruiter comprehension QA | 🔵 | 55% |
 | Final public-profile visual QA | ⚪ | 0% |
 
 ## M9 — Living Governance
