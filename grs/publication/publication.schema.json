@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/DaniilSydorenko/.github/blob/main/grs/publication/publication.schema.json",
+  "title": "M4 Publication Boundary Manifest v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "repository", "target", "sensitive_surfaces", "history", "gates"],
+  "properties": {
+    "schema": { "const": 1 },
+    "repository": { "type": "string", "minLength": 1 },
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["visibility", "mode", "status"],
+      "properties": {
+        "visibility": { "enum": ["public", "private"] },
+        "mode": { "enum": ["canonical-public", "public-code-private-data", "remain-private"] },
+        "status": { "enum": ["inventory-complete", "extraction-required", "ready-for-owner-gate"] }
+      }
+    },
+    "sensitive_surfaces": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "disposition"],
+        "properties": {
+          "path": { "type": "string", "minLength": 1 },
+          "disposition": {
+            "enum": ["externalize", "sanitize", "syntheticize", "private-runtime", "review"]
+          },
+          "reason": { "type": "string" }
+        }
+      }
+    },
+    "history": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["audit_required", "rewrite_owner_gated"],
+      "properties": {
+        "audit_required": { "type": "boolean" },
+        "rewrite_owner_gated": { "type": "boolean" }
+      }
+    },
+    "gates": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["current_tree_public_safe", "history_public_safe", "exact_head_ci_green", "owner_visibility_approval"],
+      "properties": {
+        "current_tree_public_safe": { "type": "boolean" },
+        "history_public_safe": { "type": "boolean" },
+        "exact_head_ci_green": { "type": "boolean" },
+        "owner_visibility_approval": { "type": "boolean" }
+      }
+    }
+  }
+}
