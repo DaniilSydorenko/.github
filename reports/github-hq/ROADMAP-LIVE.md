@@ -4,7 +4,7 @@
 
 | Task | Color | % |
 | --- | --- | ---: |
-| Whole GitHub program | 🔵 | 81% |
+| Whole GitHub program | 🔵 | 82% |
 
 ## M0 — Final Forensic Audit
 
@@ -57,7 +57,7 @@
 
 | Task | Color | % |
 | --- | --- | ---: |
-| M4 — Career Ecosystem Public Extraction | 🔵 | 63% |
+| M4 — Career Ecosystem Public Extraction | 🔵 | 66% |
 | M4-A Deep sensitive-surface inventory | 🟢 | 100% |
 | Engineering Labs sensitive-surface inventory | 🟢 | 100% |
 | Engineering Handbook sensitive-surface inventory | 🟢 | 100% |
@@ -97,11 +97,11 @@
 | Large/binary historical blob review | 🟡 | 5% |
 | Owner-approved history rewrite where required | 🟠 | 0% |
 | Post-rewrite verification | ⚪ | 0% |
-| M4-F Public ecosystem narrative | 🌱 | 20% |
-| Labs ↔ Handbook ↔ Career Intelligence cross-links | 🌱 | 20% |
-| Public private-data-boundary narrative | 🌱 | 35% |
-| Recruiter-first repository role clarity | 🌱 | 30% |
-| Profile/pin/metadata integration | 🌱 | 20% |
+| M4-F Public ecosystem narrative | 🔵 | 55% |
+| Labs ↔ Handbook ↔ Career Intelligence cross-links | 🔵 | 45% |
+| Public private-data-boundary narrative | 🔵 | 75% |
+| Recruiter-first repository role clarity | 🔵 | 70% |
+| Profile/pin/metadata integration | 🔵 | 40% |
 | M4-G Owner publication gate | 🟠 | 0% |
 | Engineering Labs visibility approval | 🟠 | 0% |
 | Engineering Handbook visibility approval | 🟠 | 0% |
@@ -180,12 +180,13 @@
 
 | Task | Color | % |
 | --- | --- | ---: |
-| M8 — Super Profile | 🔵 | 48% |
+| M8 — Super Profile | 🔵 | 58% |
 | Recruiter-first GitHub profile narrative | 🔵 | 85% |
 | Senior Product/Frontend positioning | 🔵 | 90% |
 | Repository pin strategy | 🌱 | 40% |
 | Cross-repository visual consistency | 🌱 | 25% |
-| Ecosystem navigation | 🌱 | 25% |
+| Ecosystem navigation | 🔵 | 75% |
+| [NEW] Public engineering ecosystem narrative | 🟢 | 100% |
 | Flagship repository metadata consistency | 🌱 | 45% |
 | [NEW] Portfolio repository topics / hashtags taxonomy | 🔵 | 20% |
 | Repository topics audit | 🟢 | 100% |
@@ -197,8 +198,8 @@
 | Career Intelligence repository topics | 🟠 | 0% |
 | Listing Kit repository topics | 🟠 | 0% |
 | [NEW] Recruiter-first profile README pass | 🟢 | 100% |
-| Profile evidence hierarchy | 🔵 | 55% |
-| 30-second recruiter comprehension QA | 🔵 | 55% |
+| Profile evidence hierarchy | 🔵 | 70% |
+| 30-second recruiter comprehension QA | 🔵 | 70% |
 | Final public-profile visual QA | ⚪ | 0% |
 
 ## M9 — Living Governance
