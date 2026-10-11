@@ -14,8 +14,12 @@ class ReusableAutopilotHealthContractTest(unittest.TestCase):
         self.assertNotIn("gh pr list", text)
         self.assertNotIn("/pulls", text)
         self.assertNotIn("open_failing_pr_count", text)
-        self.assertIn('actions/runs?per_page=30', text)
+        self.assertIn('actions/runs?per_page=100', text)
+        self.assertIn('select(.head_branch == "main")', text)
+        self.assertIn('group_by(.name)', text)
+        self.assertIn('map(sort_by(.created_at) | reverse | .[0])', text)
         self.assertIn('latest_bad_workflow_count', text)
+        self.assertNotIn('| .[0:1]', text)
 
     def test_health_workflow_changes_are_ci_guarded(self):
         text = CONTROL.read_text()
