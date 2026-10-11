@@ -261,19 +261,19 @@
 
 | Task | Color | % |
 | --- | --- | ---: |
-| Engineering Governance v1 workstream | 🔵 | 58% |
+| Engineering Governance v1 workstream | 🔵 | 67% |
 | GOV-M01 — Baseline Inventory | 🟢 | 100% |
 | GOV-M02 — Authority & Conflict Matrix | 🟢 | 100% |
-| GOV-M03 — Governance Contract v1 | 🔵 | 35% |
-| C01 Source of Truth reconciliation | 🔵 | 65% |
-| C02 Roadmap Integrity reconciliation | 🔵 | 60% |
-| C03 Agent Execution reconciliation | 🔵 | 70% |
-| C04 Evidence & Completion reconciliation | 🔵 | 55% |
-| C05 Cross-Repository Authority reconciliation | 🔵 | 70% |
-| C06 Security, Reliability & Cost reconciliation | 🔵 | 75% |
-| C07 Reconciliation & Reporting reconciliation | 🔵 | 65% |
-| GOV-M04 — Machine-Readable Baseline | 🔵 | 60% |
-| Central seven-repository registry specification | 🔵 | 30% |
+| GOV-M03 — Governance Contract v1 | 🔵 | 82% |
+| C01 Source of Truth reconciliation | 🔵 | 95% |
+| C02 Roadmap Integrity reconciliation | 🔵 | 90% |
+| C03 Agent Execution reconciliation | 🔵 | 95% |
+| C04 Evidence & Completion reconciliation | 🔵 | 95% |
+| C05 Cross-Repository Authority reconciliation | 🔵 | 95% |
+| C06 Security, Reliability & Cost reconciliation | 🔵 | 95% |
+| C07 Reconciliation & Reporting reconciliation | 🔵 | 95% |
+| GOV-M04 — Machine-Readable Baseline | 🔵 | 72% |
+| Central seven-repository registry specification | 🟢 | 100% |
 | Registry schema / GRS integration | 🔵 | 55% |
 | No-duplicate-status-storage rule | 🟢 | 100% |
 | GOV-M05 — Haversine Pilot | 🟢 | 100% |
