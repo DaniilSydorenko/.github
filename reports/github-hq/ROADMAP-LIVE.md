@@ -4,7 +4,7 @@
 
 | Task | Color | % |
 | --- | --- | ---: |
-| Whole GitHub program | 🔵 | 77% |
+| Whole GitHub program | 🔵 | 78% |
 
 ## M0 — Final Forensic Audit
 
@@ -203,7 +203,7 @@
 
 | Task | Color | % |
 | --- | --- | ---: |
-| M9 — Living Governance | 🚀 | 90% |
+| M9 — Living Governance | 🚀 | 96% |
 | GRS schema baseline | 🟢 | 100% |
 | Strict manifest-version validation | 🟢 | 100% |
 | Required-path type validation | 🟢 | 100% |
@@ -215,12 +215,13 @@
 | Cross-workflow failure masking prevention | 🟢 | 100% |
 | Health workflow permission minimization | 🟢 | 100% |
 | REST-backed health inspection | 🟢 | 100% |
-| Governance workflow regression coverage | 🔵 | 90% |
+| Governance workflow regression coverage | 🔵 | 95% |
 | Repository-class-specific governance | 🟢 | 100% |
 | [NEW] Machine-readable repository class profiles | 🟢 | 100% |
 | [NEW] Fail-closed class-profile loading and validation | 🟢 | 100% |
-| Governance drift detection | 🔵 | 85% |
-| Governance documentation closeout | 🔵 | 80% |
+| Governance drift detection | 🟢 | 100% |
+| Governance documentation closeout | 🟢 | 100% |
+| [NEW] GRS operating-model closeout | 🟢 | 100% |
 
 ## M10 — GitHub Autopilot
 
@@ -241,6 +242,6 @@
 | Autopilot Help signal | 🔵 | 90% |
 | Fail-closed repository health | 🟢 | 100% |
 | Cross-workflow health correctness | 🟢 | 100% |
-| [NEW] Canonical Autopilot stability-contract link #33 | 🔵 | 85% |
+| [NEW] Canonical Autopilot stability-contract link #33 (superseded by #37) | 🟢 | 100% |
 | Autonomous merge policy hardening | 🔵 | 70% |
-| Autopilot final operating closeout | 🔵 | 75% |
+| Autopilot final operating closeout | 🔵 | 82% |
