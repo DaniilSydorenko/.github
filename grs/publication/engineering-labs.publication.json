@@ -1,0 +1,36 @@
+{
+  "schema": 1,
+  "repository": "DaniilSydorenko/engineering-labs",
+  "target": {
+    "visibility": "public",
+    "mode": "canonical-public",
+    "status": "extraction-required"
+  },
+  "sensitive_surfaces": [
+    {
+      "path": "docs/reference-sources/",
+      "disposition": "review",
+      "reason": "contains company-targeted interview preparation mixed with reusable source material"
+    },
+    {
+      "path": "docs/interview/",
+      "disposition": "externalize",
+      "reason": "personal interview-answer and behavioral preparation should not define the public product"
+    },
+    {
+      "path": "docs/archive/legacy-learning/interview/",
+      "disposition": "externalize",
+      "reason": "legacy personal interview preparation"
+    }
+  ],
+  "history": {
+    "audit_required": true,
+    "rewrite_owner_gated": true
+  },
+  "gates": {
+    "current_tree_public_safe": false,
+    "history_public_safe": false,
+    "exact_head_ci_green": false,
+    "owner_visibility_approval": false
+  }
+}
