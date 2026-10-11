@@ -19,12 +19,15 @@ class ReusableAutopilotHealthContractTest(unittest.TestCase):
 
     def test_health_workflow_changes_are_ci_guarded(self):
         text = CONTROL.read_text()
-        path = '.github/workflows/reusable-autopilot-health.yml'
-        self.assertGreaterEqual(
-            text.count(path),
-            2,
-            "health workflow must be included in both PR and main-push GRS path filters",
-        )
+        for path in (
+            '.github/workflows/reusable-autopilot-health.yml',
+            '.github/workflows/autopilot-help.yml',
+        ):
+            self.assertGreaterEqual(
+                text.count(path),
+                2,
+                f"{path} must be included in both PR and main-push GRS path filters",
+            )
 
 
 if __name__ == "__main__":
