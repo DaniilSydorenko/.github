@@ -48,3 +48,9 @@ jobs:
         run: python3 grs/validator.py grs/pilots/engineering-handbook.repository.json
       - name: Validate Career Intelligence pilot manifest
         run: python3 grs/validator.py grs/pilots/career-intelligence.repository.json
+      - name: Validate Engineering Labs publication boundary
+        run: python3 grs/publication/validate_publication.py grs/publication/engineering-labs.publication.json
+      - name: Validate Engineering Handbook publication boundary
+        run: python3 grs/publication/validate_publication.py grs/publication/engineering-handbook.publication.json
+      - name: Validate Career Intelligence publication boundary
+        run: python3 grs/publication/validate_publication.py grs/publication/career-intelligence.publication.json
