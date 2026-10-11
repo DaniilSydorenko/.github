@@ -111,7 +111,7 @@
 
 | Task | Color | % |
 | --- | --- | ---: |
-| M5 — Haversine OSS Flagship | 🔵 | 92% |
+| M5 — Haversine OSS Flagship | 🔵 | 94% |
 | Haversine forensic baseline | 🟢 | 100% |
 | Haversine governance | 🟢 | 100% |
 | Haversine README modernization | 🟢 | 100% |
@@ -135,13 +135,14 @@
 | Vite library-build migration | 🟢 | 100% |
 | Legacy Webpack/Babel removal | 🟢 | 100% |
 | Dependency-security cleanup | 🔵 | 88% |
-| [NEW] TypeScript packed-declaration consumer test #109 | 🔵 | 10% |
+| [NEW] TypeScript packed-declaration consumer test #109 | 🔵 | 85% |
+| [NEW] NodeNext-compatible declaration specifiers | 🔵 | 90% |
 | [NEW] TypeScript/types compatibility baseline #94 | 🟡 | 25% |
 | Remaining socket security updates after #94 | 🟡 | 35% |
-| V2 consumer-fixture completion #63 | 🔵 | 75% |
-| Vite packed consumer fixture | 🔵 | 65% |
-| Next.js packed consumer fixture | 🟡 | 25% |
-| Nuxt packed consumer fixture | 🟡 | 25% |
+| V2 consumer-fixture completion #63 | 🔵 | 90% |
+| Vite packed consumer fixture | 🟢 | 100% |
+| Next.js packed consumer fixture | 🟢 | 100% |
+| Nuxt packed consumer fixture | 🟢 | 100% |
 | Trusted npm publishing / OIDC #74 | 🟡 | 20% |
 | Haversine 2 prerelease gate | 🟡 | 35% |
 | [NEW] Legacy issue #12 resolution/closeout | 🟡 | 25% |
