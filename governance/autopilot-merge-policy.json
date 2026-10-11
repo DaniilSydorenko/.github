@@ -1,0 +1,44 @@
+{
+  "version": 1,
+  "mode": "default-deny",
+  "merge_pr": {
+    "decision": "conditional",
+    "required_conditions": [
+      "current-run-explicit-authorization",
+      "live-default-branch-inspected",
+      "live-open-prs-inspected",
+      "exact-head-sha-verified",
+      "required-ci-green",
+      "not-draft",
+      "no-owner-gated-operation",
+      "no-domain-ownership-conflict",
+      "no-worker-roadmap-collision"
+    ]
+  },
+  "operations": {
+    "repository_visibility_change": "owner-only",
+    "history_rewrite": "owner-only",
+    "credential_rotation_or_revocation": "owner-only",
+    "stable_release_publish": "owner-only",
+    "domain_product_code": "domain-owner-only",
+    "other_worker_roadmap": "forbidden",
+    "merge_red_ci": "forbidden",
+    "merge_changed_head": "forbidden",
+    "force_update_without_expected_sha": "forbidden"
+  },
+  "safe_merge_scope": {
+    "allowed_when_all_conditions_hold": [
+      "bounded-governance-change",
+      "bounded-maintenance-change",
+      "bounded-release-engineering-change",
+      "documentation-change"
+    ],
+    "excluded": [
+      "visibility-change",
+      "destructive-history-change",
+      "credential-change",
+      "unreviewed-domain-implementation",
+      "stable-release-publication"
+    ]
+  }
+}
