@@ -143,14 +143,14 @@
 | Vite packed consumer fixture | 🟢 | 100% |
 | Next.js packed consumer fixture | 🟢 | 100% |
 | Nuxt packed consumer fixture | 🟢 | 100% |
-| Trusted npm publishing / OIDC #74 | 🔵 | 70% |
+| Trusted npm publishing / OIDC #74 | 🟢 | 100% |
 | [NEW] Safe non-publishing V2 release-candidate validation | 🟢 | 100% |
 | [NEW] Explicit manual npm publish gate | 🟢 | 100% |
 | [NEW] V2 release runbook | 🟢 | 100% |
-| Haversine 2 prerelease gate | 🔵 | 80% |
-| [NEW] Legacy issue #12 resolution/closeout | 🟡 | 25% |
+| Haversine 2 prerelease gate | 🟢 | 100% |
+| [NEW] Legacy issue #12 resolution/closeout | 🟢 | 100% |
 | [NEW] Historical issue #1 triage/closeout | 🟢 | 100% |
-| M5 final release-readiness closeout | 🔵 | 92% |
+| M5 final release-readiness closeout | 🔵 | 96% |
 
 ## M6 — Norway Geo
 
@@ -250,5 +250,45 @@
 | Autonomous merge policy hardening | 🟢 | 100% |
 | [NEW] Machine-readable default-deny merge policy | 🟢 | 100% |
 | [NEW] Merge-policy regression validator | 🟢 | 100% |
-| [NEW] Control Plane Manager unexpected disablement #124 | 🟠 | 20% |
+| [NEW] Control Plane Manager unexpected disablement #124 | 🟢 | 100% |
+| [NEW] Control Plane scheduler-snapshot autonomy proof #139 | 🟠 | 20% |
 | Autopilot final operating closeout | 🔵 | 88% |
+
+
+## GOV — Engineering Governance v1
+
+| Task | Color | % |
+| --- | --- | ---: |
+| Engineering Governance v1 workstream | 🔵 | 47% |
+| GOV-M01 — Baseline Inventory | 🟢 | 100% |
+| GOV-M02 — Authority & Conflict Matrix | 🟢 | 100% |
+| GOV-M03 — Governance Contract v1 | 🔵 | 35% |
+| C01 Source of Truth reconciliation | 🔵 | 65% |
+| C02 Roadmap Integrity reconciliation | 🔵 | 60% |
+| C03 Agent Execution reconciliation | 🔵 | 70% |
+| C04 Evidence & Completion reconciliation | 🔵 | 55% |
+| C05 Cross-Repository Authority reconciliation | 🔵 | 70% |
+| C06 Security, Reliability & Cost reconciliation | 🔵 | 75% |
+| C07 Reconciliation & Reporting reconciliation | 🔵 | 65% |
+| GOV-M04 — Machine-Readable Baseline | 🔵 | 60% |
+| Central seven-repository registry specification | 🔵 | 30% |
+| Registry schema / GRS integration | 🔵 | 55% |
+| No-duplicate-status-storage rule | 🟢 | 100% |
+| GOV-M05 — Haversine Pilot | ⚪ | 0% |
+| Pilot discovery and task identity | ⚪ | 0% |
+| Pilot execution/evidence trace | ⚪ | 0% |
+| Pilot roadmap reconciliation | ⚪ | 0% |
+| GOV-M06 — Seven-Repository Adoption | 🌱 | 15% |
+| Career Intelligence discovery entrypoint | ⚪ | 0% |
+| Engineering Handbook discovery entrypoint | ⚪ | 0% |
+| ListingKit roadmap-role declaration | ⚪ | 0% |
+| Seven-repository canonical-pointer adoption | 🌱 | 20% |
+| GOV-M07 — Automated Validation | 🔵 | 55% |
+| Reuse existing GRS Control Plane | 🟢 | 100% |
+| Read-only registry validation | ⚪ | 0% |
+| Discovery-pointer drift detection | ⚪ | 0% |
+| GOV-M08 — Acceptance & Freeze | 🌱 | 10% |
+| Seven-repository reproducible discovery acceptance | ⚪ | 0% |
+| Governance overhead / cost acceptance | ⚪ | 0% |
+| No-silent-authority-expansion acceptance | 🌱 | 25% |
+| Engineering Governance v1 stop-building freeze | ⚪ | 0% |
