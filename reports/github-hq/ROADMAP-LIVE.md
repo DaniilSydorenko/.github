@@ -4,7 +4,7 @@
 
 | Task | Color | % |
 | --- | --- | ---: |
-| Whole GitHub program | 🔵 | 74% |
+| Whole GitHub program | 🔵 | 75% |
 
 ## M0 — Final Forensic Audit
 
@@ -111,7 +111,7 @@
 
 | Task | Color | % |
 | --- | --- | ---: |
-| M5 — Haversine OSS Flagship | 🔵 | 94% |
+| M5 — Haversine OSS Flagship | 🔵 | 96% |
 | Haversine forensic baseline | 🟢 | 100% |
 | Haversine governance | 🟢 | 100% |
 | Haversine README modernization | 🟢 | 100% |
@@ -134,12 +134,12 @@
 | Vitest migration | 🟢 | 100% |
 | Vite library-build migration | 🟢 | 100% |
 | Legacy Webpack/Babel removal | 🟢 | 100% |
-| Dependency-security cleanup | 🔵 | 88% |
-| [NEW] TypeScript packed-declaration consumer test #109 | 🔵 | 85% |
-| [NEW] NodeNext-compatible declaration specifiers | 🔵 | 90% |
-| [NEW] TypeScript/types compatibility baseline #94 | 🟡 | 25% |
-| Remaining socket security updates after #94 | 🟡 | 35% |
-| V2 consumer-fixture completion #63 | 🔵 | 90% |
+| Dependency-security cleanup | 🟢 | 100% |
+| [NEW] TypeScript packed-declaration consumer test #109 | 🟢 | 100% |
+| [NEW] NodeNext-compatible declaration specifiers | 🟢 | 100% |
+| [NEW] TypeScript/types compatibility blocker #94 (superseded) | 🟢 | 100% |
+| Remaining socket security dependency graph | 🟢 | 100% |
+| V2 consumer-fixture completion #63 | 🟢 | 100% |
 | Vite packed consumer fixture | 🟢 | 100% |
 | Next.js packed consumer fixture | 🟢 | 100% |
 | Nuxt packed consumer fixture | 🟢 | 100% |
@@ -147,7 +147,7 @@
 | Haversine 2 prerelease gate | 🟡 | 35% |
 | [NEW] Legacy issue #12 resolution/closeout | 🟡 | 25% |
 | [NEW] Historical issue #1 triage/closeout | ⚪ | 0% |
-| M5 final release-readiness closeout | 🔵 | 70% |
+| M5 final release-readiness closeout | 🔵 | 85% |
 
 ## M6 — Norway Geo
 
