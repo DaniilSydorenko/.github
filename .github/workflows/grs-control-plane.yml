@@ -40,6 +40,8 @@ jobs:
         run: python3 -m unittest discover -s grs/tests -p "test_*.py" -v
       - name: Check GRS class-policy drift
         run: python3 grs/check_policy_drift.py
+      - name: Validate Autopilot merge policy
+        run: python3 grs/validate_autopilot_merge_policy.py governance/autopilot-merge-policy.json
       - name: Validate profile pilot manifest
         run: python3 grs/validator.py grs/pilots/DaniilSydorenko.repository.json
       - name: Validate Haversine pilot manifest
