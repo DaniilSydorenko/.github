@@ -4,7 +4,7 @@
 
 | Task | Color | % |
 | --- | --- | ---: |
-| Whole GitHub program | 🔵 | 75% |
+| Whole GitHub program | 🔵 | 76% |
 
 ## M0 — Final Forensic Audit
 
@@ -111,7 +111,7 @@
 
 | Task | Color | % |
 | --- | --- | ---: |
-| M5 — Haversine OSS Flagship | 🔵 | 96% |
+| M5 — Haversine OSS Flagship | 🔵 | 98% |
 | Haversine forensic baseline | 🟢 | 100% |
 | Haversine governance | 🟢 | 100% |
 | Haversine README modernization | 🟢 | 100% |
@@ -143,11 +143,14 @@
 | Vite packed consumer fixture | 🟢 | 100% |
 | Next.js packed consumer fixture | 🟢 | 100% |
 | Nuxt packed consumer fixture | 🟢 | 100% |
-| Trusted npm publishing / OIDC #74 | 🟡 | 20% |
-| Haversine 2 prerelease gate | 🟡 | 35% |
+| Trusted npm publishing / OIDC #74 | 🔵 | 70% |
+| [NEW] Safe non-publishing V2 release-candidate validation | 🟢 | 100% |
+| [NEW] Explicit manual npm publish gate | 🟢 | 100% |
+| [NEW] V2 release runbook | 🟢 | 100% |
+| Haversine 2 prerelease gate | 🔵 | 80% |
 | [NEW] Legacy issue #12 resolution/closeout | 🟡 | 25% |
-| [NEW] Historical issue #1 triage/closeout | ⚪ | 0% |
-| M5 final release-readiness closeout | 🔵 | 85% |
+| [NEW] Historical issue #1 triage/closeout | 🟢 | 100% |
+| M5 final release-readiness closeout | 🔵 | 92% |
 
 ## M6 — Norway Geo
 
