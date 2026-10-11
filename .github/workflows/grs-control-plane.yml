@@ -9,7 +9,6 @@ on:
       - ".github/workflows/grs-control-plane.yml"
       - ".github/workflows/reusable-autopilot-health.yml"
       - ".github/workflows/autopilot-help.yml"
-      - ".github/workflows/autopilot-help.yml"
   push:
     branches: [main]
     paths:
@@ -18,6 +17,7 @@ on:
       - "workflow-templates/**"
       - ".github/workflows/grs-control-plane.yml"
       - ".github/workflows/reusable-autopilot-health.yml"
+      - ".github/workflows/autopilot-help.yml"
   workflow_dispatch:
 
 permissions:
