@@ -41,3 +41,11 @@ The validator should initially implement deterministic checks with low false-pos
 6. class-appropriate engineering workflow presence.
 
 More invasive or ambiguous checks remain advisory until their signal quality is proven.
+
+## Machine-readable profiles
+
+`grs/classes/profiles.json` is the executable source for deterministic file-surface controls used by `grs/audit_repository.py`.
+
+The table above remains the human-facing policy summary. The machine-readable file currently covers only controls with low false-positive risk and explicit repository-surface evidence. Conditional policy is represented explicitly; for example, a `knowledge` repository requires a license only when its manifest visibility is `public`.
+
+Changes to class behavior must update the machine-readable profile and tests in the same pull request. The auditor fails closed if the class-profile contract cannot be loaded or validated.

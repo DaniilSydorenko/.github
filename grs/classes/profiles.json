@@ -1,0 +1,70 @@
+{
+  "version": 1,
+  "classes": {
+    "profile": [
+      {"name": "README/status", "level": "REQUIRED", "candidates": ["README.md", "README"]},
+      {"name": ".gitignore", "level": "REQUIRED", "candidates": [".gitignore"]},
+      {"name": "secret hygiene workflow", "level": "REQUIRED", "candidates": [".github/workflows/secret-scan.yml"]}
+    ],
+    "oss-library": [
+      {"name": "README/status", "level": "REQUIRED", "candidates": ["README.md", "README"]},
+      {"name": ".gitignore", "level": "REQUIRED", "candidates": [".gitignore"]},
+      {"name": "secret hygiene workflow", "level": "REQUIRED", "candidates": [".github/workflows/secret-scan.yml"]},
+      {"name": "licensing decision", "level": "REQUIRED", "candidates": ["LICENSE", "LICENSE.md", "LICENSE.txt"]},
+      {"name": "PR template", "level": "REQUIRED", "candidates": [".github/PULL_REQUEST_TEMPLATE.md", "PULL_REQUEST_TEMPLATE.md"]},
+      {"name": "issue taxonomy", "level": "REQUIRED", "candidates": [".github/ISSUE_TEMPLATE"]},
+      {"name": "SECURITY.md", "level": "REQUIRED", "candidates": ["SECURITY.md", ".github/SECURITY.md"]},
+      {"name": "CONTRIBUTING.md", "level": "REQUIRED", "candidates": ["CONTRIBUTING.md", ".github/CONTRIBUTING.md"]}
+    ],
+    "product": [
+      {"name": "README/status", "level": "REQUIRED", "candidates": ["README.md", "README"]},
+      {"name": ".gitignore", "level": "REQUIRED", "candidates": [".gitignore"]},
+      {"name": "secret hygiene workflow", "level": "REQUIRED", "candidates": [".github/workflows/secret-scan.yml"]},
+      {"name": "licensing decision", "level": "REQUIRED", "candidates": ["LICENSE", "LICENSE.md", "LICENSE.txt"]},
+      {"name": "PR template", "level": "REQUIRED", "candidates": [".github/PULL_REQUEST_TEMPLATE.md", "PULL_REQUEST_TEMPLATE.md"]},
+      {"name": "issue taxonomy", "level": "REQUIRED", "candidates": [".github/ISSUE_TEMPLATE"]},
+      {"name": "SECURITY.md", "level": "RECOMMENDED", "candidates": ["SECURITY.md", ".github/SECURITY.md"]},
+      {"name": "CONTRIBUTING.md", "level": "RECOMMENDED", "candidates": ["CONTRIBUTING.md", ".github/CONTRIBUTING.md"]}
+    ],
+    "engineering-labs": [
+      {"name": "README/status", "level": "REQUIRED", "candidates": ["README.md", "README"]},
+      {"name": ".gitignore", "level": "REQUIRED", "candidates": [".gitignore"]},
+      {"name": "secret hygiene workflow", "level": "REQUIRED", "candidates": [".github/workflows/secret-scan.yml"]},
+      {"name": "licensing decision", "level": "REQUIRED", "candidates": ["LICENSE", "LICENSE.md", "LICENSE.txt"]},
+      {"name": "PR template", "level": "REQUIRED", "candidates": [".github/PULL_REQUEST_TEMPLATE.md", "PULL_REQUEST_TEMPLATE.md"]},
+      {"name": "issue taxonomy", "level": "REQUIRED", "candidates": [".github/ISSUE_TEMPLATE"]},
+      {"name": "SECURITY.md", "level": "RECOMMENDED", "candidates": ["SECURITY.md", ".github/SECURITY.md"]},
+      {"name": "CONTRIBUTING.md", "level": "RECOMMENDED", "candidates": ["CONTRIBUTING.md", ".github/CONTRIBUTING.md"]}
+    ],
+    "knowledge": [
+      {"name": "README/status", "level": "REQUIRED", "candidates": ["README.md", "README"]},
+      {"name": ".gitignore", "level": "REQUIRED", "candidates": [".gitignore"]},
+      {"name": "secret hygiene workflow", "level": "REQUIRED", "candidates": [".github/workflows/secret-scan.yml"]},
+      {"name": "PR template", "level": "RECOMMENDED", "candidates": [".github/PULL_REQUEST_TEMPLATE.md", "PULL_REQUEST_TEMPLATE.md"]},
+      {"name": "issue taxonomy", "level": "RECOMMENDED", "candidates": [".github/ISSUE_TEMPLATE"]},
+      {"name": "CONTRIBUTING.md", "level": "RECOMMENDED", "candidates": ["CONTRIBUTING.md", ".github/CONTRIBUTING.md"]}
+    ],
+    "platform": [
+      {"name": "README/status", "level": "REQUIRED", "candidates": ["README.md", "README"]},
+      {"name": ".gitignore", "level": "REQUIRED", "candidates": [".gitignore"]},
+      {"name": "secret hygiene workflow", "level": "REQUIRED", "candidates": [".github/workflows/secret-scan.yml"]},
+      {"name": "licensing decision", "level": "REQUIRED", "candidates": ["LICENSE", "LICENSE.md", "LICENSE.txt"]},
+      {"name": "PR template", "level": "REQUIRED", "candidates": [".github/PULL_REQUEST_TEMPLATE.md", "PULL_REQUEST_TEMPLATE.md"]},
+      {"name": "issue taxonomy", "level": "REQUIRED", "candidates": [".github/ISSUE_TEMPLATE"]},
+      {"name": "SECURITY.md", "level": "RECOMMENDED", "candidates": ["SECURITY.md", ".github/SECURITY.md"]},
+      {"name": "CONTRIBUTING.md", "level": "RECOMMENDED", "candidates": ["CONTRIBUTING.md", ".github/CONTRIBUTING.md"]}
+    ],
+    "historical": [
+      {"name": "README/status", "level": "REQUIRED", "candidates": ["README.md", "README"]},
+      {"name": ".gitignore", "level": "RECOMMENDED", "candidates": [".gitignore"]},
+      {"name": "secret hygiene workflow", "level": "REQUIRED", "candidates": [".github/workflows/secret-scan.yml"]}
+    ]
+  },
+  "conditional": [
+    {
+      "class": "knowledge",
+      "when": {"visibility": "public"},
+      "control": {"name": "licensing decision", "level": "REQUIRED", "candidates": ["LICENSE", "LICENSE.md", "LICENSE.txt"]}
+    }
+  ]
+}
