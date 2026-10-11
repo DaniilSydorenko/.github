@@ -4,7 +4,7 @@
 
 | Task | Color | % |
 | --- | --- | ---: |
-| Whole GitHub program | 🔵 | 80% |
+| Whole GitHub program | 🔵 | 81% |
 
 ## M0 — Final Forensic Audit
 
@@ -205,7 +205,7 @@
 
 | Task | Color | % |
 | --- | --- | ---: |
-| M9 — Living Governance | 🚀 | 98% |
+| M9 — Living Governance | 🟢 | 100% |
 | GRS schema baseline | 🟢 | 100% |
 | Strict manifest-version validation | 🟢 | 100% |
 | Required-path type validation | 🟢 | 100% |
@@ -224,6 +224,7 @@
 | Governance drift detection | 🟢 | 100% |
 | Governance documentation closeout | 🟢 | 100% |
 | [NEW] GRS operating-model closeout | 🟢 | 100% |
+| [NEW] M9 formal closeout | 🟢 | 100% |
 
 ## M10 — GitHub Autopilot
 
