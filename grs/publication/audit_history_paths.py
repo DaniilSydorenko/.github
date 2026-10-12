@@ -58,6 +58,14 @@ def main() -> int:
     if not (repo / ".git").exists():
         return fail(f"not a Git working tree: {repo}")
 
+    shallow = git(repo, "rev-parse", "--is-shallow-repository")
+    if shallow.returncode != 0:
+        return fail(f"cannot determine repository history completeness: {shallow.stderr.strip()}")
+    if shallow.stdout.strip().lower() == "true":
+        return fail(
+            "repository is shallow; refusing to report publication history clean from incomplete history"
+        )
+
     try:
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
