@@ -54,7 +54,7 @@ class EngineeringRoundProtocolTests(unittest.TestCase):
 
     def test_pilot_does_not_claim_acceptance(self):
         self.assertIn("Pilot acceptance checklist", self.content)
-        self.assertIn("not a second task-status store", self.content)
+        self.assertIn("**not** a second task-status store", self.content)
 
 
 if __name__ == "__main__":
