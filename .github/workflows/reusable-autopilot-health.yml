@@ -17,17 +17,19 @@ jobs:
         run: |
           set -euo pipefail
 
+          default_branch="$(gh api "repos/$GITHUB_REPOSITORY" --jq '.default_branch')"
+
           active_workflow_ids="$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows?per_page=100" --jq '
             [.workflows[]
              | select(.state == "active")
              | .id]
           ')"
 
-          latest_bad_count="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs?per_page=100"             | jq --argjson active "$active_workflow_ids" '
+          latest_bad_count="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs?per_page=100"             | jq --argjson active "$active_workflow_ids" --arg default_branch "$default_branch" '
               [.workflow_runs[]
                | select(.name != "Autopilot Help Signal")
                | select(.name != "Reusable Autopilot Health")
-               | select(.head_branch == "main")
+               | select(.head_branch == $default_branch)
                | select(.status == "completed")
                | .workflow_id as $wid
                | select(($active | index($wid)) != null)]
