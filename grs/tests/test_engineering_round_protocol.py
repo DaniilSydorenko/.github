@@ -31,7 +31,7 @@ class EngineeringRoundProtocolTests(unittest.TestCase):
         cls.content = PROTOCOL.read_text(encoding="utf-8")
 
     def test_exactly_twelve_ordered_stages(self):
-        numbered = re.findall(r"(?m)^(\\d+)\\. \\*\\*([A-Z][A-Z -]+)\\*\\*", self.content)
+        numbered = re.findall(r"(?m)^([0-9]+)[.] [*][*]([A-Z][A-Z -]+)[*][*]", self.content)
         self.assertEqual(
             [(str(i), name) for i, name in enumerate(STAGES, start=1)],
             numbered,
