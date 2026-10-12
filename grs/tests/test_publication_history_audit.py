@@ -57,6 +57,34 @@ class HistoryPathAuditTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn("PASS:", result.stdout)
 
+    def test_refuses_shallow_repository(self) -> None:
+        source = self.make_repo()
+        self.commit_file(source, "private/old.txt", "secret")
+        self.commit_file(source, "src/index.ts", "export {}")
+
+        clone_tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(clone_tmp.cleanup)
+        clone = Path(clone_tmp.name) / "clone"
+        result = run(
+            "git",
+            "clone",
+            "-q",
+            "--depth",
+            "1",
+            f"file://{source}",
+            str(clone),
+            cwd=source.parent,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+        manifest = self.write_manifest(
+            clone, [{"path": "private/", "disposition": "externalize"}]
+        )
+        result = self.audit(clone, manifest)
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("repository is shallow", result.stdout)
+        self.assertNotIn("PASS:", result.stdout)
+
     def test_detects_deleted_sensitive_path_in_history(self) -> None:
         repo = self.make_repo()
         self.commit_file(repo, "daniil/gap-map.md", "private")
