@@ -4,7 +4,7 @@
 
 | Task | Color | % |
 | --- | --- | ---: |
-| Whole GitHub program | 🔵 | 86% |
+| Whole GitHub program | 🔵 | 87% |
 
 ## M0 — Final Forensic Audit
 
@@ -111,7 +111,7 @@
 
 | Task | Color | % |
 | --- | --- | ---: |
-| M5 — Haversine OSS Flagship | 🔵 | 99% |
+| M5 — Haversine OSS Flagship | 🟢 | 100% |
 | Haversine forensic baseline | 🟢 | 100% |
 | Haversine governance | 🟢 | 100% |
 | Haversine README modernization | 🟢 | 100% |
@@ -152,7 +152,8 @@
 | [NEW] Historical issue #1 triage/closeout | 🟢 | 100% |
 | [NEW] Haversine lint/format quality gate | 🟢 | 100% |
 | [NEW] Haversine CHANGELOG/release-notes baseline | 🟢 | 100% |
-| M5 final release-readiness closeout | 🔵 | 98% |
+| [NEW] M5 formal closeout | 🟢 | 100% |
+| M5 final release-readiness closeout | 🟢 | 100% |
 
 ## M6 — Norway Geo
 
