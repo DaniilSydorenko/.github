@@ -65,6 +65,18 @@ Autopilot does not own:
 
 Before mutation, workers inspect live repository state and avoid overlapping branches/surfaces.
 
+## Engineering discovery
+
+The governed engineering repositories are discoverable through:
+
+- `governance/ENGINEERING-STATE.md` — human-readable entrypoint;
+- `governance/repository-registry.json` — machine-readable pointer registry;
+- `grs/validate_repository_registry.py` — local/read-only structural validator.
+
+The registry standardizes discovery, not repository file layouts. It points to local canonical roadmaps, authority documents, agent guidance and specialized trackers without copying mutable progress, PR, CI or runtime state.
+
+The registry validator is intentionally not a required cross-repository CI gate until the remaining Governance v1 enforcement/adoption decision is approved.
+
 ## Finish-line principle
 
 GRS should prevent regressions and make repository expectations explicit, not create permanent governance work for its own sake.
