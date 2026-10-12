@@ -1,16 +1,14 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
-import importlib.util
+import sys
 import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-MODULE_PATH = ROOT / "grs" / "audit_repository_registry_drift.py"
-SPEC = importlib.util.spec_from_file_location("registry_drift", MODULE_PATH)
-assert SPEC and SPEC.loader
-registry_drift = importlib.util.module_from_spec(SPEC)
-SPEC.loader.exec_module(registry_drift)
+sys.path.insert(0, str(ROOT))
+
+from grs import audit_repository_registry_drift as registry_drift
 
 
 def sample_registry() -> dict:
