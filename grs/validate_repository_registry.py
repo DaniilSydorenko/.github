@@ -68,6 +68,9 @@ def main() -> int:
     except (OSError, json.JSONDecodeError) as exc:
         return fail(f"cannot read registry: {exc}")
 
+    if not isinstance(data, dict):
+        return fail("registry root must be an object")
+
     if data.get("schema_version") != 1:
         return fail("schema_version must equal 1")
 
@@ -75,7 +78,12 @@ def main() -> int:
     if not isinstance(repos, list):
         return fail("repositories must be a list")
 
-    names = [item.get("repository") for item in repos if isinstance(item, dict)]
+    if not all(isinstance(item, dict) for item in repos):
+        return fail("every repository record must be an object")
+
+    names = [item.get("repository") for item in repos]
+    if not all(isinstance(name, str) and name for name in names):
+        return fail("every repository name must be a non-empty string")
     if len(names) != len(set(names)):
         return fail("repository names must be unique")
 

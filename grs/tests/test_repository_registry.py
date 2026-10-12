@@ -25,6 +25,28 @@ class RepositoryRegistryTests(unittest.TestCase):
                 text=True,
             )
 
+    def test_non_object_root_fails_cleanly(self) -> None:
+        result = self.run_registry([])
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("registry root must be an object", result.stdout)
+        self.assertNotIn("Traceback", result.stderr)
+
+    def test_non_object_repository_record_fails_cleanly(self) -> None:
+        data = json.loads(REGISTRY.read_text(encoding="utf-8"))
+        data["repositories"][0] = None
+        result = self.run_registry(data)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("every repository record must be an object", result.stdout)
+        self.assertNotIn("Traceback", result.stderr)
+
+    def test_unhashable_repository_identifier_fails_cleanly(self) -> None:
+        data = json.loads(REGISTRY.read_text(encoding="utf-8"))
+        data["repositories"][0]["repository"] = ["unexpected", "list"]
+        result = self.run_registry(data)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("every repository name must be a non-empty string", result.stdout)
+        self.assertNotIn("Traceback", result.stderr)
+
     def test_live_registry_passes(self) -> None:
         result = subprocess.run(
             [sys.executable, str(VALIDATOR), str(REGISTRY)],
