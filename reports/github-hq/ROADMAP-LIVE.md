@@ -261,18 +261,18 @@
 
 | Task | Color | % |
 | --- | --- | ---: |
-| Engineering Governance v1 workstream | 🔵 | 67% |
+| Engineering Governance v1 workstream | 🔵 | 71% |
 | GOV-M01 — Baseline Inventory | 🟢 | 100% |
 | GOV-M02 — Authority & Conflict Matrix | 🟢 | 100% |
-| GOV-M03 — Governance Contract v1 | 🔵 | 82% |
+| GOV-M03 — Governance Contract v1 | 🔵 | 90% |
 | C01 Source of Truth reconciliation | 🔵 | 95% |
-| C02 Roadmap Integrity reconciliation | 🔵 | 90% |
-| C03 Agent Execution reconciliation | 🔵 | 95% |
+| C02 Roadmap Integrity reconciliation | 🔵 | 97% |
+| C03 Agent Execution reconciliation | 🔵 | 97% |
 | C04 Evidence & Completion reconciliation | 🔵 | 95% |
 | C05 Cross-Repository Authority reconciliation | 🔵 | 95% |
-| C06 Security, Reliability & Cost reconciliation | 🔵 | 95% |
+| C06 Security, Reliability & Cost reconciliation | 🔵 | 98% |
 | C07 Reconciliation & Reporting reconciliation | 🔵 | 95% |
-| GOV-M04 — Machine-Readable Baseline | 🔵 | 72% |
+| GOV-M04 — Machine-Readable Baseline | 🔵 | 75% |
 | Central seven-repository registry specification | 🟢 | 100% |
 | Registry schema / GRS integration | 🔵 | 55% |
 | No-duplicate-status-storage rule | 🟢 | 100% |
@@ -280,16 +280,17 @@
 | Pilot discovery and task identity | 🟢 | 100% |
 | Pilot execution/evidence trace | 🟢 | 100% |
 | Pilot roadmap reconciliation | 🟢 | 100% |
-| GOV-M06 — Seven-Repository Adoption | 🌱 | 15% |
-| Career Intelligence discovery entrypoint | ⚪ | 0% |
-| Engineering Handbook discovery entrypoint | ⚪ | 0% |
-| ListingKit roadmap-role declaration | ⚪ | 0% |
+| GOV-M06 — Seven-Repository Adoption | 🌱 | 25% |
+| Career Intelligence discovery mapping (reuse existing surfaces) | 🌱 | 20% |
+| Engineering Handbook discovery mapping (reuse existing surfaces) | 🌱 | 20% |
+| ListingKit roadmap-role reconciliation | 🌱 | 30% |
+| AI BASE existing agent/tool surface inventory | 🟢 | 100% |
 | Seven-repository canonical-pointer adoption | 🌱 | 20% |
 | GOV-M07 — Automated Validation | 🔵 | 55% |
 | Reuse existing GRS Control Plane | 🟢 | 100% |
 | Read-only registry validation | ⚪ | 0% |
 | Discovery-pointer drift detection | ⚪ | 0% |
-| GOV-M08 — Acceptance & Freeze | 🌱 | 10% |
+| GOV-M08 — Acceptance & Freeze | 🌱 | 15% |
 | Seven-repository reproducible discovery acceptance | ⚪ | 0% |
 | Governance overhead / cost acceptance | ⚪ | 0% |
 | No-silent-authority-expansion acceptance | 🌱 | 25% |

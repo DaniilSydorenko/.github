@@ -6,6 +6,21 @@ Owner: [CAREER][GITHUB] HQ
 
 This contract does not create new product authority, scheduler authority, deployment authority, visibility authority, or evidence-promotion authority. It reconciles existing GitHub governance into one discoverable operating model.
 
+## Simplicity & Speed Directive
+
+Governance v1 exists to make engineering faster, safer and easier to manage. It is not a governance product.
+
+1. **Reuse before building.** Extend GRS, existing manifests, contracts and workflows before adding machinery.
+2. **Roadmap ≠ Issues ≠ PRs.** Roadmaps own milestones/priorities; Issues own independently actionable work, bugs and blockers; PRs provide implementation evidence. Tiny changes do not require Issues.
+3. **One owner per status.** Do not copy mutable completion state into ROADMAP, TASKS, Issues and reports. Reference the canonical owner instead.
+4. **Standardize discovery, not file locations.** Existing roadmap/tracker paths remain valid; discovery tells an agent where canonical local sources are.
+5. **Preserve local authority.** Specialized product, execution, readiness and design trackers may coexist when their responsibilities differ; reconcile contradictions instead of flattening useful documents.
+6. **AI BASE stays tiny.** Inventory existing AGENTS.md, Cursor rules, skills/hooks and CI before proposing shared agent guidance. Prefer a minimal shared contract plus tool-specific adapters only where needed.
+7. **No new infrastructure by default.** No database, dashboard, service, scheduler or universal agent framework without demonstrated recurring need.
+8. **No milestone inflation.** Governance v1 stays GOV-M01–M08 and overlays existing M0–M10.
+9. **Prioritize execution.** Contract acceptance and practical pilot evidence come before broader rollout.
+10. **Stop building when maintenance exceeds verified value.** Defer or reject proposals that add more governance cost than demonstrated benefit.
+
 ## C01 — Source of Truth
 
 1. GitHub is authoritative for accepted engineering artifacts: code, merged pull requests, Issues, ADRs, repository governance and repository-local roadmaps.
