@@ -63,11 +63,28 @@ The smallest likely delta after approval is:
 
 Cross-repository write authority, scheduler authority, product-roadmap authority, visibility, releases and evidence semantics remain unchanged.
 
-## Pilot recommendation
+## Pilot result
 
-If/when the contract is approved, Haversine remains the lowest-risk pilot because it is public, bounded, has mature CI/release evidence and an explicit roadmap.
+The Haversine pilot is now complete through the owning lane and HQ reconciliation:
 
-The currently open Haversine PR #150 is product/repository-maintenance work owned by the Haversine lane. It is useful evidence but is not automatically an Autopilot Governance v1 pilot.
+- Issue #149 supplied stable task identity;
+- PR #150 implemented the Biome quality gate with exact-head CI/security evidence;
+- PR #151 reconciled the accepted local roadmap and CHANGELOG baseline;
+- HQ PR #58 recorded GOV-M05 completion without transferring product ownership to central governance.
+
+This is sufficient pilot evidence. Do not create a second pilot merely to generate more governance activity.
+
+## Lean implementation audit
+
+A fresh review against the owner lean directive found:
+
+- no justification for a second governance database, runner, scheduler, dashboard or control plane;
+- no justification for a parallel generic validator stack: existing GRS + its domain-specific publication validator already provide the correct extension points;
+- existing documentation is sufficient to define the operating model; new documentation should be exceptional and problem-driven;
+- the main remaining Governance v1 value is executable validation/discovery after contract approval, not additional architecture prose;
+- read-only reconciliation is already the correct default and should remain separate from repairs.
+
+Overhead rule: prefer one reusable check in the existing GRS Control Plane over repository-by-repository bespoke automation. If a proposed rule cannot demonstrate a material safety/correctness/discovery benefit, do not implement it.
 
 ## Stop conditions
 
