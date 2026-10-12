@@ -1,0 +1,162 @@
+{
+  "schema_version": 1,
+  "scope": "engineering-governance-v1",
+  "purpose": "Canonical discovery index for governed engineering repositories. This file points to local sources of truth and must not duplicate mutable task status.",
+  "contracts": {
+    "global_governance": "governance/ENGINEERING-GOVERNANCE-V1-DRAFT.md",
+    "grs_operating_model": "grs/OPERATING-MODEL.md",
+    "hq_roadmap": "reports/github-hq/ROADMAP-LIVE.md"
+  },
+  "repositories": [
+    {
+      "repository": "DaniilSydorenko/.github",
+      "default_branch": "main",
+      "domain_owner": "career-github-hq",
+      "grs_class": "platform",
+      "discovery": {
+        "roadmap": "reports/github-hq/ROADMAP-LIVE.md",
+        "agent": null,
+        "authority": "reports/github-hq/HQ-AUTOPILOT-BOUNDARIES.md",
+        "governance": "grs/OPERATING-MODEL.md",
+        "specialized_trackers": [
+          {
+            "role": "scheduled-executor-roadmap",
+            "path": "reports/github-autopilot/ROADMAP-2026-10-11.md"
+          }
+        ]
+      }
+    },
+    {
+      "repository": "DaniilSydorenko/autopilot-control-plane",
+      "default_branch": "main",
+      "domain_owner": "autopilot-control-plane",
+      "grs_class": "platform",
+      "discovery": {
+        "roadmap": "ROADMAP.md",
+        "agent": null,
+        "authority": "AUTHORITY.md",
+        "governance": "CONTROL_PLANE.md",
+        "specialized_trackers": [
+          {
+            "role": "fleet-definition",
+            "path": "FLEET.yaml"
+          }
+        ]
+      }
+    },
+    {
+      "repository": "DaniilSydorenko/listing-kit",
+      "default_branch": "main",
+      "domain_owner": "ladvero",
+      "grs_class": "product",
+      "discovery": {
+        "roadmap": "ROADMAP.md",
+        "agent": "AGENTS.md",
+        "authority": "AGENTS.md",
+        "governance": ".autopilot/worker-policy.md",
+        "specialized_trackers": [
+          {
+            "role": "execution-status",
+            "path": "TASKS.md"
+          },
+          {
+            "role": "private-alpha-readiness",
+            "path": "docs/mvp/MVP_READINESS.md"
+          },
+          {
+            "role": "foundation-e-design",
+            "path": "docs/design/FOUNDATION_E_ROADMAP.md"
+          }
+        ]
+      }
+    },
+    {
+      "repository": "DaniilSydorenko/career-intelligence",
+      "default_branch": "main",
+      "domain_owner": "career-intelligence",
+      "grs_class": "platform",
+      "discovery": {
+        "roadmap": "docs/PLATFORM_ROADMAP_V2.md",
+        "agent": "AGENTS.md",
+        "authority": null,
+        "governance": ".autopilot/worker-policy.md",
+        "specialized_trackers": [
+          {
+            "role": "public-projection-roadmap",
+            "path": "roadmap.md"
+          },
+          {
+            "role": "public-deep-audit",
+            "path": "docs/PUBLIC_V2_DEEP_AUDIT_ROADMAP_2026-10-11.md"
+          },
+          {
+            "role": "assistant-platform-roadmap",
+            "path": "docs/ASSISTANT_PLATFORM_ROADMAP.md"
+          }
+        ]
+      }
+    },
+    {
+      "repository": "DaniilSydorenko/engineering-handbook",
+      "default_branch": "main",
+      "domain_owner": "engineering-handbook",
+      "grs_class": "knowledge",
+      "discovery": {
+        "roadmap": "handbook/00-canonical-toc.md",
+        "agent": null,
+        "authority": "automation/adrs/ADR-003-git-content-authority.md",
+        "governance": "automation/ARCHITECTURE.md",
+        "specialized_trackers": [
+          {
+            "role": "machine-readable-theory-manifest",
+            "path": "automation/ecosystem-handbook-manifest.json"
+          },
+          {
+            "role": "automation-readiness",
+            "path": "automation/READINESS_AUDIT.md"
+          }
+        ]
+      }
+    },
+    {
+      "repository": "DaniilSydorenko/engineering-labs",
+      "default_branch": "main",
+      "domain_owner": "engineering-labs",
+      "grs_class": "engineering-labs",
+      "discovery": {
+        "roadmap": "docs/tasks/00-STATUS-DASHBOARD.md",
+        "agent": "AGENTS.md",
+        "authority": "automation/ecosystem-labs-manifest.json",
+        "governance": "docs/ARCHITECTURE.md",
+        "specialized_trackers": [
+          {
+            "role": "mission-catalog",
+            "path": "docs/missions/README.md"
+          },
+          {
+            "role": "machine-readable-practice-manifest",
+            "path": "automation/ecosystem-labs-manifest.json"
+          }
+        ]
+      }
+    },
+    {
+      "repository": "DaniilSydorenko/haversine-geolocation",
+      "default_branch": "master",
+      "domain_owner": "haversine",
+      "grs_class": "oss-library",
+      "discovery": {
+        "roadmap": "docs/roadmap/haversine-v2-human-roadmap.md",
+        "agent": null,
+        "authority": "docs/architecture/README.md",
+        "governance": ".github/repository.json",
+        "specialized_trackers": [
+          {
+            "role": "release-history",
+            "path": "CHANGELOG.md"
+          }
+        ]
+      }
+    }
+  ]
+}
