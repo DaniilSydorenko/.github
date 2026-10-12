@@ -70,14 +70,15 @@ class HistoryPathAuditTests(unittest.TestCase):
         self.assertIn("HISTORY_MATCH: daniil/", result.stdout)
         self.assertIn("daniil/gap-map.md", result.stdout)
 
-    def test_private_runtime_path_is_not_history_failure(self) -> None:
+    def test_private_runtime_path_in_history_requires_review(self) -> None:
         repo = self.make_repo()
         self.commit_file(repo, ".local/migration/example.txt", "local")
         manifest = self.write_manifest(
             repo, [{"path": ".local/migration/", "disposition": "private-runtime"}]
         )
         result = self.audit(repo, manifest)
-        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+        self.assertIn("HISTORY_MATCH: local/migration/", result.stdout)
 
     def test_exact_file_surface_matches_history(self) -> None:
         repo = self.make_repo()
@@ -89,6 +90,23 @@ class HistoryPathAuditTests(unittest.TestCase):
         self.assertEqual(result.returncode, 2)
         self.assertIn("HISTORY_MATCH: docs/PUBLIC_ACTIVATION.md", result.stdout)
 
+
+    def test_shallow_clone_is_rejected_even_when_sensitive_file_was_deleted(self) -> None:
+        repo = self.make_repo()
+        self.commit_file(repo, "daniil/gap-map.md", "private")
+        self.assertEqual(run("git", "rm", "daniil/gap-map.md", cwd=repo).returncode, 0)
+        self.assertEqual(run("git", "commit", "-q", "-m", "remove sensitive file", cwd=repo).returncode, 0)
+        self.commit_file(repo, "src/index.ts", "export {}")
+        clone_parent = tempfile.TemporaryDirectory()
+        self.addCleanup(clone_parent.cleanup)
+        clone = Path(clone_parent.name) / "shallow"
+        result = run("git", "clone", "-q", "--depth", "1", repo.as_uri(), str(clone), cwd=repo)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(run("git", "rev-parse", "--is-shallow-repository", cwd=clone).stdout.strip(), "true")
+        manifest = self.write_manifest(clone, [{"path": "daniil/", "disposition": "externalize"}])
+        result = self.audit(clone, manifest)
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertIn("shallow Git history", result.stdout)
 
 if __name__ == "__main__":
     unittest.main()

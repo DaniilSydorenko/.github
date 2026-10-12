@@ -15,7 +15,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-AUDITED_DISPOSITIONS = {"externalize", "sanitize", "syntheticize", "review"}
+AUDITED_DISPOSITIONS = {"externalize", "sanitize", "syntheticize", "review", "private-runtime"}
 
 
 def fail(message: str, code: int = 1) -> int:
@@ -57,6 +57,12 @@ def main() -> int:
 
     if not (repo / ".git").exists():
         return fail(f"not a Git working tree: {repo}")
+
+    shallow = git(repo, "rev-parse", "--is-shallow-repository")
+    if shallow.returncode != 0 or shallow.stdout.strip() not in {"true", "false"}:
+        return fail("cannot establish whether Git history is complete")
+    if shallow.stdout.strip() == "true":
+        return fail("shallow Git history is insufficient for publication audit; fetch full history")
 
     try:
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
