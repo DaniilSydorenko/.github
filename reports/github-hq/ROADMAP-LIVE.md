@@ -301,3 +301,11 @@
 | Governance overhead / cost acceptance | 🟢 | 100% |
 | No-silent-authority-expansion acceptance | 🔵 | 75% |
 | Engineering Governance v1 stop-building freeze | 🌱 | 20% |
+
+### GOV-M07 — Seven-repository GRS adoption gap (2026-10-13; proposed evidence)
+
+- **Default-branch manifest probe:** `.github/repository.json` was found only in `haversine-geolocation` (**1/7**); not found at the exact canonical path in `.github`, `autopilot-control-plane`, `listing-kit`, `career-intelligence`, `engineering-handbook`, and `engineering-labs` (**6/7 pending local-manifest adoption or explicit approved exception**). Existing central `grs/pilots/*.repository.json` are schema-validation fixtures, **not** evidence of local manifest adoption.
+- **Exact-path secret hygiene probe:** `.github/workflows/secret-scan.yml` was found in `listing-kit`, `career-intelligence`, `engineering-handbook`, `engineering-labs`, and `haversine-geolocation` (**5/7**). It was not found at that exact path in central `.github` or `autopilot-control-plane` (**2/7**). Equivalent workflows, exemptions, actual scan execution and CI coverage have **not yet been established**; do not infer that scanning is absent.
+- **[NEW] GOV-M07 follow-up:** reconcile six missing local manifests against the existing central GRS schema, local ownership, existing worker PRs and owner-approved adoption boundaries; propose small non-enforcing PRs only where safe.
+- **[NEW] GOV-M07 follow-up:** inspect central `.github` and `autopilot-control-plane` security workflows and exact-head runs before concluding any security-control deficiency.
+- **No status inflation:** discovery probes are verified read-only observations, not seven-repository conformance, C01–C07 approval or accepted default-branch changes. Retain current roadmap percentages until evidence is merged and acceptance criteria are met.
