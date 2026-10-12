@@ -351,3 +351,26 @@
 - **Collision guard:** immediately before integration, all then-open HQ PR changed-file lists were fetched and compared; **zero overlaps** with #78. GitHub merge used `expected_head_sha` to reject a changed PR head.
 - **Status boundary:** this is a real, accepted **non-enforcing HQ runbook + test pilot**. Cross-chat synchronization, all-repository adoption, required enforcement, C01–C07 owner approval #56 and GOV-M08 freeze remain pending. Do not mark the broader pilot or governance workstream complete solely from this PR.
 - **Progress accounting:** maintain 88% whole program / 90% GOV / 84% GOV-M07 / 58% GOV-M08 pending broader milestone acceptance and merge of this roadmap evidence.
+
+### GOV-M07/M08 — [NEW] Haversine-first engineering reliability pilot (2026-10-13; proposed)
+
+**Priority:** Haversine is the **first real-world validation target** for the accepted HQ 12-stage Engineering Round Protocol, not a new platform, scheduler, service, product owner, or duplicate Haversine roadmap. HQ owns governance acceptance and this evidence; Haversine domain chat owns implementation, release decisions, and `docs/roadmap/haversine-v2-human-roadmap.md` on `master`. Do not change domain-owned code or roadmap from HQ.
+
+**Live discovery baseline (2026-10-13):** Haversine canonical domain roadmap on `master` reports **95%**; published `2.0.0-alpha.1` and package verification tasks are recorded complete. Alpha feedback/compatibility hardening **55%**; beta, RC, stable approval/publish and post-release documentation remain **0%**. Node/browser support matrix **70%**; Vite native-config-loader warning cleanup and real-browser UMD compatibility fixture **0%**. One open Haversine PR [#152](https://github.com/DaniilSydorenko/haversine-geolocation/pull/152) edits `package.json` and `package-lock.json` (TypeScript dependency major bump). This is a collision hotspot for dependency and release work, **not** permission for HQ to modify the PR.
+
+**Pilot tasks (proposed; do not mark completed without domain evidence):**
+
+| Task | Owner | Acceptance evidence | State |
+| --- | --- | --- | --- |
+| [NEW] GOV-HAV-01 — Sprint contract and exact live baseline | Haversine domain; HQ reviews evidence | Domain-owned task IDs, current `master` SHA, roadmap, open PR changed files, dependencies, risk/rollback, expected touched paths, stop conditions, owner gates and exact validation commands | Proposed |
+| [NEW] GOV-HAV-02 — Alpha compatibility / release-risk task selection | Haversine domain | Prioritize real alpha feedback, supported Node/browser matrix, Vite warning or browser UMD fixture by value and file isolation; do not fabricate feedback or duplicate PR #152 | Proposed |
+| [NEW] GOV-HAV-03 — Full-cycle round A | Haversine domain | 12-stage execution trace, bounded change, tests and exact-head CI, collision check, accepted merge **or documented BLOCKED**, post-merge verification and domain roadmap sync | Proposed |
+| [NEW] GOV-HAV-04 — Full-cycle round B | Haversine domain | Independent repeat with fresh discovery and evidence, no stale CI or unapproved publish | Proposed |
+| [NEW] GOV-HAV-05 — Full-cycle round C | Haversine domain | Third repeat; compare predictability, failures/retries, collision prevention and actual completion evidence | Proposed |
+| [NEW] GOV-HAV-06 — Governance acceptance / freeze decision | HQ (read-only cross-domain evidence) | Verify 3 consecutive reproducible bounded rounds, exact-head checks, no ownership violations, accurate handoffs, measured overhead and any blockers; decide accept/fix/freeze without claiming automatic chat-to-chat propagation | Proposed |
+
+**Execution sequencing:** GOV-HAV-01 → GOV-HAV-02 → rounds A/B/C → GOV-HAV-06. Prefer 3–6 compatible tasks per sprint **only when safely available**; task count is a planning target, not a quota. Each round must include DISCOVERY → RECONCILIATION → PLANNING → DESIGN → IMPLEMENTATION → VALIDATION → PR REVIEW → EXACT-HEAD CI → INTEGRATION/BLOCKED → POST-INTEGRATION AUDIT → ROADMAP SYNC → HANDOFF. A blocked outcome is safe, but **three blocked-only rounds do not prove delivery throughput**. Preserve C01–C07 owner gate #56 and explicit npm publish/release approvals.
+
+**Measurement (not status inflation):** execution-contract coverage, unresolved changed-file collisions, exact-head CI evidence, accepted default-branch outcomes, handoff quality, cycle time, retries, blocked reasons and owner-boundary violations. Source is the domain's live GitHub evidence, not copied status or chat memory. Haversine 95% is **domain roadmap** and HQ M5 100% is **HQ OSS readiness scope**; these measure different outcomes and must not be silently reconciled into one number.
+
+**Progress:** Proposed only. GOV-M07 84%, GOV-M08 58%, Governance v1 90% and whole program 88% unchanged until this evidence is accepted on `main` and demonstrated.
