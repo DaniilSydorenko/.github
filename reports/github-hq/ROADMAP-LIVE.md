@@ -182,14 +182,14 @@
 
 | Task | Color | % |
 | --- | --- | ---: |
-| M8 — Super Profile | 🔵 | 58% |
+| M8 — Super Profile | 🔵 | 62% |
 | Recruiter-first GitHub profile narrative | 🔵 | 85% |
 | Senior Product/Frontend positioning | 🔵 | 90% |
 | Repository pin strategy | 🌱 | 40% |
 | Cross-repository visual consistency | 🌱 | 25% |
 | Ecosystem navigation | 🔵 | 75% |
 | [NEW] Public engineering ecosystem narrative | 🟢 | 100% |
-| Flagship repository metadata consistency | 🌱 | 45% |
+| Flagship repository metadata consistency | 🌱 | 50% |
 | [NEW] Portfolio repository topics / hashtags taxonomy | 🔵 | 20% |
 | Repository topics audit | 🟢 | 100% |
 | Haversine repository topics | 🟢 | 100% |
@@ -200,8 +200,9 @@
 | Career Intelligence repository topics | 🟠 | 0% |
 | Listing Kit repository topics | 🟠 | 0% |
 | [NEW] Recruiter-first profile README pass | 🟢 | 100% |
-| Profile evidence hierarchy | 🔵 | 70% |
-| 30-second recruiter comprehension QA | 🔵 | 70% |
+| [NEW] Public evidence hierarchy refresh | 🟢 | 100% |
+| Profile evidence hierarchy | 🔵 | 85% |
+| 30-second recruiter comprehension QA | 🔵 | 78% |
 | Final public-profile visual QA | ⚪ | 0% |
 
 ## M9 — Living Governance
