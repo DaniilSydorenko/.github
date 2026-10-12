@@ -2,7 +2,7 @@
 
 Date: 2026-10-12
 Status: PROPOSED after GOV-M01 / GOV-M02
-Principle: extend existing mechanisms; do not build a second management system.
+Principle: extend existing mechanisms; do not build a second management system. Governance v1 must reduce coordination cost, not become its own product.
 
 ## Do not build
 
@@ -12,7 +12,10 @@ Principle: extend existing mechanisms; do not build a second management system.
 - no new recurring worker by default;
 - no copied global policy bundle in every repository;
 - no product-roadmap changes;
-- no scheduler configuration changes.
+- no scheduler configuration changes;
+- no universal agent framework;
+- no Issue-per-change ceremony;
+- no forced roadmap/file layout.
 
 ## GOV-M03 — Governance Contract v1
 
@@ -57,10 +60,11 @@ discovery → task identity → bounded execution → exact-head checks → merg
 Roll out only pilot-proven discovery pointers / manifest metadata. Preserve local roadmap shapes.
 
 Priority gaps:
-1. Career Intelligence engineering/agent entrypoint beyond Lovable history protection.
-2. Engineering Handbook root discovery entrypoint.
-3. ListingKit explicit role declaration for `ROADMAP.md`, `TASKS.md`, and `docs/mvp/MVP_READINESS.md`.
-4. Central pointers for all seven repositories.
+1. Inventory existing agent/tool surfaces first: `AGENTS.md`, Cursor rules, worker policies, hooks/skills where present, and CI.
+2. Career Intelligence discovery mapping beyond its current Lovable-history-only `AGENTS.md`; reuse existing surfaces where possible.
+3. Engineering Handbook discovery mapping; do not require a new root file if the registry can point to an existing canonical source.
+4. ListingKit roadmap-role reconciliation for `ROADMAP.md`, `TASKS.md`, `docs/mvp/MVP_READINESS.md`, and Foundation E design responsibilities. Preserve all useful documents; remove only contradictory status duplication.
+5. Central pointers for all seven repositories.
 
 ## GOV-M07 — Automated Validation
 
@@ -69,7 +73,7 @@ Reuse `.github/.github/workflows/grs-control-plane.yml`.
 Read-only checks only:
 - registry schema;
 - repository/default-branch declarations;
-- required discovery pointer present;
+- approved discovery pointer present where required;
 - pointer path syntactically valid;
 - no duplicate canonical owner for the same bounded concern.
 
@@ -94,3 +98,14 @@ Acceptance:
 - M10 — bounded agent execution / Autopilot authority.
 
 The GOV workstream overlays those milestones and must not double-count already completed implementation as new work.
+
+
+## Operating semantics
+
+- Roadmap = milestones and priorities.
+- Issues = independently actionable work, defects and blockers when an Issue adds coordination value.
+- PRs = implementation/evidence vehicles.
+- Reports = read-only reconciliation/evidence summaries, not independent task-state owners.
+- One mutable status owner per concern; all other surfaces reference it.
+- Existing local roadmap paths remain valid.
+- GOV-M01–M08 remain the only Governance v1 milestones unless a future owner decision explicitly changes scope.
