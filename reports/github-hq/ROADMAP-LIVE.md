@@ -316,3 +316,10 @@
 - **[NEW] GOV-M07 follow-up:** reconcile six missing local manifests against the existing central GRS schema, local ownership, existing worker PRs and owner-approved adoption boundaries; propose small non-enforcing PRs only where safe.
 - **[NEW] GOV-M07 follow-up:** inspect central `.github` and `autopilot-control-plane` security workflows and exact-head runs before concluding any security-control deficiency.
 - **No status inflation:** discovery probes are verified read-only observations, not seven-repository conformance, C01–C07 approval or accepted default-branch changes. Retain current roadmap percentages until evidence is merged and acceptance criteria are met.
+
+### GOV-M07 — PR collision prevention (2026-10-13; proposed evidence)
+
+- **Resolved HQ same-file overlap:** draft PR #75 and #76 both edited this canonical roadmap. The complete 34/34 discovery evidence was carried into #76, then #75 was closed **unmerged** as superseded. Remaining HQ open PRs #74, #76 and #77 have disjoint changed-file lists.
+- **Cross-domain read-only findings (not HQ mutation authority):** ListingKit open dependency PRs #191/#190/#169 share `yarn.lock` (and #190/#169 share `apps/api-bff/package.json`). Career Intelligence dependency PRs #73/#72/#71/#70/#69 share `package.json` and `bun.lock`. Engineering Handbook PRs #77–#84 have substantial overlap in `README.md`, `automation/handbook-status.json` and `docs/HANDBOOK_ROADMAP.md` (sampled eight latest PRs only; not a full 44-PR audit). Haversine's single open PR #152 has no peer overlap. These are **changed-file collisions**, not proof of unmergeable Git conflicts.
+- **Boundary:** HQ does not close, rebase, rewrite, or merge domain-owned PRs. Domain workers should serialize/reconcile shared lockfiles and canonical roadmap/status changes, and recheck exact-head CI after each integration. New HQ PRs must check live open PR file sets before mutation.
+- **No percentage inflation:** these observations and draft fixes do not establish completed acceptance.
