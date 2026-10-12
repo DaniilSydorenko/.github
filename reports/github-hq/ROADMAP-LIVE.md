@@ -305,7 +305,7 @@
 ### GOV-M07 — Execution evidence (2026-10-13; proposed, not merged)
 
 - **Read-only discovery check:** all 34 unique non-null discovery paths in `governance/repository-registry.json` were individually fetched from the seven repository default branches; **34/34 resolved**. This confirms pointer existence at inspection time, **not** document semantic correctness, default-branch head pinning, runtime policy loading, or full GRS conformance.
-- **Validator regression fix:** [GRS PR #74](https://github.com/DaniilSydorenko/.github/pull/74) is a draft proposal to reject malformed registry root/records/identifiers without Python tracebacks. Exact PR head `ada2c2b51f3907211cb43494f7fde1288dede9e6`: GRS Control Plane workflow completed **success** (run `38316784990`). This is tested proposal evidence, **not merged acceptance**.
+- **Validator regression fix:** [GRS PR #74](https://github.com/DaniilSydorenko/.github/pull/74) was merged into `main` as commit `0b77956f5e31affbd18e8109e8e861f20e36984c`, hardening malformed registry root/records/identifiers without Python tracebacks. Exact PR head `ada2c2b51f3907211cb43494f7fde1288dede9e6`: GRS Control Plane workflow completed **success** (run `38316784990`). Post-merge read confirmed the fail-closed validator in `main`; this is accepted validator hardening, not C01–C07 approval.
 - **Enforcement boundary:** C01–C07 remain unapproved at [owner gate #56](https://github.com/DaniilSydorenko/.github/issues/56); do not wire cross-repository required CI or treat discovery validation as adoption enforcement before approval.
 - **Progress integrity:** GOV-M07 and program percentages remain unchanged until accepted/merged evidence justifies a measured adjustment. No new milestone or parallel tracker was created.
 
