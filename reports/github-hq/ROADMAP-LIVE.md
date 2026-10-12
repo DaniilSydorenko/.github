@@ -4,7 +4,7 @@
 
 | Task | Color | % |
 | --- | --- | ---: |
-| Whole GitHub program | 🔵 | 87% |
+| Whole GitHub program | 🔵 | 88% |
 
 ## M0 — Final Forensic Audit
 
@@ -265,7 +265,7 @@
 
 | Task | Color | % |
 | --- | --- | ---: |
-| Engineering Governance v1 workstream | 🔵 | 77% |
+| Engineering Governance v1 workstream | 🔵 | 83% |
 | GOV-M01 — Baseline Inventory | 🟢 | 100% |
 | GOV-M02 — Authority & Conflict Matrix | 🟢 | 100% |
 | GOV-M03 — Governance Contract v1 | 🔵 | 92% |
@@ -284,13 +284,13 @@
 | Pilot discovery and task identity | 🟢 | 100% |
 | Pilot execution/evidence trace | 🟢 | 100% |
 | Pilot roadmap reconciliation | 🟢 | 100% |
-| GOV-M06 — Seven-Repository Adoption | 🔵 | 40% |
-| Career Intelligence discovery mapping (reuse existing surfaces) | 🌱 | 20% |
-| Engineering Handbook discovery mapping (reuse existing surfaces) | 🌱 | 20% |
-| ListingKit roadmap-role reconciliation | 🌱 | 30% |
+| GOV-M06 — Seven-Repository Adoption | 🟢 | 100% |
+| Career Intelligence discovery mapping (reuse existing surfaces) | 🟢 | 100% |
+| Engineering Handbook discovery mapping (reuse existing surfaces) | 🟢 | 100% |
+| ListingKit roadmap-role reconciliation | 🟢 | 100% |
 | AI BASE existing agent/tool surface inventory | 🟢 | 100% |
 | [NEW] Canonical seven-repository discovery registry | 🟢 | 100% |
-| Seven-repository canonical-pointer adoption | 🔵 | 55% |
+| Seven-repository canonical-pointer adoption | 🟢 | 100% |
 | GOV-M07 — Automated Validation | 🔵 | 65% |
 | Reuse existing GRS Control Plane | 🟢 | 100% |
 | Read-only registry validation | 🔵 | 75% |
