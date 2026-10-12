@@ -265,7 +265,7 @@
 
 | Task | Color | % |
 | --- | --- | ---: |
-| Engineering Governance v1 workstream | 🔵 | 83% |
+| Engineering Governance v1 workstream | 🔵 | 85% |
 | GOV-M01 — Baseline Inventory | 🟢 | 100% |
 | GOV-M02 — Authority & Conflict Matrix | 🟢 | 100% |
 | GOV-M03 — Governance Contract v1 | 🔵 | 92% |
@@ -291,12 +291,12 @@
 | AI BASE existing agent/tool surface inventory | 🟢 | 100% |
 | [NEW] Canonical seven-repository discovery registry | 🟢 | 100% |
 | Seven-repository canonical-pointer adoption | 🟢 | 100% |
-| GOV-M07 — Automated Validation | 🔵 | 65% |
+| GOV-M07 — Automated Validation | 🔵 | 68% |
 | Reuse existing GRS Control Plane | 🟢 | 100% |
 | Read-only registry validation | 🔵 | 75% |
-| Discovery-pointer drift detection | ⚪ | 0% |
-| GOV-M08 — Acceptance & Freeze | 🌱 | 15% |
-| Seven-repository reproducible discovery acceptance | ⚪ | 0% |
+| Discovery-pointer drift detection | 🌱 | 25% |
+| GOV-M08 — Acceptance & Freeze | 🔵 | 32% |
+| Seven-repository reproducible discovery acceptance | 🟢 | 100% |
 | Governance overhead / cost acceptance | ⚪ | 0% |
 | No-silent-authority-expansion acceptance | 🌱 | 25% |
 | Engineering Governance v1 stop-building freeze | ⚪ | 0% |
