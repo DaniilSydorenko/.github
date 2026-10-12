@@ -90,7 +90,8 @@
 | Career Intelligence history private-content audit | 🟡 | 5% |
 | Career Intelligence history rewrite decision | 🟠 | 5% |
 | Career Intelligence exact-head CI/secret/GRS gate | 🟡 | 15% |
-| M4-E Cross-repository history safety | 🟡 | 10% |
+| M4-E Cross-repository history safety | 🟡 | 18% |
+| [NEW] Fail-closed shallow history audit guard | 🟢 | 100% |
 | Full-history secret scan for all public candidates | 🟡 | 45% |
 | Full-history PII/private-content audit | 🟡 | 10% |
 | Deleted historical artifact review | 🟡 | 5% |
