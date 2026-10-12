@@ -7,6 +7,10 @@ Date: 2026-10-12
 
 Provide one deterministic discovery index for the seven governed repositories without creating a second status database.
 
+## Discovery principle
+
+Governance standardizes **how to discover canonical sources**, not where every repository must place them. Existing local file paths remain valid. The registry points to them; it does not force a universal `ROADMAP.md`, `TASKS.md`, `AGENTS.md`, or other filename.
+
 The registry should answer only:
 
 - which repositories are in scope;
@@ -75,4 +79,4 @@ If the registry conflicts with repository live state, the registry is stale and 
 
 ## Rollout gate
 
-Do not create a required machine-readable registry or enforce local discovery entrypoints until the owner approves the GOV-M02 authority deltas.
+Do not create a required machine-readable registry or enforce local discovery entrypoints until the owner approves the GOV-M02 authority deltas. Any approved adoption must preserve repository-local file locations and avoid copying mutable status.
