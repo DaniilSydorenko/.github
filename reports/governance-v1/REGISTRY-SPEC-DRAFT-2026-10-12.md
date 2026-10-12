@@ -71,6 +71,22 @@ Proposed read-only checks after owner approval and pilot acceptance:
 
 Live branch/path checks must not write repository state.
 
+### Implemented on-demand drift audit
+
+`grs/audit_repository_registry_drift.py` performs the live branch/path checks as a read-only, on-demand audit.
+
+Safety properties:
+
+- requires `GITHUB_TOKEN` with read access to all seven repositories;
+- refuses an anonymous/partial audit instead of reporting false green;
+- distinguishes registry drift from operational/API/access failure;
+- checks live default branch plus every declared discovery pointer;
+- stores no live SHA, CI result, PR number or runtime state;
+- makes no repository mutation;
+- is not a required cross-repository CI gate while Issue #56 remains open.
+
+The normal GRS Control Plane continues to test the auditor itself using deterministic mocked responses, so drift-audit logic is regression-covered without adding network calls or cross-repository token requirements to ordinary CI.
+
 ## Adoption rule
 
 The registry is an index. A referenced repository remains authoritative for the content behind each pointer.
