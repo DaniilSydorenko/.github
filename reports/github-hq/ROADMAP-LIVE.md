@@ -4,7 +4,7 @@
 
 | Task | Color | % |
 | --- | --- | ---: |
-| Whole GitHub program | 🔵 | 83% |
+| Whole GitHub program | 🔵 | 84% |
 
 ## M0 — Final Forensic Audit
 
@@ -233,7 +233,7 @@
 
 | Task | Color | % |
 | --- | --- | ---: |
-| M10 — GitHub Autopilot | 🚀 | 96% |
+| M10 — GitHub Autopilot | 🚀 | 98% |
 | Scheduled Autopilot execution | 🟢 | 100% |
 | Live-state-before-mutation rule | 🟢 | 100% |
 | Exact-head merge safety | 🟢 | 100% |
@@ -244,8 +244,8 @@
 | Separate HQ and Autopilot roadmap ownership | 🟢 | 100% |
 | Collision avoidance with domain workers | 🔵 | 97% |
 | CI PRESTART/infrastructure classification | 🟢 | 100% |
-| Retry-churn suppression | 🔵 | 95% |
-| Autopilot Help signal | 🔵 | 90% |
+| Retry-churn suppression | 🔵 | 97% |
+| Autopilot Help signal | 🔵 | 95% |
 | Fail-closed repository health | 🟢 | 100% |
 | Cross-workflow health correctness | 🟢 | 100% |
 | [NEW] Canonical Autopilot stability-contract link #33 (superseded by #37) | 🟢 | 100% |
@@ -253,8 +253,9 @@
 | [NEW] Machine-readable default-deny merge policy | 🟢 | 100% |
 | [NEW] Merge-policy regression validator | 🟢 | 100% |
 | [NEW] Control Plane Manager unexpected disablement #124 | 🟢 | 100% |
-| [NEW] Control Plane scheduler-snapshot autonomy proof #139 | 🟠 | 20% |
-| Autopilot final operating closeout | 🔵 | 88% |
+| [NEW] Control Plane scheduler-snapshot autonomy proof #139 | 🟢 | 100% |
+| [NEW] Default-branch-aware repository health #63 | 🟢 | 100% |
+| Autopilot final operating closeout | 🔵 | 96% |
 
 
 ## GOV — Engineering Governance v1
