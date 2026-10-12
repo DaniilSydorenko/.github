@@ -4,7 +4,7 @@
 
 | Task | Color | % |
 | --- | --- | ---: |
-| Whole GitHub program | 🔵 | 84% |
+| Whole GitHub program | 🔵 | 85% |
 
 ## M0 — Final Forensic Audit
 
@@ -263,34 +263,35 @@
 
 | Task | Color | % |
 | --- | --- | ---: |
-| Engineering Governance v1 workstream | 🔵 | 71% |
+| Engineering Governance v1 workstream | 🔵 | 77% |
 | GOV-M01 — Baseline Inventory | 🟢 | 100% |
 | GOV-M02 — Authority & Conflict Matrix | 🟢 | 100% |
-| GOV-M03 — Governance Contract v1 | 🔵 | 90% |
-| C01 Source of Truth reconciliation | 🔵 | 95% |
+| GOV-M03 — Governance Contract v1 | 🔵 | 92% |
+| C01 Source of Truth reconciliation | 🟢 | 100% |
 | C02 Roadmap Integrity reconciliation | 🔵 | 97% |
 | C03 Agent Execution reconciliation | 🔵 | 97% |
 | C04 Evidence & Completion reconciliation | 🔵 | 95% |
 | C05 Cross-Repository Authority reconciliation | 🔵 | 95% |
 | C06 Security, Reliability & Cost reconciliation | 🔵 | 98% |
 | C07 Reconciliation & Reporting reconciliation | 🔵 | 95% |
-| GOV-M04 — Machine-Readable Baseline | 🔵 | 75% |
+| GOV-M04 — Machine-Readable Baseline | 🔵 | 90% |
 | Central seven-repository registry specification | 🟢 | 100% |
-| Registry schema / GRS integration | 🔵 | 55% |
+| Registry schema / GRS integration | 🔵 | 85% |
 | No-duplicate-status-storage rule | 🟢 | 100% |
 | GOV-M05 — Haversine Pilot | 🟢 | 100% |
 | Pilot discovery and task identity | 🟢 | 100% |
 | Pilot execution/evidence trace | 🟢 | 100% |
 | Pilot roadmap reconciliation | 🟢 | 100% |
-| GOV-M06 — Seven-Repository Adoption | 🌱 | 25% |
+| GOV-M06 — Seven-Repository Adoption | 🔵 | 40% |
 | Career Intelligence discovery mapping (reuse existing surfaces) | 🌱 | 20% |
 | Engineering Handbook discovery mapping (reuse existing surfaces) | 🌱 | 20% |
 | ListingKit roadmap-role reconciliation | 🌱 | 30% |
 | AI BASE existing agent/tool surface inventory | 🟢 | 100% |
-| Seven-repository canonical-pointer adoption | 🌱 | 20% |
-| GOV-M07 — Automated Validation | 🔵 | 55% |
+| [NEW] Canonical seven-repository discovery registry | 🟢 | 100% |
+| Seven-repository canonical-pointer adoption | 🔵 | 55% |
+| GOV-M07 — Automated Validation | 🔵 | 65% |
 | Reuse existing GRS Control Plane | 🟢 | 100% |
-| Read-only registry validation | ⚪ | 0% |
+| Read-only registry validation | 🔵 | 75% |
 | Discovery-pointer drift detection | ⚪ | 0% |
 | GOV-M08 — Acceptance & Freeze | 🌱 | 15% |
 | Seven-repository reproducible discovery acceptance | ⚪ | 0% |
