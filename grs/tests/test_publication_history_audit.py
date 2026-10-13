@@ -157,6 +157,39 @@ class HistoryPathAuditTests(unittest.TestCase):
         self.assertEqual(result.returncode, 1)
         self.assertIn("unsupported disposition", result.stdout)
 
+    def test_reject_nonobject_manifest_without_crashing(self) -> None:
+        repo = self.make_repo()
+        self.commit_file(repo, "src/index.ts", "export {}")
+        manifest = repo / "manifest.json"
+        manifest.write_text("[]", encoding="utf-8")
+        result = self.audit(repo, manifest)
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("root must be an object", result.stdout)
+
+    def test_reject_disabled_history_audit(self) -> None:
+        repo = self.make_repo()
+        self.commit_file(repo, "src/index.ts", "export {}")
+        manifest = repo / "manifest.json"
+        manifest.write_text(json.dumps({
+            "history": {"audit_required": False},
+            "sensitive_surfaces": [{"path": "private/", "disposition": "externalize"}]
+        }), encoding="utf-8")
+        result = self.audit(repo, manifest)
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("history.audit_required is false", result.stdout)
+
+    def test_reject_malformed_history_without_crashing(self) -> None:
+        repo = self.make_repo()
+        self.commit_file(repo, "src/index.ts", "export {}")
+        manifest = repo / "manifest.json"
+        manifest.write_text(json.dumps({
+            "history": [],
+            "sensitive_surfaces": [{"path": "private/", "disposition": "externalize"}]
+        }), encoding="utf-8")
+        result = self.audit(repo, manifest)
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("history must be an object", result.stdout)
+
     def test_exact_file_surface_matches_history(self) -> None:
         repo = self.make_repo()
         self.commit_file(repo, "docs/PUBLIC_ACTIVATION.md", "internal keys")
