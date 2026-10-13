@@ -77,7 +77,10 @@ def main() -> int:
 
     if not isinstance(manifest, dict):
         return fail("publication manifest root must be an object")
-    if manifest.get("history", {}).get("audit_required") is False:
+    history = manifest.get("history", {})
+    if not isinstance(history, dict):
+        return fail("manifest history must be an object")
+    if history.get("audit_required") is False:
         return fail("history audit cannot declare a clean result when history.audit_required is false")
 
     surfaces = manifest.get("sensitive_surfaces")
