@@ -407,3 +407,15 @@
 - **Lean reporting:** full 12 stages for consequential work; abbreviated report for low-risk tasks retains fresh state, collisions, exact-head CI, owner gates, post-merge verification and roadmap sync when needed.
 
 **Progress unchanged:** whole program 88%, Governance v1 90%, GOV-M07 84%, GOV-M08 58%; proposed audit documents and PR count are not accepted implementation.
+
+### GOV-M07/M08 — DOC-01–DOC-07 deduplication reconciliation (2026-10-13; proposed in PR #79)
+
+**No new roadmap, milestone or mutable status owner.** Detailed [evidence-backed matrix](GOVERNANCE-DEDUPLICATION-MATRIX-2026-10-13.md) is a bounded acceptance artifact, not a replacement for domain-owned roadmaps.
+
+- **GOV-M07 / DOC-01 (confirmed authority ambiguity):** ListingKit and Career Intelligence worker policies call Control Plane `canonical global governance`; clarify `.github` engineering-wide authority vs Control Plane scheduled-worker execution authority in small domain-owned wording PRs. Preserve worker gates.
+- **GOV-M07 / DOC-02–03 (verified scope mismatch, no duplicate constitution):** Handbook registry points `discovery.roadmap` to a canonical TOC; actual execution status authority needs confirmation. Root `HANDBOOK_OPERATING_SYSTEM.md` exists; do not create a duplicate or invent a new roadmap.
+- **GOV-M07 / DOC-04–05 (local specialization):** Ladvero product, maintenance, task queue and MVP release gate remain distinct pending mutable-status reconciliation; Career PLATFORM/PUBLIC/assistant roadmaps retain separate metrics and parent/child boundaries.
+- **GOV-M07 / DOC-06–07 (workflow implementation):** evaluate Haversine central GRS `ref: main`, shared health `@main`, checkout credentials, exact-head checks and historical secret scan evidence. Keep domain-specific CI/release logic local.
+- **GOV-M08 acceptance:** future worker must reproducibly identify (1) global engineering rule, (2) worker execution authority, (3) domain roadmap, (4) enforcing CI/workflow, (5) status-conflict precedence. Stop repeated audits on unchanged SHAs.
+- **Owner boundary:** issue #56 remains required for new binding C01–C07; no deletion, archiving, mandatory enforcement or domain takeover from this audit.
+- **Progress unchanged:** GOV-M07 84%, GOV-M08 58%, GOV v1 90%, HQ 88% until merged implementation/evidence.
