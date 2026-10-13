@@ -79,6 +79,23 @@ class EngineeringRoundProtocolTests(unittest.TestCase):
             with self.subTest(requirement=requirement):
                 self.assertIn(requirement.lower(), self.content.lower())
 
+    def test_existing_merge_safety_explains_standing_permission_without_expanding_it(self):
+        policy = (ROOT / "governance/AUTOPILOT-MERGE-SAFETY.md").read_text(encoding="utf-8")
+        for phrase in (
+            "Existing standing Class A/B authorization",
+            "already granted, bounded",
+            "fresh current-run",
+            "exact unchanged head SHA",
+            "non-Draft status",
+            "owner-authored PRs",
+            "Class C changes",
+            "default deny",
+            "issue #56",
+            "no additional merge-policy file",
+        ):
+            with self.subTest(phrase=phrase):
+                self.assertIn(phrase.lower(), policy.lower())
+
     def test_pilot_does_not_claim_acceptance(self):
         self.assertIn("Pilot acceptance checklist", self.content)
         self.assertIn("**not** a second task-status store", self.content)
