@@ -491,3 +491,24 @@ Only on explicit owner request: (1) create repo, (2) select GRS class, (3) add l
 - Career Intelligence [#96](https://github.com/DaniilSydorenko/career-intelligence/pull/96) head `3e694fa62e8cb587e2d6c3e245f75a16bef66616`: **Career Intelligence Validate SUCCESS; Secret Scan SUCCESS**. Still Draft.
 - All three PRs reported mergeable at checkpoint. This is **CI/implementation evidence, not accepted main-state delivery**. Do not mark DONE or bypass Draft, Class A/B authorization, security or owner gates.
 - Remaining acceptance: non-draft authorization/review, fresh exact-head checks immediately before permitted merge, remote main verification, then runtime policy-loading proof or explicit UNKNOWN; GOV-M08 fleet acceptance still pending. No percentage increase until accepted evidence.
+
+### 2026-10-13 — blocker reconciliation and progress rebaseline (latest observed evidence)
+
+**Evidence sources:** exact-head GitHub PR workflow runs, current open PR metadata, and Control Plane `telemetry/*/latest.json` (timestamps below). This checkpoint supersedes earlier *pending-CI* statements in this document, but does not erase history.
+
+| Lane | Latest verified evidence | Blocker / independent continuation |
+| --- | --- | --- |
+| HQ GRS | [#80](https://github.com/DaniilSydorenko/.github/pull/80) head `1714d27758b2d4dcebe119988fa12293a562994e`, GRS Control Plane **SUCCESS**; Draft | CI implementation accepted as tested **on PR**, not merged/operational fleet acceptance |
+| ListingKit authority | [#195](https://github.com/DaniilSydorenko/listing-kit/pull/195) head `6286fcb2a66f6a75ede8f6a74594f77eae04ad50`, CI + Secret Scan **SUCCESS**; Draft | Local authority text prepared; separate security-sensitive [#194](https://github.com/DaniilSydorenko/listing-kit/pull/194) Draft head `75dc70aa6b8c57fff717099ad72f3ce9186fc9f6`, full-history scan and security owner classification unproven |
+| Career authority | [#96](https://github.com/DaniilSydorenko/career-intelligence/pull/96) head `3e694fa62e8cb587e2d6c3e245f75a16bef66616`, Validate + Secret Scan **SUCCESS**; Draft | Domain authority correction pending acceptance; unrelated ecosystem write connector cooldown remains |
+| GitHub Autopilot | telemetry **DEGRADED**, 2026-10-13T11:58:15Z | M4-E safety update blocked by connector; history disposition gaps: `private-runtime` omitted, `.local/` aliases `local/`, mandatory ready-state history flags absent. No M4 exact-head CI. **Existing M4 safety subtask must track these concrete checks**, no new milestone |
+| Career Ecosystem | telemetry **DEGRADED**, 2026-10-13T11:28:44Z | Repository-local writes blocked on unchanged fingerprint; Handbook main 30/188 authored versus stacked draft #84 188/188, release hold; Labs R13 unmerged; R18 docs drift, R23 awaits R22 and explicit GO. No cross-domain takeover |
+| Ladvero worker | telemetry **BLOCKED SECURITY**, 2026-10-13T10:17:38Z | Historical Gitleaks full-history verification and security approval pending; independent safe work and audit only |
+| Norway scan | telemetry **WORKING**, 2026-10-12T06:04:53Z | No confirmed new actionable A+/A role; no autonomous contact or application |
+| HQ report-only [#79](https://github.com/DaniilSydorenko/.github/pull/79) | Draft, mergeable, **no exact-head workflow run** because report-only paths excluded | Owner review + evidence reconciliation; do not label green-CI |
+
+**Canonical-source repair in this same PR:** executor `reports/github-autopilot/ROADMAP-2026-10-11.md` explicitly labels its 83% and M5/M8/M10 figures as historical; HQ `ROADMAP-LIVE.md` is owner-facing status authority. This resolves a *reporting contradiction in draft*, not the underlying acceptance blockers.
+
+**Progress recomputation discipline:** 88% program and 90% Governance remain the last approved estimates; GOV-M07 84% and GOV-M08 58% remain unaltered because all three implementation PRs are still Draft, none integrated, and policy SHA loading/runtime seven-repo proof remains UNKNOWN. Numerically reproducible, **noncompletion** indicators: 3/3 implementation PR heads with successful exact-head workflows, 0/3 merged; 1/7 canonical local manifests found (14.3%); 7/7 central discovery records (not conformance); 0/5 workers with proven policy SHA loading. The separate 91.8% equal-milestone *scope-filtered illustration* remains a denominator example, not earned progress. No valid weight model exists to recompute 88% from these counters.
+
+**Next bounded engineering gate:** after explicit authority/review, convert the safe drafts to non-draft and integrate only with current-run merge authorization and fresh exact-head CI, then verify main remotely. In parallel perform read-only evidence extraction for policy loading and M4 history-disposition flags. **STOP** on connector cooldown, unknown approval, missing full-history scan or cross-worker collision. Do not add workers, dashboards, or new milestones.
