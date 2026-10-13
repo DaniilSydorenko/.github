@@ -76,6 +76,26 @@ class PublicationValidatorTests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("requires green technical gates", result.stdout)
 
+    def test_ready_state_cannot_skip_history_audit(self) -> None:
+        payload = json.loads(json.dumps(BASE))
+        payload["target"]["status"] = "ready-for-owner-gate"
+        for key in ("current_tree_public_safe", "history_public_safe", "exact_head_ci_green"):
+            payload["gates"][key] = True
+        payload["history"]["audit_required"] = False
+        result = self.run_manifest(payload)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("history.audit_required", result.stdout)
+
+    def test_ready_state_cannot_disable_owner_history_rewrite_gate(self) -> None:
+        payload = json.loads(json.dumps(BASE))
+        payload["target"]["status"] = "ready-for-owner-gate"
+        for key in ("current_tree_public_safe", "history_public_safe", "exact_head_ci_green"):
+            payload["gates"][key] = True
+        payload["history"]["rewrite_owner_gated"] = False
+        result = self.run_manifest(payload)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("history.rewrite_owner_gated", result.stdout)
+
     def test_owner_approval_cannot_appear_early(self) -> None:
         payload = json.loads(json.dumps(BASE))
         payload["gates"]["owner_visibility_approval"] = True
