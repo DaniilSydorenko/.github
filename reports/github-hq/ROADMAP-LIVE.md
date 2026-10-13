@@ -392,3 +392,18 @@
 
 - [HQ PR #77](https://github.com/DaniilSydorenko/.github/pull/77) was squash-merged to `main` at commit `5695581015b694da44698a6979b8e6c812fce0d8` with immutable expected PR head `2d899b61d3efbf94e5bcfbb84a770af65d0b1499`. Post-merge `.gitignore` readback verified the accepted content.
 - This is repository-local artifact/secret hygiene, **not** proof of historical secret-scan resolution, connector repair, or Haversine pilot acceptance. No milestone inflation.
+
+### GOV-M07/M08 — Independent architecture review reconciliation (2026-10-13; proposed in HQ PR #79)
+
+**Decision: CONTINUE; no redesign, new milestone, parallel tracker or percentage inflation.** Preserve M0–M10 and GOV-M01–M08. Audit Freeze removal is not C01–C07 approval.
+
+- **Already accepted:** central GRS validator hardening (merged #74), seven-repository discovery registry and pointer reconciliation, repository hygiene fix (merged #77), existing default-deny merge safeguards and non-enforcing 12-stage Engineering Round Protocol. Discovery coverage and documented protocol do not prove fleet compliance or complete execution.
+- **Owner blocked (#56):** C01–C07 new binding semantics, mandatory cross-repository GRS/worker enforcement, owner-specific exceptions and destructive cleanup. Decision package prepared in [HQ PR #79](https://github.com/DaniilSydorenko/.github/pull/79); owner approval remains pending.
+- **Safe under existing policy:** read-only semantic workflow and worker-entrypoint audit, GRS five-dimension adoption evidence report (discovery / manifest / class-profile compliance / exact-head CI enforcement / operational acceptance), PR-collision preflight, branch cleanup dry-run design and Haversine scoped pilot evidence collection. No domain mutation by HQ.
+- **Next PR sequence:** (1) finish/review/integrate HQ #79 evidence without duplicating GOV tasks; (2) narrow HQ read-only GRS conformance report using existing validators and tests; (3) Haversine domain-owned GRS pinning/checkout hardening with exact-head CI, authorized merge and post-merge proof. Worker policy-loading inspection precedes any claim of runtime enforcement.
+- **GOV-M07 acceptance:** reproducible seven-repository conformance or approved exceptions across all five dimensions, validated CI evidence, actual worker policy-version-to-execution chain, collision-aware pilot and no weakened safety.
+- **GOV-M08 acceptance:** explicit #56 decision, documented scope/exceptions, one complete Haversine engineering round or justified owner block, three stable rounds, domain/HQ reconciliation, and stop-building freeze.
+- **UNKNOWN:** current live branch protection/rulesets, complete CI across every repo, actual external scheduler prompt/policy loading, unresolved historical full-history scan gates. Do not claim them verified.
+- **Lean reporting:** full 12 stages for consequential work; abbreviated report for low-risk tasks retains fresh state, collisions, exact-head CI, owner gates, post-merge verification and roadmap sync when needed.
+
+**Progress unchanged:** whole program 88%, Governance v1 90%, GOV-M07 84%, GOV-M08 58%; proposed audit documents and PR count are not accepted implementation.
