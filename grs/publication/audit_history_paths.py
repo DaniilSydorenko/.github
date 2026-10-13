@@ -75,6 +75,11 @@ def main() -> int:
     except (OSError, json.JSONDecodeError) as exc:
         return fail(f"cannot read manifest: {exc}")
 
+    if not isinstance(manifest, dict):
+        return fail("publication manifest root must be an object")
+    if manifest.get("history", {}).get("audit_required") is False:
+        return fail("history audit cannot declare a clean result when history.audit_required is false")
+
     surfaces = manifest.get("sensitive_surfaces")
     if not isinstance(surfaces, list):
         return fail("manifest sensitive_surfaces must be an array")
