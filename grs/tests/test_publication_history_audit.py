@@ -137,6 +137,26 @@ class HistoryPathAuditTests(unittest.TestCase):
         self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
         self.assertIn("HISTORY_MATCH: .local/migration/", result.stdout)
 
+    def test_path_traversal_cannot_silently_pass_history(self) -> None:
+        repo = self.make_repo()
+        self.commit_file(repo, "src/index.ts", "export {}")
+        manifest = self.write_manifest(
+            repo, [{"path": "../private/", "disposition": "externalize"}]
+        )
+        result = self.audit(repo, manifest)
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("unsafe or ambiguous Git path", result.stdout)
+
+    def test_unsupported_disposition_cannot_skip_audit(self) -> None:
+        repo = self.make_repo()
+        self.commit_file(repo, "src/index.ts", "export {}")
+        manifest = self.write_manifest(
+            repo, [{"path": "private/", "disposition": "untracked"}]
+        )
+        result = self.audit(repo, manifest)
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("unsupported disposition", result.stdout)
+
     def test_exact_file_surface_matches_history(self) -> None:
         repo = self.make_repo()
         self.commit_file(repo, "docs/PUBLIC_ACTIVATION.md", "internal keys")
