@@ -93,9 +93,20 @@ def main() -> int:
         surface_path = surface.get("path")
         if not isinstance(surface_path, str) or not surface_path.strip():
             return fail(f"{path}.path must be a non-empty string")
-        if surface_path in seen_paths:
+        canonical_path = surface_path.strip()
+        while canonical_path.startswith("./"):
+            canonical_path = canonical_path[2:]
+        if (
+            not canonical_path
+            or canonical_path.startswith("/")
+            or "\\" in canonical_path
+            or "//" in canonical_path
+            or any(segment in {".", ".."} for segment in canonical_path.split("/"))
+        ):
+            return fail(f"{path}.path is unsafe or ambiguous")
+        if canonical_path in seen_paths:
             return fail(f"duplicate sensitive surface path: {surface_path}")
-        seen_paths.add(surface_path)
+        seen_paths.add(canonical_path)
         disposition = surface.get("disposition")
         if not isinstance(disposition, str) or disposition not in ALLOWED_DISPOSITION:
             return fail(f"{path}.disposition has unsupported value {disposition!r}")
