@@ -58,6 +58,21 @@
 
 **2026-10-13 engineering continuation — M4-E closure work:** [PR #82](https://github.com/DaniilSydorenko/.github/pull/82) latest exact-head `e4b22c74e32b7801b11930e478959c8bcdbe40d8` passed GRS Control Plane. Beyond the earlier hidden path/owner gates, the history auditor now fails closed for malformed manifest root/history and explicit `history.audit_required=false` (3 new negative cases). This closes a real *false-clean detector defect at the proposed-code + CI stage*, not a publication readiness or merged-main stage. **No revision to 6/9, 4/8, M4=66% or M4-E=18%** without accepted main and subsequent real repository scan. Mandatory remaining acceptance: security review, authorized merge, full-history content/secret checks of publication candidates, owner publication decision. No duplicate policy/reporter introduced.
 
+### 2026-10-13 — M4 real source-tree evidence (full GitHub tree snapshots)
+
+All three candidate repositories were inspected against their existing publication manifests using fresh **non-truncated recursive GitHub trees**. This is real accepted-`main` tree inventory, not a scan of content/history and not permission to publish.
+
+| Repository | Git tree SHA | Manifest-marked tracked source files | Owner-extraction / review gap |
+| --- | --- | ---: | --- |
+| Engineering Labs | `25ca1a82d0e1973993fdd882116bcf3ef6d34c6e` | **23** | 8 reference sources flagged REVIEW, 8 interview files and 7 archived interview files flagged EXTERNALIZE |
+| Engineering Handbook | `b0b886fff5cc71874e7b5d46fec5adb72ed98cec` | **6** | 4 `daniil/` personal-overlay files EXTERNALIZE; README and autonomous worker prompt require SANITIZE |
+| Career Intelligence | `eb1c4c5ac4fb6e9bb3ce598507e39f469178355c` | **24** | importer constants 1 EXTERNALIZE, activation doc 1 SANITIZE, fixture 1 SYNTHETICIZE, `src/data/` 21 REVIEW; `.local/migration/` **0 tracked now**, historical safety still UNKNOWN |
+| **Total** | 3/3 complete tree snapshots | **53** | All 3 publication `target.status=extraction-required`, technical/publication gates remain false |
+
+**Execution:** [M4 security PR #82](https://github.com/DaniilSydorenko/.github/pull/82) extends existing GRS with a read-only `audit_current_tree.py` using explicit tree snapshots, fail-closed truncated/malformed evidence, per-surface counts and negative regression coverage. Latest exact-head `3b3a1d85c8f443458420b8ae462b37f5be99077b` **GRS Control Plane SUCCESS**. No cross-repo source files changed; **53** means declared-path matches, not proven sensitive-content incidents. The tool never asserts history/content/owner clearance; it distinguishes current-path findings from full-history gate.
+
+**Remaining large M4 delivery:** domain owners extract/sanitize/syntheticize/review declared tracked surfaces, verify no new sensitive surfaces, then run full-history content/secret/PII audits and exact-head CI, obtain owner publication approval. The current-tree checker is PR-tested, not on `main` until authorized merge. Maintain program 6/9 = 66.7%, GOV 4/8 = 50.0%, M4 66% legacy estimate and M4-E 18% legacy estimate: neither CI nor counting candidate files earns release acceptance.
+
 ### Lightweight future-repository onboarding (not a new product)
 
 Only on explicit owner request: (1) create repo, (2) select GRS class, (3) add local manifest, (4) add central registry pointer, (5) install appropriate local CI/security, (6) validate and accept. Reuse current schema, validators and workflows; no new onboarding service/dashboard/database/generator.
