@@ -49,6 +49,16 @@ The Autopilot roadmap is the execution worker's own operating plan.
 
 GitHub HQ may audit these repositories for readiness and may perform explicitly authorized maintenance/release-engineering work, but must not silently take over domain ownership.
 
+## Scope of HQ completion — domain application PRs are not HQ deliverables
+
+Owner clarified on 2026-10-13: the GitHub HQ and GRS roadmap **must not require completion of every pull request in other applications**. This is scope ownership, not permission to close/delete those PRs, rewrite their roadmaps or weaken any safety gate.
+
+- **HQ owns:** its `.github` governance/profile work; GitHub-side evidence/discovery, safe CI/GRS verification, read-only cross-repository conformance, and owner-gated public visibility decisions.
+- **Domain owners own:** their own product code, content, dependencies, refactors, acceptance, PR merges, releases, and local roadmaps in ListingKit/Ladvero, Career Intelligence, Engineering Handbook, Engineering Labs and Haversine. Domain PR/Draft counts are observations only.
+- **M4 distinction:** HQ may document exposure, audit current tree/history readiness, and ask for publication decisions. Domain teams own code/data extraction. An unfinished domain extraction is a *specific publication prerequisite* if the owner wishes to make that repo public, **not** a reason to block unrelated GitHub/Governance milestones. Do not mark the publication gate done while risks remain.
+- **GOV-M07/M08 distinction:** existing seven-repo governance discovery/operational evidence may be required under the agreed scope; clearing domain PR queues, finishing Handbook chapters, shipping product features and updating every dependency are **not** required. C01–C07 enforcement still requires separate owner decision #56.
+- **Finish First applies within ownership.** Review and close GitHub-owned PRs before opening more GitHub governance work; don't absorb domain PR stacks into HQ simply because they are large. Keep their status truthful, never inflate milestone percentages or silently amend existing acceptance criteria.
+
 ## Collision rules
 
 Before every mutation:
