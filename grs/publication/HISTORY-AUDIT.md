@@ -20,4 +20,4 @@ Exit codes:
 
 A `2` is not authorization to rewrite history. Any filter/rewrite/force update remains an explicit owner gate. The tool is a detector, not a mutator.
 
-`private-runtime` surfaces are excluded because their intended invariant is “never checked in”; secret/private-content tooling should separately detect accidental commits.
+`private-runtime` surfaces are **included** in the historical-path audit. They are intended never to be committed, so a historical match requires review before any publication decision. Hidden paths such as `.local/` must remain distinct from non-hidden `local/`. This path-only check does not prove absence of sensitive contents in other files; full-history secret/private-content review and owner publication authorization remain independent gates.
