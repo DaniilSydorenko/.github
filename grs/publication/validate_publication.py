@@ -122,6 +122,10 @@ def main() -> int:
             return result
 
     if target["status"] == "ready-for-owner-gate":
+        if not history["audit_required"]:
+            return fail("ready-for-owner-gate requires history.audit_required true")
+        if not history["rewrite_owner_gated"]:
+            return fail("ready-for-owner-gate requires history.rewrite_owner_gated true")
         required = ("current_tree_public_safe", "history_public_safe", "exact_head_ci_green")
         missing = [key for key in required if gates[key] is not True]
         if missing:
