@@ -73,6 +73,21 @@ All three candidate repositories were inspected against their existing publicati
 
 **Remaining large M4 delivery:** domain owners extract/sanitize/syntheticize/review declared tracked surfaces, verify no new sensitive surfaces, then run full-history content/secret/PII audits and exact-head CI, obtain owner publication approval. The current-tree checker is PR-tested, not on `main` until authorized merge. Maintain program 6/9 = 66.7%, GOV 4/8 = 50.0%, M4 66% legacy estimate and M4-E 18% legacy estimate: neither CI nor counting candidate files earns release acceptance.
 
+### Finish-first acceptance sequence — no new milestones (2026-10-13)
+
+**Frozen active scope:** M0–M5 and M8–M10; M6/M7 deferred. The operational standard now lives in the **existing** `reports/github-hq/HQ-AUTOPILOT-BOUNDARIES.md`, `reports/github-hq/ENGINEERING-ROUND-PROTOCOL.md` and `governance/AUTOPILOT-MERGE-SAFETY.md`, with existing GRS regression coverage. No parallel lifecycle-policy repository/service/worker, no mandatory seven-repo C01–C07 rollout.
+
+| Closeout wave (not a milestone) | Current accepted result | Next terminal decision |
+| --- | --- | --- |
+| A — Existing tested HQ GRS [#80](https://github.com/DaniilSydorenko/.github/pull/80) | Exact-head CI green; Ready; **not merged** | Owner/HQ review, scoped merge authorization, fresh exact-head check, remote `main` acceptance |
+| A — HQ roadmap/finish rules [#79](https://github.com/DaniilSydorenko/.github/pull/79) | Proposed on Draft PR, GRS CI on latest policy change to be verified; **not merged** | Owner HQ accepts bounded rules and report, only then mark Ready/merge and verify `main` |
+| B — Domain low-risk policy [ListingKit #195](https://github.com/DaniilSydorenko/listing-kit/pull/195), [Career #96](https://github.com/DaniilSydorenko/career-intelligence/pull/96) | Both exact-head CI/security green and Ready; **not merged** | Domain-owner review and scope-correct merge authority; no HQ silent domain takeover |
+| B — [M4 safety #82](https://github.com/DaniilSydorenko/.github/pull/82) | Exact-head GRS CI green in Draft; **not merged** | Security/owner review, full-history content audit and separated permission for publication |
+| C — 100%-closeout candidates M1, GOV-M03, GOV-M04 | Historical 98/92/95 estimates, **not accepted** | M1 external old-key revocation evidence; GOV-M03/M04 binding-owner decision [#56](https://github.com/DaniilSydorenko/.github/issues/56). Do not narrow acceptance gates just to raise percentages |
+| C — GOV-M07/M08 | Historical 84/58 estimates, **not accepted** | Test actual worker policy loading, deliver enabled fleet state and seven-repository acceptance; owner-only Ladvero scheduler change remains separate |
+
+**Bounded work rule:** choose existing tested/acceptance-ready PR before a new governance PR; maximum two equivalent failed attempts without new evidence, then one accurate owner decision or independent lane. The **standing scoped Class A/B authorization applies only to the original worker's own PR**; it does not authorize this HQ to merge owner-authored/domain/security-sensitive PRs. Each accepted item needs a remotely verified canonical SHA. Preserve the previous **6/9 = 66.7%** program and **4/8 = 50%** GOV full-closeout ratios until evidence actually closes a milestone. Stop building mechanics when accepted.
+
 ### Lightweight future-repository onboarding (not a new product)
 
 Only on explicit owner request: (1) create repo, (2) select GRS class, (3) add local manifest, (4) add central registry pointer, (5) install appropriate local CI/security, (6) validate and accept. Reuse current schema, validators and workflows; no new onboarding service/dashboard/database/generator.
