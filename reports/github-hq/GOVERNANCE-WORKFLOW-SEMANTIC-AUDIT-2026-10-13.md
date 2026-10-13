@@ -20,3 +20,15 @@ Status: read-only findings; no CI/security policy changed. Scope: central GRS Co
 - Gitleaks `fetch-depth: 0` does not prove full-history scanning for every event; review action invocation and logs for actual coverage.
 - Exact-head CI on PR #79 is **not observed**; central GRS workflow path filter excludes this report-only PR.
 - Next batch: Control Plane, Career Intelligence, Handbook, Labs and profile workflows; then branch/ruleset inventory. Cross-repository fixes remain domain-owned.
+
+## Second verified batch: five-domain workflow metadata (2026-10-13)
+
+Inspected full workflow text in `autopilot-control-plane` (6 files), `career-intelligence` (4), `engineering-handbook` (3) and `engineering-labs` (3); profile workflow inspection is still pending.
+
+- **WF-07 — shared health mutable reference:** all four repos call `DaniilSydorenko/.github/.github/workflows/reusable-autopilot-health.yml@main`. This is a deliberate shared implementation, but a moving ref; evaluate version pinning and upgrade cadence, balancing rapid central security patches against reproducibility.
+- **WF-08 — Control Plane write-job checkout:** `issue-sync.yml`, `reconcile.yml`, `roadmap-executor.yml`, and `weekly-review.yml` each have a checkout without explicit `persist-credentials: false`; `validate.yml` sets it false. The write jobs may legitimately need authenticated pushes. Inspect the actual git-push/auth model before proposing changes; **do not blindly disable credentials or break the worker**.
+- **WF-09 — consistent read-only workflows:** Career Intelligence public-runtime-smoke, validate and secret-scan, Handbook validate and secret-scan, and Labs quality and secret-scan explicitly set `persist-credentials: false` and `contents: read`. This is positive evidence of existing local hardening.
+- **WF-10 — security scan scope:** Career Intelligence, Handbook and Labs each expose a local `secret-scan.yml`; central `.github` and Control Plane do not expose that exact filename. Equivalent checks and historical execution remain unverified; classify as coverage questions, not confirmed absence.
+- **WF-11 — scope of this batch:** 16 workflow files inspected for selected structural and permission patterns, not a full threat-model or every line of job scripts. Do not interpret pattern counts as a vulnerability assessment.
+
+**Updated remediation sequence:** prioritize central shared-workflow versioning decision, GRS `ref: main` reproducibility, non-writing checkout credential minimization, then inspect write-job authentication dependencies; all actual domain workflow changes require domain-owner coordination and exact-head CI.
