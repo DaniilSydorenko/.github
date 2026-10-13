@@ -12,6 +12,28 @@
 
 **ACTIVE completion work:** GOV-M03 C01–C07 approval gate #56; GOV-M04 registry/schema integration; GOV-M07 five-dimension GRS adoption (discovery, manifest, class-profile, CI, operational), worker policy-consumption proof, collision checks and actual Haversine engineering round; GOV-M08 owner-approved exceptions, reproducible seven-repo acceptance, freeze. No new milestones, services, databases or generators.
 
+### Latest live reconciliation — 2026-10-13 (Finish First; supersedes older snapshots below)
+
+**Sources verified this cycle:** seven GitHub open-PR inventories; current PR heads and exact-head workflow runs; `main` vs PR-branch comparison; live external automation enablement; authoritative Control Plane v2 telemetry; open owner [decision #56](https://github.com/DaniilSydorenko/.github/issues/56). Existing scope and milestone acceptance criteria **unchanged**.
+
+| Current deliverable | Evidence now | Blocker / terminal action |
+| --- | --- | --- |
+| **GitHub milestone closeout** | **6/9 = 66.7%** fully marked closed; M0/M2/M3/M5/M9/M10 | M1 98% missing old Maps key revocation proof; M4 66% incomplete privacy/history/owner publication gates; optional M8 62% unfinished pins/QA |
+| **Governance milestone closeout** | **4/8 = 50.0%** fully marked closed; GOV-M01/M02/M05/M06 | GOV-M03 92% and M04 95% depend on [#56](https://github.com/DaniilSydorenko/.github/issues/56); GOV-M07 84% and M08 58% lack accepted runtime/policy/7-repo evidence |
+| **HQ Finish First + reconciled roadmap [#79](https://github.com/DaniilSydorenko/.github/pull/79)** | Draft; current head before this status-only sync `cb4a48d9f4949ea825e279ecd222b17ef05d8ae9`; **GRS Control Plane SUCCESS** on that head; mergeable | Proposed policy-interpretation and HQ runbook changes **not on `main`**; owner review/current merge authority and post-merge verification required |
+| **Read-only GRS reporter [#80](https://github.com/DaniilSydorenko/.github/pull/80)** | Ready; exact-head `1714d27758b2d4dcebe119988fa12293a562994e`; GRS CI SUCCESS | Unmerged; authorized review/merge then actual fleet evidence input and main verification |
+| **M4 publication safety [#82](https://github.com/DaniilSydorenko/.github/pull/82)** | Draft; exact-head `3b3a1d85c8f443458420b8ae462b37f5be99077b`; GRS CI SUCCESS | Security/owner review, merge, full-history content/secret/PII scans; **no publication approval** |
+| **ListingKit [#195](https://github.com/DaniilSydorenko/listing-kit/pull/195) / Career [#96](https://github.com/DaniilSydorenko/career-intelligence/pull/96)** | Both Ready, exact-head CI + Secret Scan SUCCESS | Both unmerged; domain authority and remote main acceptance pending |
+| **Handbook [#84](https://github.com/DaniilSydorenko/engineering-handbook/pull/84)** | Draft; Handbook Validate + Secret Scan SUCCESS; **188/188 authored on stack, 30/188 in `main`** | PR stack dependencies, private-overlay extraction, release portability/owner review; no out-of-order merge |
+| **M4 private/public surfaces** | Labs **23**, Handbook **6**, Career **24** tracked manifest-marked paths on complete latest checked `main` trees (**53 total**) | These require extraction/review; not proof of 53 secret leaks; history/content clearance and owner visibility approvals remain outstanding |
+| **GitHub + Career scheduled workers** | Both enabled/hourly and report **DEGRADED / CONNECTOR** (latest observed `19:02:28Z` / `19:34:00Z`) | Actual scheduled-worker mutation cooldown unverified as recovered; successful interactive PR writing is not worker recovery |
+| **Ladvero PR worker** | **DISABLED** in live scheduler; durable telemetry **BLOCKED / SECURITY** (last `10:17:38Z`) | Owner action required to change scheduler; [ListingKit #194](https://github.com/DaniilSydorenko/listing-kit/pull/194) full-history Gitleaks/owner classification still pending |
+| **Fleet / PR queue** | **4/5** intended scheduled tasks enabled; **62 open PR / 46 Draft** across seven repos; Handbook **44 / 43 Draft** | Owner gates, stacked work and connector cooldown; no indiscriminate merge/deletion |
+
+**Finish-first delivery counters (fixed cohort #80/#82/#195/#96):** exact-head CI green **4/4 (100%)**; Ready **3/4 (75%)**; merged and main-verified **0/4 (0%)**. [HQ #79](https://github.com/DaniilSydorenko/.github/pull/79) is a separate governance/roadmap Draft, not smuggled into this cohort. **0/7 operational GRS acceptance proven, 0/5 worker policy SHA consumption proven, 0/3 public visibility approvals.** These are *evidence acceptance* counts; UNKNOWN does not mean verified operational failure.
+
+**No fabricated closeout:** historical weighted estimates GitHub **88%**, Governance **90%** and unfinished-task estimates remain unchanged. Milestone closure ratios are an equal-milestone measure, not a weighted total-work estimate. M6/M7 stay deferred. This update changes report truth, not worker configuration, PR merge status, security controls, scope or publication.
+
 ### Verified scope-closeout scoreboard — 2026-10-13
 
 **Recalculation rule:** count a milestone as **accepted/closed** only when the existing canonical HQ milestone row is at **100%**. The denominator is fixed for this snapshot; no new work, branch, PR or CI run counts as accepted `main` integration. These are exact **milestone-closure ratios**, NOT weighted work-effort estimates. GitHub whole-program and Governance v1 historical estimate percentages remain separately identifiable.
@@ -556,9 +578,9 @@ Only on explicit owner request: (1) create repo, (2) select GRS class, (3) add l
 - All three PRs reported mergeable at checkpoint. This is **CI/implementation evidence, not accepted main-state delivery**. Do not mark DONE or bypass Draft, Class A/B authorization, security or owner gates.
 - Remaining acceptance: non-draft authorization/review, fresh exact-head checks immediately before permitted merge, remote main verification, then runtime policy-loading proof or explicit UNKNOWN; GOV-M08 fleet acceptance still pending. No percentage increase until accepted evidence.
 
-### 2026-10-13 — blocker reconciliation and progress rebaseline (latest observed evidence)
+### 2026-10-13 — earlier blocker reconciliation (historical; superseded by latest checkpoint above)
 
-**Evidence sources:** exact-head GitHub PR workflow runs, current open PR metadata, and Control Plane `telemetry/*/latest.json` (timestamps below). This checkpoint supersedes earlier *pending-CI* statements in this document, but does not erase history.
+**Historical evidence:** the following PR and telemetry statuses describe an earlier checkpoint. The top **Latest live reconciliation** supersedes them. Keep this subsection only for provenance of earlier blocker observations.
 
 | Lane | Latest verified evidence | Blocker / independent continuation |
 | --- | --- | --- |
@@ -569,7 +591,7 @@ Only on explicit owner request: (1) create repo, (2) select GRS class, (3) add l
 | Career Ecosystem | telemetry **DEGRADED**, 2026-10-13T11:28:44Z | Repository-local writes blocked on unchanged fingerprint; Handbook main 30/188 authored versus stacked draft #84 188/188, release hold; Labs R13 unmerged; R18 docs drift, R23 awaits R22 and explicit GO. No cross-domain takeover |
 | Ladvero worker | telemetry **BLOCKED SECURITY**, 2026-10-13T10:17:38Z | Historical Gitleaks full-history verification and security approval pending; independent safe work and audit only |
 | Norway scan | telemetry **WORKING**, 2026-10-12T06:04:53Z | No confirmed new actionable A+/A role; no autonomous contact or application |
-| HQ report-only [#79](https://github.com/DaniilSydorenko/.github/pull/79) | Draft, mergeable, **no exact-head workflow run** because report-only paths excluded | Owner review + evidence reconciliation; do not label green-CI |
+| HQ [#79](https://github.com/DaniilSydorenko/.github/pull/79) (historical observation before Finish First code changes) | Initially report-only with no workflow run; **superseded:** policy/runbook changes later triggered GRS CI SUCCESS on head `cb4a48d9` | Still Draft/unmerged; latest live checkpoint above is authoritative |
 
 **Canonical-source repair in this same PR:** executor `reports/github-autopilot/ROADMAP-2026-10-11.md` explicitly labels its 83% and M5/M8/M10 figures as historical; HQ `ROADMAP-LIVE.md` is owner-facing status authority. This resolves a *reporting contradiction in draft*, not the underlying acceptance blockers.
 
