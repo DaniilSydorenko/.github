@@ -544,7 +544,9 @@ Only on explicit owner request: (1) create repo, (2) select GRS class, (3) add l
 
 **Next bounded engineering gate:** after explicit authority/review, convert the safe drafts to non-draft and integrate only with current-run merge authorization and fresh exact-head CI, then verify main remotely. In parallel perform read-only evidence extraction for policy loading and M4 history-disposition flags. **STOP** on connector cooldown, unknown approval, missing full-history scan or cross-worker collision. Do not add workers, dashboards, or new milestones.
 
-### 2026-10-13 — PR and branch hygiene checkpoint (seven-repo owner-approved scope)
+### 2026-10-13 — Earlier PR/branch checkpoint (superseded by verified scoreboard at top)
+
+> Historical snapshot only. **Current canonical counts, accepted-milestone percentages, ready PRs and blockers are in the opening Verified scope-closeout scoreboard.**
 
 Read-only live `pulls?state=open&per_page=100` inventory (per-repo; no pagination beyond 100 needed for open PRs):
 
