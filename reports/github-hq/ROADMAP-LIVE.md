@@ -476,3 +476,10 @@ Only on explicit owner request: (1) create repo, (2) select GRS class, (3) add l
 - Existing central [GRS reporter #80](https://github.com/DaniilSydorenko/.github/pull/80), head `dcee5674d041`: GRS Control Plane **SUCCESS** at exact head, draft, still needs review/merge and real evidence input.
 - No scheduler or worker authority mutation; no CI bypass or autonomous merge; no owner-gated #56 change.
 - **Evidence-based metric update:** implementation PRs exist and #80 exact-head CI is green, but no accepted/merged domain remediation and no seven-repo operational proof yet. Preserve 88% whole-program, 90% GOV v1, 84% GOV-M07 and 58% GOV-M08; mark AUTO-GOV-01 wording corrections as **IMPLEMENTED IN DRAFT / AWAITING ACCEPTANCE**, not DONE.
+
+### 2026-10-13 — exact-head policy checks green; GRS reporter hardening pending CI
+
+- ListingKit worker-policy [PR #195](https://github.com/DaniilSydorenko/listing-kit/pull/195) exact head `6286fcb2a66f`: CI **SUCCESS**, Secret Scan **SUCCESS**; still draft/unmerged.
+- Career worker-policy [PR #96](https://github.com/DaniilSydorenko/career-intelligence/pull/96) exact head `3e694fa62e8c`: Career Intelligence Validate **SUCCESS**, Secret Scan **SUCCESS**; still draft/unmerged.
+- GRS [PR #80](https://github.com/DaniilSydorenko/.github/pull/80) strengthened to reject duplicate registry entries and blank owner exception approval; added 3 regression scenarios (8 total). New head `3f5be7d47782`; **no CI runs observed for this exact head at inspection**; previous green CI cannot be inherited.
+- **Gate:** no PR marked accepted or merged, no scheduler mutation, no issue #56 bypass. GOV-M07 remains 84%, GOV-M08 58%, Governance v1 90%, historical whole program 88%. Explicit pending acceptance is more accurate than synthetic percentage gain.
