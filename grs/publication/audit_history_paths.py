@@ -79,16 +79,25 @@ def main() -> int:
     if not isinstance(surfaces, list):
         return fail("manifest sensitive_surfaces must be an array")
 
-    sensitive_paths = sorted(
-        {
-            normalize(surface.get("path", ""))
-            for surface in surfaces
-            if isinstance(surface, dict)
-            and surface.get("disposition") in AUDITED_DISPOSITIONS
-            and isinstance(surface.get("path"), str)
-            and normalize(surface["path"])
-        }
-    )
+    sensitive_paths_set: set[str] = set()
+    for index, surface in enumerate(surfaces):
+        if not isinstance(surface, dict) or surface.get("disposition") not in AUDITED_DISPOSITIONS:
+            return fail(f"sensitive_surfaces[{index}]: missing or unsupported disposition")
+        raw_path = surface.get("path")
+        if not isinstance(raw_path, str):
+            return fail(f"sensitive_surfaces[{index}]: path must be a string")
+        sensitive = normalize(raw_path)
+        parts = sensitive.split("/")
+        if (
+            not sensitive
+            or sensitive.startswith("/")
+            or "\\" in sensitive
+            or "//" in sensitive
+            or any(part in {".", ".."} for part in parts)
+        ):
+            return fail(f"sensitive_surfaces[{index}]: unsafe or ambiguous Git path")
+        sensitive_paths_set.add(sensitive)
+    sensitive_paths = sorted(sensitive_paths_set)
 
     if not sensitive_paths:
         print("PASS: no history-audited sensitive paths are declared")
