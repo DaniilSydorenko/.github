@@ -468,3 +468,11 @@ Only on explicit owner request: (1) create repo, (2) select GRS class, (3) add l
 - **Independent lanes:** GitHub DEGRADED CONNECTOR, Career DEGRADED CONNECTOR, Ladvero BLOCKED SECURITY, Norway WORKING as latest telemetry observations; do not bypass cooldown or historical scan gate. Control Plane Manager in retirement-readiness mode.
 - **Acceptance:** per worker prove authority path, actual policy loading/version or explicit UNKNOWN, domain limits, allowed and denied deterministic operations, exact-head CI, collision prevention, cooldown/telemetry semantics, and no unauthorized scheduler mutations. Stop building once proven.
 - **No earned completion inflation:** retain whole-program 88%, GOV 90%, GOV-M07 84%, GOV-M08 58% until accepted merged tests and operational evidence.
+
+### AUTO-GOV-01 remediation executed — domain-owned PRs (2026-10-13; pending acceptance)
+
+- ListingKit [#195](https://github.com/DaniilSydorenko/listing-kit/pull/195), head `6286fcb2a66f`: 1-file worker-policy authority clarification, draft, CI queued and Secret Scan in progress at inspection.
+- Career Intelligence [#96](https://github.com/DaniilSydorenko/career-intelligence/pull/96), head `3e694fa62e8c`: 1-file worker-policy authority clarification, draft, Validate and Secret Scan in progress at inspection.
+- Existing central [GRS reporter #80](https://github.com/DaniilSydorenko/.github/pull/80), head `dcee5674d041`: GRS Control Plane **SUCCESS** at exact head, draft, still needs review/merge and real evidence input.
+- No scheduler or worker authority mutation; no CI bypass or autonomous merge; no owner-gated #56 change.
+- **Evidence-based metric update:** implementation PRs exist and #80 exact-head CI is green, but no accepted/merged domain remediation and no seven-repo operational proof yet. Preserve 88% whole-program, 90% GOV v1, 84% GOV-M07 and 58% GOV-M08; mark AUTO-GOV-01 wording corrections as **IMPLEMENTED IN DRAFT / AWAITING ACCEPTANCE**, not DONE.
