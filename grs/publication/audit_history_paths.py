@@ -3,7 +3,7 @@
 
 This tool never rewrites history. It answers whether any path declared in a
 publication manifest has existed anywhere in the repository's reachable Git
-history. A match means history still requires review before a private→public
+history. A match (including a supposedly private-runtime-only path) requires review before a private→public
 visibility change.
 """
 
@@ -15,7 +15,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-AUDITED_DISPOSITIONS = {"externalize", "sanitize", "syntheticize", "review"}
+AUDITED_DISPOSITIONS = {"externalize", "sanitize", "syntheticize", "private-runtime", "review"}
 
 
 def fail(message: str, code: int = 1) -> int:
@@ -33,7 +33,11 @@ def git(repo: Path, *args: str) -> subprocess.CompletedProcess[str]:
 
 
 def normalize(path: str) -> str:
-    return path.strip().lstrip("./")
+    """Remove only literal ./ prefixes; preserve hidden-directory dots (.local)."""
+    value = path.strip()
+    while value.startswith("./"):
+        value = value[2:]
+    return value
 
 
 def matches(candidate: str, sensitive: str) -> bool:
