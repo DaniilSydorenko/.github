@@ -483,3 +483,11 @@ Only on explicit owner request: (1) create repo, (2) select GRS class, (3) add l
 - Career worker-policy [PR #96](https://github.com/DaniilSydorenko/career-intelligence/pull/96) exact head `3e694fa62e8c`: Career Intelligence Validate **SUCCESS**, Secret Scan **SUCCESS**; still draft/unmerged.
 - GRS [PR #80](https://github.com/DaniilSydorenko/.github/pull/80) strengthened to reject duplicate registry entries and blank owner exception approval; added 3 regression scenarios (8 total). New head `3f5be7d47782`; **no CI runs observed for this exact head at inspection**; previous green CI cannot be inherited.
 - **Gate:** no PR marked accepted or merged, no scheduler mutation, no issue #56 bypass. GOV-M07 remains 84%, GOV-M08 58%, Governance v1 90%, historical whole program 88%. Explicit pending acceptance is more accurate than synthetic percentage gain.
+
+### GOV-M07/M08 acceptance checkpoint — exact-head CI verified (2026-10-13)
+
+- Central [GRS #80](https://github.com/DaniilSydorenko/.github/pull/80) head `8f73ee98ff05faeba238986d72f7d1409a96ceeb`: **GRS Control Plane SUCCESS** after adding seven-repo reporter CLI smoke test to existing CI. Still Draft; no runtime worker policy-load evidence.
+- ListingKit [#195](https://github.com/DaniilSydorenko/listing-kit/pull/195) head `6286fcb2a66f6a75ede8f6a74594f77eae04ad50`: **CI SUCCESS; Secret Scan SUCCESS**. Still Draft.
+- Career Intelligence [#96](https://github.com/DaniilSydorenko/career-intelligence/pull/96) head `3e694fa62e8cb587e2d6c3e245f75a16bef66616`: **Career Intelligence Validate SUCCESS; Secret Scan SUCCESS**. Still Draft.
+- All three PRs reported mergeable at checkpoint. This is **CI/implementation evidence, not accepted main-state delivery**. Do not mark DONE or bypass Draft, Class A/B authorization, security or owner gates.
+- Remaining acceptance: non-draft authorization/review, fresh exact-head checks immediately before permitted merge, remote main verification, then runtime policy-loading proof or explicit UNKNOWN; GOV-M08 fleet acceptance still pending. No percentage increase until accepted evidence.
