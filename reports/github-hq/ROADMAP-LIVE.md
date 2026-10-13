@@ -12,17 +12,48 @@
 
 **ACTIVE completion work:** GOV-M03 C01–C07 approval gate #56; GOV-M04 registry/schema integration; GOV-M07 five-dimension GRS adoption (discovery, manifest, class-profile, CI, operational), worker policy-consumption proof, collision checks and actual Haversine engineering round; GOV-M08 owner-approved exceptions, reproducible seven-repo acceptance, freeze. No new milestones, services, databases or generators.
 
-### Progress recalculation and baseline integrity
+### Verified scope-closeout scoreboard — 2026-10-13
 
-| Metric | Value | Calculation / meaning |
+**Recalculation rule:** count a milestone as **accepted/closed** only when the existing canonical HQ milestone row is at **100%**. The denominator is fixed for this snapshot; no new work, branch, PR or CI run counts as accepted `main` integration. These are exact **milestone-closure ratios**, NOT weighted work-effort estimates. GitHub whole-program and Governance v1 historical estimate percentages remain separately identifiable.
+
+| Metric | Evidence-based completed ratio | Status / reason |
 | --- | ---: | --- |
-| Historical whole GitHub program | **88%** | Preserved legacy canonical estimate; denominator/weights not encoded in this roadmap, so not mathematically recomputable from scope decision alone |
-| Historical GOV v1 workstream | **90%** | Preserved accepted roadmap estimate, not a claim of full fleet GRS conformance |
-| Scope-filtered M0–M10 **illustrative equal-milestone index** | **91.8%** | (100+98+100+100+66+100+62+100+100)/9 = 826/9 = 91.777…%; excludes M6/M7 only; **not** official program completion, does not weight work or remove optional M4/M8 subwork |
-| Active seven-repo manifest adoption | **1/7 = 14.3%** | Exact canonical `.github/repository.json` path found in Haversine only; a distinct adoption dimension, not governance completion |
-| Governance final operational acceptance | **NOT YET PROVEN** | Owner gate #56 remains open, no complete seven-repo CI/runtime acceptance evidence; cannot safely assign a new aggregate percentage |
+| **Current GitHub scope — full milestone closure** | **6/9 = 66.7%** | M0, M2, M3, M5, M9, M10 marked accepted 100%; M1, M4, M8 not complete |
+| **Governance v1 — full milestone closure** | **4/8 = 50.0%** | GOV-M01, GOV-M02, GOV-M05 (pilot/discovery), GOV-M06 (discovery mapping) closed; GOV-M03/M04/M07/M08 not accepted |
+| Engineering release/publication owner gates | **0/3 = 0%** | Labs, Handbook, Career Intelligence publication gates unresolved; no visibility changes |
+| Scheduled fleet enabled | **4/5 = 80%** | Ladvero PR Autopilot DISABLED in live scheduler despite old enabled cache; owner-approved recovery decision needed; do not self-enable |
+| Four nominated implementation PRs with exact-head CI GREEN | **4/4 = 100%** | .github #80/#82, listing-kit #195, career-intelligence #96; CI does not equal delivery |
+| Nominated PRs Ready for review | **3/4 = 75%** | #80, #195, #96; security-sensitive #82 remains Draft |
+| Nominated PRs merged to canonical main | **0/4 = 0%** | Merge authority/review gates still unsatisfied; never infer approval from passing CI |
+| Seven-repository operational GRS acceptance | **0/7 = 0% proven** | Discovery mapping completed, but conformance/runtime evidence not accepted; UNKNOWN is not failure or PASS |
+| Worker policy SHA loaded at runtime | **0/5 = 0% proven** | No verified live policy-version/load trace from scheduled workers |
+| Historical GitHub program estimate | **88% (legacy)** | Former subjective estimate with no stored weighting baseline; not a recomputed acceptance rate |
+| Historical Governance v1 estimate | **90% (legacy)** | Former subjective estimate, not equivalent to 4/8 closed milestones |
+| Scope-filtered simple milestone percentage mean | **91.8% (illustrative only)** | (100+98+100+100+66+100+62+100+100)/9; does not prove accepted completion |
 
-**Do not replace 88% with 91.8% as a claimed earned gain.** Scope-only change is a denominator adjustment. For a new authoritative scoped percentage, first approve a deterministic weight/baseline for ACTIVE work including safety-only M4 and excluding optional M8, then compute from accepted task evidence; no silent interpolation.
+**Active program denominator:** M0, M1, M2, M3, M4, M5, M8, M9, M10 (9). M6 Norway Geo and M7 External OSS remain deferred, excluded; optional M8 is still included in this transparent **full-scope** ratio. Safety-critical M4 work remains active; owner-only optional publication/visual enhancements do not block GRS-specific acceptance.
+
+#### Unfinished work — task / current legacy estimate / why
+
+| Task | Existing effort estimate (not earned) | Not done because |
+| --- | ---: | --- |
+| M1 — Clean & Secure Account | 98% | Old Maps key revocation/dead verification still lacks closeout proof |
+| M4 — Private/public separation | 66% | Labs/Handbook private overlay, Career private data-plane, history/content audit, 3 owner publication decisions incomplete |
+| M4-E — History safety | 18% | [#82](https://github.com/DaniilSydorenko/.github/pull/82) exact-head green fix still Draft/unmerged; full-history PII/content review and rewrite decision unfinished |
+| M8 — Super Profile (optional) | 62% | Pin/visual/metadata/QA items not accepted; optional, not GRS blocker |
+| GOV-M03 — C01–C07 binding semantics | 92% | [Owner decision #56](https://github.com/DaniilSydorenko/.github/issues/56) still open; discovery policy only accepted |
+| GOV-M04 — Registry/schema integration | 95% | Remaining enforcement semantics not approved |
+| GOV-M07 — Operational validation | 84% | [#80](https://github.com/DaniilSydorenko/.github/pull/80) Ready green/unmerged; [#195](https://github.com/DaniilSydorenko/listing-kit/pull/195) and [#96](https://github.com/DaniilSydorenko/career-intelligence/pull/96) Ready green/unmerged; worker policy consumption unproven |
+| GOV-M08 — Fleet acceptance/freeze | 58% | No accepted seven-repo operational evidence or owner exception/freeze |
+| GitHub Autopilot source mutations | **BLOCKED** | CONNECTOR cooldown in worker; interactive fix #82 passing CI does not prove autonomous worker path repaired |
+| Career Ecosystem source mutations | **BLOCKED** | CONNECTOR write safety cooldown; Handbook 44 open (43 Draft) stacked PRs, Labs branch unintegrated |
+| Ladvero historical secret safety | **BLOCKED** | [#194](https://github.com/DaniilSydorenko/listing-kit/pull/194) Draft; owner classification and successful full-history Gitleaks missing |
+| Ladvero scheduled execution | **BLOCKED** | Live task disabled; old scheduler cache claiming enabled is stale, owner-only decision required |
+| PR/branch backlog | **62 open / 46 Draft** | Stacked Handbook, active domain PRs and owner gates; no branch deletion on age alone |
+
+**Systemic simplification completed:** redundant [GRS governance PR #81](https://github.com/DaniilSydorenko/.github/pull/81) closed **unmerged**, preserving its branch; its merge-policy proposal duplicated the existing canonical policy. Local authority text PRs #195/#96 were moved Draft → Ready after exact-head CI and review-conflict checks. [GRS #80](https://github.com/DaniilSydorenko/.github/pull/80) Ready. No speculative change to the historical milestone estimates without accepted `main` evidence.
+
+**Stop conditions:** no merge without current-run authorization, domain/reviewer approval and fresh exact-head CI; no scheduler mutation without owner approval; no branch deletion without dependency, ref and recoverability proof. Readiness, CI and closeout ratios must never be conflated.
 
 ### Lightweight future-repository onboarding (not a new product)
 
