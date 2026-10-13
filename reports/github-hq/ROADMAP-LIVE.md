@@ -1,5 +1,35 @@
 # [CAREER][GITHUB] — Independent Live Roadmap
 
+## Owner-approved scope freeze — 2026-10-13 (proposed integration in PR #79)
+
+**Authority:** owner-approved strategic scope direction in HQ conversation; this records the seven-repository boundary, **not** approval of C01–C07 enforcement at [issue #56](https://github.com/DaniilSydorenko/.github/issues/56).
+
+**ACTIVE fleet (exactly seven):** `DaniilSydorenko/.github`, `autopilot-control-plane`, `listing-kit`, `career-intelligence`, `engineering-handbook`, `engineering-labs`, `haversine-geolocation`. Haversine domain development/release authority remains with Haversine.
+
+**DEFERRED / NOT COMMITTED:** M6 Norway Geo (0%) and M7 External OSS & Engineering History (0%), including any proposed new GEO, OSS, platform, experimental or future-project repository creation. Retain milestone names and history, but exclude these from the current committed scope denominator. Neither M6 nor M7 is a prerequisite for seven-repository GRS acceptance.
+
+**OPTIONAL / separate owner-gated deliverables:** M4 public extraction/publication and M8 Super Profile portfolio/visual enhancements insofar as they are not necessary to secure, validate and govern the existing seven repositories. Their safety-related tasks (private/public boundaries, secrets/history audits and current-repository security/CI) remain ACTIVE safety dependencies. No repository visibility change or release authorization is implied. M1–M3 and M5, M9, M10 are historical baseline/accepted infrastructure work; do not reopen without verified defects.
+
+**ACTIVE completion work:** GOV-M03 C01–C07 approval gate #56; GOV-M04 registry/schema integration; GOV-M07 five-dimension GRS adoption (discovery, manifest, class-profile, CI, operational), worker policy-consumption proof, collision checks and actual Haversine engineering round; GOV-M08 owner-approved exceptions, reproducible seven-repo acceptance, freeze. No new milestones, services, databases or generators.
+
+### Progress recalculation and baseline integrity
+
+| Metric | Value | Calculation / meaning |
+| --- | ---: | --- |
+| Historical whole GitHub program | **88%** | Preserved legacy canonical estimate; denominator/weights not encoded in this roadmap, so not mathematically recomputable from scope decision alone |
+| Historical GOV v1 workstream | **90%** | Preserved accepted roadmap estimate, not a claim of full fleet GRS conformance |
+| Scope-filtered M0–M10 **illustrative equal-milestone index** | **91.8%** | (100+98+100+100+66+100+62+100+100)/9 = 826/9 = 91.777…%; excludes M6/M7 only; **not** official program completion, does not weight work or remove optional M4/M8 subwork |
+| Active seven-repo manifest adoption | **1/7 = 14.3%** | Exact canonical `.github/repository.json` path found in Haversine only; a distinct adoption dimension, not governance completion |
+| Governance final operational acceptance | **NOT YET PROVEN** | Owner gate #56 remains open, no complete seven-repo CI/runtime acceptance evidence; cannot safely assign a new aggregate percentage |
+
+**Do not replace 88% with 91.8% as a claimed earned gain.** Scope-only change is a denominator adjustment. For a new authoritative scoped percentage, first approve a deterministic weight/baseline for ACTIVE work including safety-only M4 and excluding optional M8, then compute from accepted task evidence; no silent interpolation.
+
+### Lightweight future-repository onboarding (not a new product)
+
+Only on explicit owner request: (1) create repo, (2) select GRS class, (3) add local manifest, (4) add central registry pointer, (5) install appropriate local CI/security, (6) validate and accept. Reuse current schema, validators and workflows; no new onboarding service/dashboard/database/generator.
+
+**Stop-building:** when seven-repo conformance and execution evidence are accepted, mark Governance v1 complete, freeze architecture expansion, transition to low-cost maintenance. Preserve M6/M7 history as deferred, not failed or silently completed.
+
 ## Whole roadmap
 
 | Task | Color | % |
