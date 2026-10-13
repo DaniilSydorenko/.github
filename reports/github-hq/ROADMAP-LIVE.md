@@ -512,3 +512,22 @@ Only on explicit owner request: (1) create repo, (2) select GRS class, (3) add l
 **Progress recomputation discipline:** 88% program and 90% Governance remain the last approved estimates; GOV-M07 84% and GOV-M08 58% remain unaltered because all three implementation PRs are still Draft, none integrated, and policy SHA loading/runtime seven-repo proof remains UNKNOWN. Numerically reproducible, **noncompletion** indicators: 3/3 implementation PR heads with successful exact-head workflows, 0/3 merged; 1/7 canonical local manifests found (14.3%); 7/7 central discovery records (not conformance); 0/5 workers with proven policy SHA loading. The separate 91.8% equal-milestone *scope-filtered illustration* remains a denominator example, not earned progress. No valid weight model exists to recompute 88% from these counters.
 
 **Next bounded engineering gate:** after explicit authority/review, convert the safe drafts to non-draft and integrate only with current-run merge authorization and fresh exact-head CI, then verify main remotely. In parallel perform read-only evidence extraction for policy loading and M4 history-disposition flags. **STOP** on connector cooldown, unknown approval, missing full-history scan or cross-worker collision. Do not add workers, dashboards, or new milestones.
+
+### 2026-10-13 — PR and branch hygiene checkpoint (seven-repo owner-approved scope)
+
+Read-only live `pulls?state=open&per_page=100` inventory (per-repo; no pagination beyond 100 needed for open PRs):
+
+| Repository | Open PRs | Draft PRs | Hygiene action |
+| --- | ---: | ---: | --- |
+| `.github` | 2 | 2 | #79 reconciliation and #80 tested GRS; review/accept individually |
+| `autopilot-control-plane` | 0 | 0 | No PR queue; avoid spawning a new one merely for cleanup |
+| `listing-kit` | 7 | 2 | #194 SECURITY owner-gated; #195 authority CI green; do not conflate |
+| `career-intelligence` | 7 | 1 | #96 authority CI green; preserve other product/Dependabot PRs |
+| `engineering-handbook` | 44 | 43 | **Highest backlog concentration**; inspect stacked dependency order #81 → #82 → #84 (and #83), preserve authored work; no mass close/merge |
+| `engineering-labs` | 0 | 0 | No PR queue; R13 remains unmerged branch, not an open PR |
+| `haversine-geolocation` | 1 | 0 | #152 TypeScript Dependabot; domain owner decides, no cross-lane takeover |
+| **Total** | **61** | **48** | **0 merged / 0 deleted this checkpoint** |
+
+**Branch cleanup guard:** several repos have large branch inventories (first 100 API results for HQ, Control Plane, ListingKit, Handbook). A branch name, age, or absence of an open PR is *not* proof of safe deletion. Before any deletion require exact ref SHA, merged-or-explicitly-abandoned proof, no active PR/worker/dependency/release tag, domain ownership, and a reversible recovery record. GitHub connector in this execution surface exposes branch creation/search but no branch-delete operation; **no branch deletions attempted or claimed**. Treat backlog hygiene as a bounded review/acceptance task under GOV-M07/M08, not a new milestone.
+
+**Progress dashboard interpretation:** canonical whole program **88%**, Governance v1 **90%**, GOV-M07 **84%**, GOV-M08 **58%** are historical owner-facing estimates until a weighting contract and main-state acceptance exist. Independently verifiable leading indicators: exact-head green **3/3** nominated implementation PRs; merged **0/3**; seven-repo PR inventory **61 open / 48 Draft**; worker policy SHA evidence **0/5 verified**; local canonical manifest **1/7**. Track each every round without equating PR counts or scope-filtered 91.8% to earned completion.
