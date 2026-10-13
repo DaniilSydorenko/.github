@@ -21,13 +21,20 @@ def build_report(registry: dict, evidence: dict) -> dict:
         raise ValueError("registry.repositories must be a list")
     if not isinstance(evidence, dict):
         raise ValueError("evidence must be an object")
-    expected = {record["repository"] for record in records}
+    names = [record["repository"] for record in records]
+    if any(not isinstance(name, str) or not name for name in names):
+        raise ValueError("each registry repository must have a nonempty name")
+    if len(names) != len(set(names)):
+        raise ValueError("duplicate repository in registry")
+    expected = set(names)
     extra = set(evidence) - expected
     if extra:
         raise ValueError(f"unregistered evidence repositories: {sorted(extra)}")
     rows = []
     for record in records:
         name = record["repository"]
+        if not isinstance(record.get("grs_class"), str) or not record["grs_class"]:
+            raise ValueError(f"{name}: missing grs_class")
         supplied = evidence.get(name, {})
         if not isinstance(supplied, dict):
             raise ValueError(f"{name}: evidence must be an object")
@@ -44,7 +51,8 @@ def build_report(registry: dict, evidence: dict) -> dict:
             source = item.get("source")
             if state != "UNKNOWN" and (not isinstance(source, str) or not source.strip()):
                 raise ValueError(f"{name}/{dimension}: {state} requires evidence source")
-            if state == "EXCEPTION" and not item.get("owner_approval"):
+            if state == "EXCEPTION" and (not isinstance(item.get("owner_approval"), str)
+                                         or not item["owner_approval"].strip()):
                 raise ValueError(f"{name}/{dimension}: exception requires owner approval")
             result[dimension] = {"state": state, "source": source or None}
             if state == "EXCEPTION":
