@@ -38,6 +38,10 @@ jobs:
           persist-credentials: false
       - name: Run validator and repository-audit tests
         run: python3 -m unittest discover -s grs/tests -p "test_*.py" -v
+      - name: Smoke-test read-only fleet conformance CLI
+        run: |
+          python3 grs/report_fleet_conformance.py --output /tmp/grs-fleet-report.json
+          python3 -c 'import json; d=json.load(open("/tmp/grs-fleet-report.json")); assert d["repository_count"] == 7; assert all(d["counts"][k]["UNKNOWN"] == 7 for k in ("discovery", "manifest", "class_profile", "ci", "operational"))'
       - name: Check GRS class-policy drift
         run: python3 grs/check_policy_drift.py
       - name: Validate Autopilot merge policy
