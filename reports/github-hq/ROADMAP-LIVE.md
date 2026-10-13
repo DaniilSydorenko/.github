@@ -449,3 +449,11 @@ Only on explicit owner request: (1) create repo, (2) select GRS class, (3) add l
 - **GOV-M08 acceptance:** future worker must reproducibly identify (1) global engineering rule, (2) worker execution authority, (3) domain roadmap, (4) enforcing CI/workflow, (5) status-conflict precedence. Stop repeated audits on unchanged SHAs.
 - **Owner boundary:** issue #56 remains required for new binding C01–C07; no deletion, archiving, mandatory enforcement or domain takeover from this audit.
 - **Progress unchanged:** GOV-M07 84%, GOV-M08 58%, GOV v1 90%, HQ 88% until merged implementation/evidence.
+
+### GOV-M07/M08 — Live seven-repo PR hygiene and progress recalculation (2026-10-13; proposed in PR #79)
+
+- **Live queue:** 59 open PRs / 45 drafts across seven active governed repositories. Distribution: HQ 1/1 draft, Control Plane 0, ListingKit 6/1 draft, Career Intelligence 7/0, Handbook 44/43 drafts, Labs 0, Haversine 1/0. Source: GitHub REST open PR listing per repository on 2026-10-13. See [bounded triage evidence](GOVERNANCE-PR-QUEUE-TRIAGE-2026-10-13.md).
+- **High-value cleanup:** Handbook 44-PR stack needs domain-owned dependency/unique-change analysis before any close; PR #84 explicitly has unresolved flattened Markdown relative links. ListingKit #194 remains blocked on full-history Gitleaks verification; Career #50/#94 requires diff collision check; Haversine #152 is a TypeScript major-version update.
+- **No destructive action:** no PR closed, merged, or branch deleted; no owner authority transferred to HQ. PR count reduction is not a progress metric.
+- **Recalculation policy:** no accepted implementation or exact-head validation evidence arose from this read-only triage. Retain canonical whole-program **88%**, GOV v1 **90%**, GOV-M07 **84%**, GOV-M08 **58%**. The scope-filtered 91.8% equal-milestone index remains **illustrative only**, not earned progress. M6/M7 are deferred, not completed. A new official active-scope weighted percentage requires an approved baseline and accepted task evidence.
+- **Next accepted-value milestone:** integrate accurate HQ evidence through existing PR process, implement read-only GRS adoption dimensions and prove one owner-authorized Haversine round, then reassess GOV-M07/M08. No new milestones.
