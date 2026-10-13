@@ -40,6 +40,24 @@ class FleetReportTests(unittest.TestCase):
                 "manifest": {"state": "EXCEPTION", "source": "owner discussion"}
             }})
 
+    def test_reject_duplicate_registry_entries(self):
+        duplicate = {"repositories": REGISTRY["repositories"] + [REGISTRY["repositories"][0]]}
+        with self.assertRaises(ValueError):
+            module.build_report(duplicate, {})
+
+    def test_reject_blank_exception_approval(self):
+        with self.assertRaises(ValueError):
+            module.build_report(REGISTRY, {"owner/one": {"manifest": {
+                "state": "EXCEPTION", "source": "reviewed finding", "owner_approval": " "
+            }}})
+
+    def test_allow_sourced_approved_exception(self):
+        report = module.build_report(REGISTRY, {"owner/one": {"manifest": {
+            "state": "EXCEPTION", "source": "reviewed finding", "owner_approval": "owner decision #123"
+        }}})
+        self.assertEqual(report["counts"]["manifest"]["EXCEPTION"], 1)
+        self.assertEqual(report["counts"]["manifest"]["UNKNOWN"], 1)
+
     def test_reject_unknown_repository(self):
         with self.assertRaises(ValueError):
             module.build_report(REGISTRY, {"owner/unknown": {}})
