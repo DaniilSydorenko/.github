@@ -21,3 +21,18 @@ Exit codes:
 A `2` is not authorization to rewrite history. Any filter/rewrite/force update remains an explicit owner gate. The tool is a detector, not a mutator.
 
 `private-runtime` surfaces are **included** in the historical-path audit. They are intended never to be committed, so a historical match requires review before any publication decision. Hidden paths such as `.local/` must remain distinct from non-hidden `local/`. This path-only check does not prove absence of sensitive contents in other files; full-history secret/private-content review and owner publication authorization remain independent gates.
+
+
+## Current-tree snapshot audit (independent, read-only)
+
+The companion `audit_current_tree.py` checks **tracked paths on one explicit GitHub tree SHA**, without requiring access to sensitive file contents. Export the REST `git/trees/<branch>?recursive=1` JSON response with an account authorized to read the target repository, then execute:
+
+```bash
+python3 grs/publication/audit_current_tree.py \
+  ./tree-snapshot.json \
+  grs/publication/career-intelligence.publication.json
+```
+
+It fails closed on a truncated/invalid tree or malformed path declarations. JSON output includes the checked Git tree SHA, per-manifest-surface counts and `publication_authorized: false`. Exit codes: **0** no declared current-tree path match, **1** invalid/insufficient snapshot, **2** declared path matches and needs review.
+
+**Important:** A 0 only confirms absence of *declared paths in the provided one-SHA tree*. It does not inspect file contents, historical refs, off-manifest secrets, deployment, or certify publication readiness. Run the separate full-history and content/secret audits and retain the owner publication gate. GitHub's `truncated: true` must never be accepted as a clean result.
