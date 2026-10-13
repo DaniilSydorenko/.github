@@ -387,3 +387,8 @@
 - **Classification:** AUTO-01 is connector/capability degradation, AUTO-02 is a real unresolved security-verification gate, AUTO-03 is existing incident reconciliation, AUTO-04 is observability-source hygiene. These are **tracked findings within existing GOV-M07/M08**, not four new milestones or a reason to reopen completed Control Plane L7. Escalate only if accepted safety/reliability gates are violated.
 
 **Next acceptance:** read fresh worker telemetry, live scheduler and latest Reconcile; verify owner-scoped historical scan classification; safely close #147 only on its declared criteria; advance Haversine GOV-HAV-01..06 without moving Haversine code or domain roadmap from HQ.
+
+### GOV-M07 — HQ hygiene integration (2026-10-13)
+
+- [HQ PR #77](https://github.com/DaniilSydorenko/.github/pull/77) was squash-merged to `main` at commit `5695581015b694da44698a6979b8e6c812fce0d8` with immutable expected PR head `2d899b61d3efbf94e5bcfbb84a770af65d0b1499`. Post-merge `.gitignore` readback verified the accepted content.
+- This is repository-local artifact/secret hygiene, **not** proof of historical secret-scan resolution, connector repair, or Haversine pilot acceptance. No milestone inflation.
