@@ -457,3 +457,14 @@ Only on explicit owner request: (1) create repo, (2) select GRS class, (3) add l
 - **No destructive action:** no PR closed, merged, or branch deleted; no owner authority transferred to HQ. PR count reduction is not a progress metric.
 - **Recalculation policy:** no accepted implementation or exact-head validation evidence arose from this read-only triage. Retain canonical whole-program **88%**, GOV v1 **90%**, GOV-M07 **84%**, GOV-M08 **58%**. The scope-filtered 91.8% equal-milestone index remains **illustrative only**, not earned progress. M6/M7 are deferred, not completed. A new official active-scope weighted percentage requires an approved baseline and accepted task evidence.
 - **Next accepted-value milestone:** integrate accurate HQ evidence through existing PR process, implement read-only GRS adoption dimensions and prove one owner-authorized Haversine round, then reassess GOV-M07/M08. No new milestones.
+
+### GOV-M07/M08 + AUTO-GOV alignment — five live scheduled workers (2026-10-13; proposed in HQ PR #79)
+
+- **No new milestone:** bounded remediation under existing GOV-M07/M08 and Autopilot executor AUTO-GOV-02/04/06/07. [Evidence and authority matrix](AUTOPILOT-GOVERNANCE-ALIGNMENT-2026-10-13.md).
+- **Verified scheduler:** five enabled workers — Control Plane Manager, GitHub, Ladvero, Career Ecosystem hourly; Norway Scan weekly. A prior Career Ecosystem task is disabled historical state, **not** a second active worker. No scheduler mutations.
+- **Confirmed wording conflict:** ListingKit and Career worker policy call Control Plane canonical *global* governance; HQ `.github` owns engineering-wide governance, Control Plane fleet execution, repo workers domain restrictions. Small owner-owned reference fixes only.
+- **Authorization ambiguity:** `.github` default-deny merge policy `current-run-explicit-authorization` vs Control Plane standing bounded Class A/B owner grant; propose conjunctive per-run proof with tests, **no broadening or enforcement before #56**.
+- **Policy loading UNKNOWN:** bootstrap prompt references and heartbeat files do not prove loaded policy SHA, timing, fail-closed behavior or actual execution compliance. Inspect actual runtime traces where accessible; do not infer from documentation.
+- **Independent lanes:** GitHub DEGRADED CONNECTOR, Career DEGRADED CONNECTOR, Ladvero BLOCKED SECURITY, Norway WORKING as latest telemetry observations; do not bypass cooldown or historical scan gate. Control Plane Manager in retirement-readiness mode.
+- **Acceptance:** per worker prove authority path, actual policy loading/version or explicit UNKNOWN, domain limits, allowed and denied deterministic operations, exact-head CI, collision prevention, cooldown/telemetry semantics, and no unauthorized scheduler mutations. Stop building once proven.
+- **No earned completion inflation:** retain whole-program 88%, GOV 90%, GOV-M07 84%, GOV-M08 58% until accepted merged tests and operational evidence.
