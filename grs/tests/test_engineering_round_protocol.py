@@ -52,6 +52,33 @@ class EngineeringRoundProtocolTests(unittest.TestCase):
             with self.subTest(phrase=phrase):
                 self.assertIn(phrase.lower(), self.content.lower())
 
+    def test_finish_first_keeps_existing_authority_and_stop_conditions(self):
+        boundaries = (ROOT / "reports/github-hq/HQ-AUTOPILOT-BOUNDARIES.md").read_text(encoding="utf-8")
+        for requirement in (
+            "Finish-first closeout contract",
+            "current-run-explicit-authorization",
+            "standing owner authorization",
+            "owner-authored PRs",
+            "Class C",
+            "no new status database",
+            "Two equivalent failures",
+            "default-branch evidence",
+            "Stop when finished",
+        ):
+            with self.subTest(requirement=requirement):
+                self.assertIn(requirement.lower(), boundaries.lower())
+        for requirement in (
+            "FINISH-FIRST",
+            "OWNER_DECISION",
+            "EXTERNAL_BLOCKED",
+            "ACCEPTED",
+            "stop equivalent retries",
+            "synchronous HQ cannot inherit it",
+            "no parallel policy",
+        ):
+            with self.subTest(requirement=requirement):
+                self.assertIn(requirement.lower(), self.content.lower())
+
     def test_pilot_does_not_claim_acceptance(self):
         self.assertIn("Pilot acceptance checklist", self.content)
         self.assertIn("**not** a second task-status store", self.content)
