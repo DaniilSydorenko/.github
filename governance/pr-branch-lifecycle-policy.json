@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "mode": "default-deny",
+  "scope": "seven-repository-owner-approved-fleet",
+  "merge": {
+    "required": ["explicit-current-run-authorization", "domain-owner-approval", "not-draft", "live-open-pr-and-base-ref-verified", "exact-head-sha-verified", "required-checks-green-on-exact-head", "no-unresolved-review-or-security-gate", "no-cross-worker-collision", "no-owner-gated-operation", "dependency-order-confirmed"],
+    "forbidden": ["red-or-missing-required-ci", "changed-head", "draft", "unknown-authority", "security-exception-without-owner-approval", "unreviewed-product-code", "stable-release-or-visibility-change"],
+    "method": "repository-defined",
+    "post_merge": ["verify-merged-on-remote", "verify-target-branch-contains-change", "record-pr-and-merge-sha"]
+  },
+  "branch_deletion": {
+    "mode": "owner-or-domain-authorized-only",
+    "required": ["explicit-current-run-authorization", "exact-branch-ref-and-sha", "not-default-or-protected", "no-open-pr", "no-active-worker-or-worktree", "no-release-tag-or-deployment-dependency", "no-stacked-pr-dependent", "merged-or-explicitly-abandoned-with-evidence", "recovery-record-with-ref-sha", "fresh-pre-delete-recheck"],
+    "forbidden": ["age-only", "no-open-pr-only", "unknown-ownership", "unmerged-unreviewed", "active-dependency", "missing-recovery-record"],
+    "post_delete": ["verify-remote-ref-absent", "retain-recovery-record"]
+  },
+  "retention": {
+    "open_or_draft_pr_branch": "retain",
+    "stacked_or_worker_owned_branch": "retain-until-domain-verified",
+    "merged_branch": "eligible-for-review-not-automatic-delete",
+    "unmerged_branch": "retain-unless-explicit-owner-abandonment"
+  },
+  "rollout": "proposal-only-until-owner-approved-and-runtime-loading-proven"
+}
