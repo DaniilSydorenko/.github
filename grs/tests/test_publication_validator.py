@@ -69,6 +69,31 @@ class PublicationValidatorTests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("duplicate sensitive surface path", result.stdout)
 
+    def test_reject_parent_traversal_sensitive_path(self) -> None:
+        payload = json.loads(json.dumps(BASE))
+        payload["sensitive_surfaces"][0]["path"] = "../private/"
+        result = self.run_manifest(payload)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("unsafe or ambiguous", result.stdout)
+
+    def test_reject_duplicate_relative_alias(self) -> None:
+        payload = json.loads(json.dumps(BASE))
+        payload["sensitive_surfaces"].append({
+            "path": "./private/", "disposition": "review",
+        })
+        result = self.run_manifest(payload)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("duplicate sensitive surface path", result.stdout)
+
+    def test_preserve_hidden_and_nonhidden_as_distinct_paths(self) -> None:
+        payload = json.loads(json.dumps(BASE))
+        payload["sensitive_surfaces"] = [
+            {"path": ".local/", "disposition": "private-runtime"},
+            {"path": "local/", "disposition": "review"},
+        ]
+        result = self.run_manifest(payload)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
     def test_ready_state_requires_technical_gates(self) -> None:
         payload = json.loads(json.dumps(BASE))
         payload["target"]["status"] = "ready-for-owner-gate"
