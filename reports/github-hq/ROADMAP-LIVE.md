@@ -1,5 +1,9 @@
 # [CAREER][GITHUB] — Independent Live Roadmap
 
+## M1 original Maps-key identity verified — 2026-10-14 (subsequent evidence)
+
+The original [portfolio security removal PR #1](https://github.com/DaniilSydorenko/frontend-software-engineer-portfolio/pull/1) was reviewed read-only. The key literal removed from `src/app/app.module.ts` matches **exactly** the owner-revoked `effective-fire-132313` / `portfolio` Google Cloud API key (compared in-memory; values never published to HQ). The original key **is verified revoked**, correcting the historical correlation uncertainty recorded before this discovery. See [M1 Google Cloud evidence](M1-GCP-LEGACY-CLEANUP-EVIDENCE-2026-10-14.md). The key may still appear in Git history and the archived PR diff; archive/removal do **not** erase historic commits. M1 remains **100% accepted**, HQ **7/9 = 77.8%**; the owner risk-acceptance decision remains documented as provenance, not a claim that the history was purged. Other security/publication gates are unaffected.
+
 ## M1 owner-authorized risk-accepted closeout — 2026-10-14 (current authoritative status)
 
 **Owner decision (explicit, 2026-10-14):** accept residual uncertainty of the originally exposed Google Maps credential identity, with explicit limits: the six discovered API keys in the seven inventoried legacy projects were revoked and independently re-listed as absent; all seven projects were confirmed `DELETE_REQUESTED`; the historical exposed Maps key has **not** been individually matched to one of those six resources. Unknown projects/credentials outside this enumerated scope are not asserted clean. `DELETE_REQUESTED` is not permanent purge. The owner accepts this bounded risk instead of claiming evidence that does not exist.
