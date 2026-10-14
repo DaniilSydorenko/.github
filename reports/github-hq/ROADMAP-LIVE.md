@@ -276,13 +276,13 @@ Only on explicit owner request: (1) create repo, (2) select GRS class, (3) add l
 
 | Task | Color | % |
 | --- | --- | ---: |
-| M1 — Clean & Secure Account | 🟢 | 100% (risk accepted) |
+| M1 — Clean & Secure Account | 🟢 | 100% |
 | Secret exposure cleanup | 🟢 | 100% |
 | Repository hygiene cleanup | 🟢 | 100% |
 | Public/private boundary cleanup | 🟢 | 100% |
 | Credential and token hygiene | 🟢 | 100% |
-| Old Maps key revoke/dead verification | 🟢 | 100% (owner risk accepted; historical ID unmatched) |
-| M1 closeout | 🟢 | 100% (owner risk accepted) |
+| Old Maps key revoke/dead verification | 🟢 | 100% |
+| M1 closeout | 🟢 | 100% |
 
 ## M2 — Professional GitHub Shell
 

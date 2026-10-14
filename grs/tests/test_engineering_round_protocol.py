@@ -172,6 +172,13 @@ class RoadmapAcceptanceScoreTests(unittest.TestCase):
     def test_reported_closeout_ratios_match_canonical_milestones(self):
         self.assert_score_reconciles(self.roadmap)
 
+    def test_m1_risk_acceptance_keeps_machine_readable_score(self):
+        milestones = milestone_rows(self.roadmap, governance=False)
+        self.assertEqual(milestones["M1"], ("🟢", 100))
+        self.assertIn("original Maps-key identity verified", self.roadmap)
+        self.assertIn("owner-authorized risk-accepted closeout", self.roadmap)
+        self.assertIn("7/9 = 77.8%", self.roadmap)
+
     def test_inflated_headline_fails_score_reconciliation(self):
         label = "Current GitHub scope — full milestone closure"
         declared = claimed_closure(self.roadmap, label)
