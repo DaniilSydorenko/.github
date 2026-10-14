@@ -37,6 +37,7 @@ def audit(tree: object, manifest: object) -> tuple[int, dict]:
         return 1, {"status": "UNKNOWN", "reason": "no source blobs found; insufficient tree evidence"}
     seen: set[str] = set()
     findings: list[dict] = []
+    matched_blobs: set[str] = set()
     for i, surface in enumerate(surfaces):
         if not isinstance(surface, dict) or surface.get("disposition") not in AUDITED_DISPOSITIONS:
             return 1, {"status": "INVALID", "reason": f"invalid sensitive surface {i}"}
@@ -49,13 +50,14 @@ def audit(tree: object, manifest: object) -> tuple[int, dict]:
             return 1, {"status": "INVALID", "reason": f"unsafe/duplicate path in surface {i}"}
         seen.add(path)
         matching = sorted(p for p in paths if matches(p, path))
+        matched_blobs.update(matching)
         findings.append({
             "path": path,
             "disposition": surface["disposition"],
             "tracked_count": len(matching),
             "current_tree_review_required": bool(matching),
         })
-    flagged = sum(item["tracked_count"] for item in findings)
+    flagged = len(matched_blobs)
     report = {
         "status": "REVIEW_REQUIRED" if flagged else "NO_DECLARED_CURRENT_TREE_PATH_MATCH",
         "tree_sha": tree["sha"],
