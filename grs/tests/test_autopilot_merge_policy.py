@@ -118,6 +118,42 @@ class AutopilotMergePolicyTests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("unsupported properties", result.stdout)
 
+    def test_current_run_authorization_must_remain_explicit(self) -> None:
+        data = json.loads(POLICY.read_text(encoding="utf-8"))
+        data["merge_pr"]["required_conditions"].remove("current-run-explicit-authorization")
+        result = self.run_policy(data)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("current-run-explicit-authorization", result.stdout)
+
+    def test_draft_pr_cannot_become_merge_eligible(self) -> None:
+        data = json.loads(POLICY.read_text(encoding="utf-8"))
+        data["merge_pr"]["required_conditions"].remove("not-draft")
+        result = self.run_policy(data)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("not-draft", result.stdout)
+
+    def test_domain_collision_gate_cannot_be_removed(self) -> None:
+        data = json.loads(POLICY.read_text(encoding="utf-8"))
+        data["merge_pr"]["required_conditions"].remove("no-domain-ownership-conflict")
+        result = self.run_policy(data)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("no-domain-ownership-conflict", result.stdout)
+
+    def test_worker_roadmap_collision_gate_cannot_be_removed(self) -> None:
+        data = json.loads(POLICY.read_text(encoding="utf-8"))
+        data["merge_pr"]["required_conditions"].remove("no-worker-roadmap-collision")
+        result = self.run_policy(data)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("no-worker-roadmap-collision", result.stdout)
+
+    def test_owner_gate_cannot_be_removed(self) -> None:
+        data = json.loads(POLICY.read_text(encoding="utf-8"))
+        data["merge_pr"]["required_conditions"].remove("no-owner-gated-operation")
+        result = self.run_policy(data)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("no-owner-gated-operation", result.stdout)
+
+
 
 if __name__ == "__main__":
     unittest.main()
