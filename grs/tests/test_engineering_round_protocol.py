@@ -18,12 +18,12 @@ def milestone_rows(content: str, governance: bool) -> dict[str, tuple[str, int]]
     """Read only the existing canonical milestone rows; ignore child tasks."""
     if governance:
         section = content.split("## GOV — Engineering Governance v1", 1)[1]
-        pattern = r"(?m)^\\| (GOV-M0[1-8]) — [^|\\n]+ \\| ([^|\\n]+) \\| ([0-9]+)% \\|$"
+        pattern = r"(?m)^\| (GOV-M0[1-8]) — [^|\n]+ \| ([^|\n]+) \| ([0-9]+)% \|$"
     else:
         section = content.split("## M0 — Final Forensic Audit", 1)[1].split(
             "## GOV — Engineering Governance v1", 1
         )[0]
-        pattern = r"(?m)^\\| (M(?:10|[0-9])) — [^|\\n]+ \\| ([^|\\n]+) \\| ([0-9]+)% \\|$"
+        pattern = r"(?m)^\| (M(?:10|[0-9])) — [^|\n]+ \| ([^|\n]+) \| ([0-9]+)% \|$"
     matches = re.findall(pattern, section)
     rows = {key: (color.strip(), int(percent)) for key, color, percent in matches}
     if len(rows) != len(matches):
@@ -33,8 +33,8 @@ def milestone_rows(content: str, governance: bool) -> dict[str, tuple[str, int]]
 
 def claimed_closure(content: str, label: str) -> tuple[int, int, float]:
     pattern = (
-        r"(?m)^\\| \\*\\*" + re.escape(label)
-        + r"\\*\\* \\| \\*\\*([0-9]+)/([0-9]+) = ([0-9]+(?:\\.[0-9]+)?)%\\*\\* \\|"
+        r"(?m)^\| \*\*" + re.escape(label)
+        + r"\*\* \| \*\*([0-9]+)/([0-9]+) = ([0-9]+(?:\.[0-9]+)?)%\*\* \|"
     )
     matches = re.findall(pattern, content)
     if len(matches) != 1:
