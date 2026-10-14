@@ -91,6 +91,18 @@ class CurrentTreeTests(unittest.TestCase):
         r = self.audit(["private2/file.txt", "src/index.ts"])
         self.assertEqual(r.returncode, 0)
 
+    def test_overlapping_surfaces_count_each_blob_once(self):
+        m = {"repository": "DaniilSydorenko/test", "sensitive_surfaces": [
+            {"path": "private/", "disposition": "review"},
+            {"path": "private/subdir/", "disposition": "externalize"},
+        ]}
+        r = self.audit(["private/subdir/record.txt", "src/index.ts"], manifest_override=m)
+        self.assertEqual(r.returncode, 2, r.stdout + r.stderr)
+        result = json.loads(r.stdout)
+        self.assertEqual(result["matching_blobs"], 1)
+        self.assertEqual([surface["tracked_count"] for surface in result["surfaces"]], [1, 1])
+        self.assertFalse(result["publication_authorized"])
+
     def test_matched_paths_are_not_echoed_to_output(self):
         r = self.audit(["private/very-personal-file-name.txt", "src/index.ts"])
         self.assertEqual(r.returncode, 2)
