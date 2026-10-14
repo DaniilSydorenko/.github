@@ -10,7 +10,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[2]
 ROADMAP = ROOT / "reports/github-hq/ROADMAP-LIVE.md"
 ACTIVE_MILESTONES = {"M0", "M1", "M2", "M3", "M4", "M5", "M8", "M9", "M10"}
-DEFERRED_MILESTONES = {"M6", "M7"}
+DEFERRED_MILESTONES = set()  # Deferred M6/M7 remain in Git history, not active roadmap
 GOVERNANCE_MILESTONES = {f"GOV-M{i:02d}" for i in range(1, 9)}
 
 
