@@ -2,6 +2,8 @@
 
 ## Evidence-scored HQ progress — 2026-10-14
 
+**Active roadmap scope correction (owner reaffirmed 2026-10-14):** M6 Norway Geo and M7 External OSS & Engineering History are **removed from the current roadmap's milestone/task list**. They are not cancelled/completed: their prior 0% task plans remain recoverable in Git history and may be revisited through a separate, future owner-approved scope decision. No new repositories are included in active delivery. **The denominator was already nine** before removal, so this editorial correction does not generate earned progress: **6/9 = 66.7%**, active-milestone estimate **91.8%**. Governance remains **4/8 = 50%**. Do not re-display M6/M7 as active rows or count their zero estimates in averages.
+
 **Canonical baseline for subsequent Finish-First engineering rounds.** Do not equate estimated effort, CI passing, an open PR, merged default-branch code, runtime proof or owner-approved publication. Use one fixed objective denominator per metric; a percentage only advances on a newly accepted outcome supported by the right evidence. No manufactured small tasks, denominator shrinkage, artificial PR splitting or release gate bypass is authorized.
 
 | Metric / fixed scope | Recalculated today | What earns a measured increase |
@@ -384,30 +386,6 @@ Only on explicit owner request: (1) create repo, (2) select GRS class, (3) add l
 | [NEW] Haversine CHANGELOG/release-notes baseline | 🟢 | 100% |
 | [NEW] M5 formal closeout | 🟢 | 100% |
 | M5 final release-readiness closeout | 🟢 | 100% |
-
-## M6 — Norway Geo
-
-| Task | Color | % |
-| --- | --- | ---: |
-| M6 — Norway Geo | ⚪ | 0% |
-| Norway Geo product definition | ⚪ | 0% |
-| Norway Geo repository decision | ⚪ | 0% |
-| Norway Geo architecture | ⚪ | 0% |
-| Norway Geo implementation | ⚪ | 0% |
-| Norway Geo tests/CI/security | ⚪ | 0% |
-| Norway Geo public portfolio integration | ⚪ | 0% |
-
-## M7 — External OSS & Engineering History
-
-| Task | Color | % |
-| --- | --- | ---: |
-| M7 — External OSS & Engineering History | ⚪ | 0% |
-| External OSS target selection | ⚪ | 0% |
-| Upstream contribution quality gate | ⚪ | 0% |
-| First legitimate upstream contribution | ⚪ | 0% |
-| Accepted upstream contribution | ⚪ | 0% |
-| Engineering-history narrative | ⚪ | 0% |
-| External OSS portfolio evidence | ⚪ | 0% |
 
 ## M8 — Super Profile
 
