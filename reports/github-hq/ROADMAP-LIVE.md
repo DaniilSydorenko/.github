@@ -2,6 +2,20 @@
 
 ## Seven-repository Haversine-style readiness — 2026-10-14 (read-only triage)
 
+### HQ Finish-First acceptance queue — 2026-10-14
+
+**Verified live PR state before this roadmap synchronization:**
+
+| HQ work | Exact observed state | Completion gate |
+| --- | --- | --- |
+| [#79](https://github.com/DaniilSydorenko/.github/pull/79) consolidation and local registry discovery repair | Draft, mergeable, zero reviews; newest PR branch commits are **proposed**, not `main` | Fresh exact-head GRS, appropriate HQ/owner review, permitted Draft transition/merge, verify accepted `main` |
+| [#80](https://github.com/DaniilSydorenko/.github/pull/80) read-only five-dimension conformance evidence | Ready for review, mergeable, zero reviews; observed head `1714d27758b2d4dcebe119988fa12293a562994e` | Appropriate review/authorization, fresh exact-head checks and `main` verification; no C01–C07 rollout |
+| [#82](https://github.com/DaniilSydorenko/.github/pull/82) M4 publication safety hardening | Draft, mergeable, zero reviews; observed head `3b3a1d85c8f443458420b8ae462b37f5be99077b` | Security/owner review and authorization, fresh checks, `main` verification; **not** permission to publish or rewrite history |
+
+**Boundary and status decisions:** seven frozen repos; owner-governed C01–C07 [#56](https://github.com/DaniilSydorenko/.github/issues/56) remains OPEN; historical `M5=100%` stays accepted; `M6/M7` remain deferred; domain product PR backlogs do not gate HQ. Haversine-style adoption handoffs have been **prepared** for Handbook, Labs, ListingKit, Career Intelligence PLATFORM/DATA, Control Plane and Ecosystem, but local adoption/accepted PRs are **UNVERIFIED** until each domain reports its own live evidence. The local Haversine pilot is the only proved complete 12-stage exemplar so far.
+
+**Finish line:** no new governance service/worker/milestone. Prioritize acceptance of existing HQ PRs, owner decisions and safety checks. GitHub **6/9** and Governance **4/8** fully closed remain unchanged; this proposed branch addendum is **not a main-accepted closeout**. Read-only audit and discovery do not substitute for fleet operational proof.
+
 **Definition for this assessment:** "Can work like Haversine" means a locally discoverable owner/roadmap/task queue, an authorized bounded engineering cycle, exact-head CI, guarded integration, accepted-default-branch/post-merge verification and roadmap sync. A root `AGENTS.md` alone is insufficient. These grades are **read-only adoption readiness**, not GRS C01–C07 enforcement, merge permission or proof of all CI/ruleset states. Actual task-specific merge readiness must be checked immediately before each integration.
 
 | Repository | Evidence seen on live default branch / open-PR inventory | Haversine-style readiness and next owner-owned action |
@@ -28,7 +42,7 @@
 
 **Real quality proof:** domain accepted PRs #155/#156 report 27 → 0 Biome warnings and 72/72 Vitest tests; accepted `.github/workflows/ci.yml` directly verifies the strict warning-failing quality command plus packed CommonJS/ESM/TypeScript consumer checks. These are evidence of an effective *pattern*, not a mandate to copy Haversine's Node/browser/npm matrix to unrelated products.
 
-**HQ-owned low-risk discovery delta:** central `governance/repository-registry.json` on `main` still lists Haversine `discovery.agent: null`, while accepted Haversine `AGENTS.md` exists. Candidate narrow HQ metadata correction: `agent: "AGENTS.md"` after registry validator/PR collision review. This is optional discoverability, **not** a blocker to GRS runtime, GOV-M07/M08, or any Haversine release.
+**HQ-owned low-risk discovery correction (PROPOSED, not accepted in `main`):** Haversine `discovery.agent` in central `governance/repository-registry.json` now points to the accepted `AGENTS.md` on HQ PR #79 branch (commit `c91e69dd560b0552261d8bd7d935aae9988ac7ff`). The branch record remains within the same seven-repository scope; existing `main` still has `agent: null`. GRS registry validation and latest exact-head CI must pass before permitted integration. This is discoverability metadata only, **not** C01–C07 enforcement, and does not block Haversine releases or GOV-M07/M08.
 
 **Recommended reuse (proportional, no blanket rollout):** KEEP exact-head CI, owner isolation, post-merge evidence and truthful accepted-vs-proposed status; ADAPT agent discoverability, 12-stage engineering workflow and real-artifact tests by domain; DEFER universal zero-warning gates until repo-specific baseline/risk review; KEEP LOCAL npm packed consumers/Chrome matrix and release semantics; OWNER DECISION for branch protection, stable publication and mandatory central C01–C07 enforcement. Domain workers own local adoption; HQ does not edit their roadmaps or product code.
 
