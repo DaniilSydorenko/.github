@@ -1,5 +1,11 @@
 # [CAREER][GITHUB] — Independent Live Roadmap
 
+## M1 Google Cloud cleanup audit addendum — 2026-10-14 (proposed)
+
+Owner-executed Cloud Shell evidence: **six out of six legacy API keys revoked and independently re-listed as absent in all seven enumerated projects**; all seven projects independently verified **DELETE_REQUESTED** (none ACTIVE or UNKNOWN) at 21:40:23 UTC. Billing was disabled for all seven before shutdown. This verifies decommissioning request, **not irreversible resource purge**. See [secret-free evidence](M1-GCP-LEGACY-CLEANUP-EVIDENCE-2026-10-14.md). No plaintext key values are retained in HQ.
+
+**Acceptance gate remains open:** the original reported old Maps credential is not yet matched by secret-free project/key identity to the revoked inventory. **M1 stays 98%, HQ accepted milestones stay 6/9 pending original-finding correlation and authorized PR acceptance.** The separate project deletion is not an M1 closeout criterion. This addendum supersedes only older claims that cleanup evidence is absent; it does not change scope, owners, milestones or other PR statuses.
+
 ## Evidence-scored HQ progress — 2026-10-14
 
 ### HQ acceptance transition — 2026-10-14
