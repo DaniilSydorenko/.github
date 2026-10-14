@@ -1,5 +1,23 @@
 # [CAREER][GITHUB] — Independent Live Roadmap
 
+## Haversine pilot reconciliation — 2026-10-14 (HQ evidence, not domain takeover)
+
+**Live evidence:** Haversine accepted `master` HEAD `4ac6d3112c83f6f06264b6738e15ea392874f8ac` matches 2026-10-14 domain handoff (compare: 0 ahead / 0 behind). Only open Haversine PR observed: [#152](https://github.com/DaniilSydorenko/haversine-geolocation/pull/152) TypeScript 7 major upgrade; this is Haversine-owned, not an HQ completion gate. Haversine domain V2 roadmap: 84 rows, 72 closed, one historical 55% partial, eleven not started; 86% unweighted checklist, **not** stable readiness. Published alpha `v2.0.0-alpha.1` is domain evidence, not a new HQ M5 requirement.
+
+**Confirmed central GRS consumer improvement:** Haversine [PR #153](https://github.com/DaniilSydorenko/haversine-geolocation/pull/153) was reported accepted; direct inspection of accepted `.github/workflows/grs.yml` confirms central GRS checkout pinned to immutable `ec50b680e6b3620772c1fbecbbc93349621ecfe1`, read-only `contents: read`, and `persist-credentials: false` in both checkouts. Retire the *Haversine-specific* floating-`ref: main` concern as fixed. Do not infer equivalent shared-workflow pinning across six other repos.
+
+**12-stage domain pilot:** Haversine accepted root `AGENTS.md`, `docs/engineering/round-protocol.md`, round-evidence template and bounded domain work map (reported accepted PRs #158–#160). Direct `master` inspection verifies explicit discovery → reconciliation → bounded design/implementation → validation → PR review → exact-head CI → guarded integration or blocked → post-integration audit → roadmap sync → handoff; N/A and UNKNOWN remain distinct from PASS. This **demonstrates local procedural adoption**, not universal machine enforcement and not approval of HQ C01–C07 issue [#56](https://github.com/DaniilSydorenko/.github/issues/56).
+
+**Real quality proof:** domain accepted PRs #155/#156 report 27 → 0 Biome warnings and 72/72 Vitest tests; accepted `.github/workflows/ci.yml` directly verifies the strict warning-failing quality command plus packed CommonJS/ESM/TypeScript consumer checks. These are evidence of an effective *pattern*, not a mandate to copy Haversine's Node/browser/npm matrix to unrelated products.
+
+**HQ-owned low-risk discovery delta:** central `governance/repository-registry.json` on `main` still lists Haversine `discovery.agent: null`, while accepted Haversine `AGENTS.md` exists. Candidate narrow HQ metadata correction: `agent: "AGENTS.md"` after registry validator/PR collision review. This is optional discoverability, **not** a blocker to GRS runtime, GOV-M07/M08, or any Haversine release.
+
+**Recommended reuse (proportional, no blanket rollout):** KEEP exact-head CI, owner isolation, post-merge evidence and truthful accepted-vs-proposed status; ADAPT agent discoverability, 12-stage engineering workflow and real-artifact tests by domain; DEFER universal zero-warning gates until repo-specific baseline/risk review; KEEP LOCAL npm packed consumers/Chrome matrix and release semantics; OWNER DECISION for branch protection, stable publication and mandatory central C01–C07 enforcement. Domain workers own local adoption; HQ does not edit their roadmaps or product code.
+
+**Outstanding Haversine domain-only decisions:** unprotected `master` (owner gate), major TypeScript #152 fresh compatibility review, legacy 55% alpha feedback estimate, beta/RC/stable publication. None reopens accepted **M5 = 100%** absent a verifiable GitHub-owned defect.
+
+**HQ roadmap accounting:** GitHub **6/9** closed, Governance **4/8** closed unchanged. Haversine pilot supplies bounded GOV-M07/M08 procedural/GRS evidence, but **does not** prove seven-repo operational acceptance or worker policy SHA consumption. GOV-M07/M08 remain open. This addition is proposed in HQ [PR #79](https://github.com/DaniilSydorenko/.github/pull/79), not accepted `main` until authorized merge and verification.
+
 ## Owner-approved scope freeze — 2026-10-13 (proposed integration in PR #79)
 
 **Authority:** owner-approved strategic scope direction in HQ conversation; this records the seven-repository boundary, **not** approval of C01–C07 enforcement at [issue #56](https://github.com/DaniilSydorenko/.github/issues/56).
