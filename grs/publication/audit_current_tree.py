@@ -28,11 +28,19 @@ def audit(tree: object, manifest: object) -> tuple[int, dict]:
     if not isinstance(surfaces, list):
         return 1, {"status": "INVALID", "reason": "sensitive_surfaces must be list"}
     paths: set[str] = set()
+    entry_paths: set[str] = set()
     for i, item in enumerate(entries):
         if not isinstance(item, dict) or not isinstance(item.get("path"), str) or item.get("type") not in {"blob", "tree", "commit"}:
             return 1, {"status": "INVALID", "reason": f"invalid Git tree entry {i}"}
+        entry_path = item["path"]
+        # A malformed or duplicated snapshot must never produce a false clean report.
+        if (not entry_path or entry_path.startswith("/") or "\\" in entry_path
+                or "//" in entry_path or entry_path in entry_paths
+                or any(part in {"", ".", ".."} for part in entry_path.split("/"))):
+            return 1, {"status": "INVALID", "reason": f"unsafe/duplicate Git tree entry {i}"}
+        entry_paths.add(entry_path)
         if item["type"] == "blob":
-            paths.add(item["path"])
+            paths.add(entry_path)
     if not paths:
         return 1, {"status": "UNKNOWN", "reason": "no source blobs found; insufficient tree evidence"}
     seen: set[str] = set()
