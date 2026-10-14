@@ -69,6 +69,18 @@ class CurrentTreeTests(unittest.TestCase):
         self.assertEqual(r.returncode, 1)
         self.assertEqual(json.loads(r.stdout)["status"], "UNKNOWN")
 
+    def test_unsafe_git_tree_entry_does_not_report_clean(self):
+        for unsafe in ("../private/file.txt", "/private/file.txt", "src//index.ts", "src/./index.ts", "src\\\\index.ts"):
+            with self.subTest(path=unsafe):
+                r = self.audit([unsafe, "src/index.ts"])
+                self.assertEqual(r.returncode, 1, r.stdout + r.stderr)
+                self.assertEqual(json.loads(r.stdout)["status"], "INVALID")
+
+    def test_duplicate_git_tree_entries_do_not_report_clean(self):
+        r = self.audit(["src/index.ts", "src/index.ts"])
+        self.assertEqual(r.returncode, 1, r.stdout + r.stderr)
+        self.assertEqual(json.loads(r.stdout)["status"], "INVALID")
+
     def test_parent_traversal_surface_rejected(self):
         m = {"sensitive_surfaces": [{"path": "../private/", "disposition": "review"}]}
         r = self.audit(["src/index.ts"], manifest_override=m)
