@@ -1,6 +1,12 @@
 # [CAREER][GITHUB] — Independent Live Roadmap
 
-## M1 Google Cloud cleanup audit addendum — 2026-10-14 (proposed)
+## M1 owner-authorized risk-accepted closeout — 2026-10-14 (current authoritative status)
+
+**Owner decision (explicit, 2026-10-14):** accept residual uncertainty of the originally exposed Google Maps credential identity, with explicit limits: the six discovered API keys in the seven inventoried legacy projects were revoked and independently re-listed as absent; all seven projects were confirmed `DELETE_REQUESTED`; the historical exposed Maps key has **not** been individually matched to one of those six resources. Unknown projects/credentials outside this enumerated scope are not asserted clean. `DELETE_REQUESTED` is not permanent purge. The owner accepts this bounded risk instead of claiming evidence that does not exist.
+
+**M1 disposition: ACCEPTED — RISK-ACCEPTED CLOSEOUT (100%).** The original historical-ID correlation is **waived by explicit owner risk acceptance**, not technically proven. All other M1 requirements were marked accepted before this decision; revocation/decommissioning evidence is in [M1 GCP evidence](M1-GCP-LEGACY-CLEANUP-EVIDENCE-2026-10-14.md). **Current accepted GitHub HQ milestone closure: 7/9 = 77.8%** (M0/M1/M2/M3/M5/M9/M10). M4 66% and optional M8 62% remain open; governance remains **4/8 = 50%**. The earlier 6/9 and M1=98% snapshots below are historical, not current. This amendment does not waive independent publication, security, CI or other domain gates.
+
+## M1 Google Cloud cleanup audit addendum — 2026-10-14 (historical pre-risk-acceptance snapshot)
 
 Owner-executed Cloud Shell evidence: **six out of six legacy API keys revoked and independently re-listed as absent in all seven enumerated projects**; all seven projects independently verified **DELETE_REQUESTED** (none ACTIVE or UNKNOWN) at 21:40:23 UTC. Billing was disabled for all seven before shutdown. This verifies decommissioning request, **not irreversible resource purge**. See [secret-free evidence](M1-GCP-LEGACY-CLEANUP-EVIDENCE-2026-10-14.md). No plaintext key values are retained in HQ.
 
@@ -22,7 +28,7 @@ Owner-executed Cloud Shell evidence: **six out of six legacy API keys revoked an
 
 | Metric / fixed scope | Recalculated today | What earns a measured increase |
 | --- | ---: | --- |
-| **GitHub HQ accepted milestone closure** — M0/M1/M2/M3/M4/M5/M8/M9/M10 | **6/9 = 66.7%** | A previously open canonical milestone reaches **100% with actual accepted exit-gate evidence**. M6/M7 remain deferred; optional M8 stays in this full-scope denominator for honest continuity. |
+| **GitHub HQ accepted milestone closure** — M0/M1/M2/M3/M4/M5/M8/M9/M10 | **7/9 = 77.8%** | A previously open canonical milestone reaches **100% with actual accepted exit-gate evidence**. M6/M7 remain deferred; optional M8 stays in this full-scope denominator for honest continuity. |
 | **Governance v1 accepted milestone closure** — GOV-M01…M08 | **4/8 = 50.0%** | An unfinished GOV milestone's original exit criteria are met; owner decision #56 and real fleet/runtime evidence may still be required. |
 | **Frozen existing HQ PR integration queue** — [#79](https://github.com/DaniilSydorenko/.github/pull/79), [#80](https://github.com/DaniilSydorenko/.github/pull/80), [#82](https://github.com/DaniilSydorenko/.github/pull/82) | **0/3 = 0.0% accepted into `main`** | Each *of these three named PRs* is authorized, merged and remote-`main` verified. This is a finite **delivery checkpoint**, not a new program milestone or product-PR quota. |
 | **Active HQ milestone effort estimate** (simple average of nine pre-existing rows) | **91.8% estimated, non-acceptance** | Recompute only when actual supported scope/task estimates change; **not** an accepted completion percentage. |
@@ -147,7 +153,7 @@ Owner-executed Cloud Shell evidence: **six out of six legacy API keys revoked an
 
 | Current deliverable | Evidence now | Blocker / terminal action |
 | --- | --- | --- |
-| **GitHub milestone closeout** | **6/9 = 66.7%** fully marked closed; M0/M2/M3/M5/M9/M10 | M1 98% missing old Maps key revocation proof; M4 66% incomplete privacy/history/owner publication gates; optional M8 62% unfinished pins/QA |
+| **GitHub milestone closeout** | **7/9 = 77.8%** fully marked closed; M0/M1/M2/M3/M5/M9/M10 | M1 closed by explicit owner risk acceptance (original key identity unknown); M4 66% incomplete privacy/history/owner publication gates; optional M8 62% unfinished pins/QA |
 | **Governance milestone closeout** | **4/8 = 50.0%** fully marked closed; GOV-M01/M02/M05/M06 | GOV-M03 92% and M04 95% depend on [#56](https://github.com/DaniilSydorenko/.github/issues/56); GOV-M07 84% and M08 58% lack accepted runtime/policy/7-repo evidence |
 | **HQ Finish First + reconciled roadmap [#79](https://github.com/DaniilSydorenko/.github/pull/79)** | Draft; current head before this status-only sync `cb4a48d9f4949ea825e279ecd222b17ef05d8ae9`; **GRS Control Plane SUCCESS** on that head; mergeable | Proposed policy-interpretation and HQ runbook changes **not on `main`**; owner review/current merge authority and post-merge verification required |
 | **Read-only GRS reporter [#80](https://github.com/DaniilSydorenko/.github/pull/80)** | Ready; exact-head `1714d27758b2d4dcebe119988fa12293a562994e`; GRS CI SUCCESS | Unmerged; authorized review/merge then actual fleet evidence input and main verification |
@@ -169,7 +175,7 @@ Owner-executed Cloud Shell evidence: **six out of six legacy API keys revoked an
 
 | Metric | Evidence-based completed ratio | Status / reason |
 | --- | ---: | --- |
-| **Current GitHub scope — full milestone closure** | **6/9 = 66.7%** | M0, M2, M3, M5, M9, M10 marked accepted 100%; M1, M4, M8 not complete |
+| **Current GitHub scope — full milestone closure** | **7/9 = 77.8%** | M0, M1 (owner risk accepted), M2, M3, M5, M9, M10 accepted 100%; M4 and M8 not complete |
 | **Governance v1 — full milestone closure** | **4/8 = 50.0%** | GOV-M01, GOV-M02, GOV-M05 (pilot/discovery), GOV-M06 (discovery mapping) closed; GOV-M03/M04/M07/M08 not accepted |
 | Engineering release/publication owner gates | **0/3 = 0%** | Labs, Handbook, Career Intelligence publication gates unresolved; no visibility changes |
 | Scheduled fleet enabled | **4/5 = 80%** | Ladvero PR Autopilot DISABLED in live scheduler despite old enabled cache; owner-approved recovery decision needed; do not self-enable |
@@ -188,7 +194,7 @@ Owner-executed Cloud Shell evidence: **six out of six legacy API keys revoked an
 
 | Task | Existing effort estimate (not earned) | Not done because |
 | --- | ---: | --- |
-| M1 — Clean & Secure Account | 98% | Old Maps key revocation/dead verification still lacks closeout proof |
+| M1 — Clean & Secure Account | 100% (owner risk accepted) | Original key identity still unknown; historical correlation formally waived by explicit owner decision after scoped revocation proof |
 | M4 — Private/public separation | 66% | Labs/Handbook private overlay, Career private data-plane, history/content audit, 3 owner publication decisions incomplete |
 | M4-E — History safety | 18% | [#82](https://github.com/DaniilSydorenko/.github/pull/82) exact-head green fix still Draft/unmerged; full-history PII/content review and rewrite decision unfinished |
 | M8 — Super Profile (optional) | 62% | Pin/visual/metadata/QA items not accepted; optional, not GRS blocker |
@@ -266,13 +272,13 @@ Only on explicit owner request: (1) create repo, (2) select GRS class, (3) add l
 
 | Task | Color | % |
 | --- | --- | ---: |
-| M1 — Clean & Secure Account | 🟡 | 98% |
+| M1 — Clean & Secure Account | 🟢 | 100% (risk accepted) |
 | Secret exposure cleanup | 🟢 | 100% |
 | Repository hygiene cleanup | 🟢 | 100% |
 | Public/private boundary cleanup | 🟢 | 100% |
 | Credential and token hygiene | 🟢 | 100% |
-| Old Maps key revoke/dead verification | 🟠 | 90% |
-| M1 closeout | 🟡 | 98% |
+| Old Maps key revoke/dead verification | 🟢 | 100% (owner risk accepted; historical ID unmatched) |
+| M1 closeout | 🟢 | 100% (owner risk accepted) |
 
 ## M2 — Professional GitHub Shell
 
