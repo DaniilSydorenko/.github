@@ -200,12 +200,12 @@ class RoadmapAcceptanceScoreTests(unittest.TestCase):
         key = unfinished[0]
         section = self.roadmap.split(f"## {key} — ", 1)[1]
         original_row = re.search(
-            r"(?m)^\\| " + re.escape(key) + r" — [^|\\n]+ \\| [^|\\n]+ \\| [0-9]+% \\|$",
+            r"(?m)^\| " + re.escape(key) + r" — [^|\n]+ \| [^|\n]+ \| [0-9]+% \|$",
             section,
         )
         self.assertIsNotNone(original_row)
         promoted_row = re.sub(
-            r"\\| [^|\\n]+ \\| [0-9]+% \\|$",
+            r"\| [^|\n]+ \| [0-9]+% \|$",
             "| 🟢 | 100% |",
             original_row.group(0),
         )
