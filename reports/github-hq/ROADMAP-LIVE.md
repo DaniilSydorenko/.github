@@ -2,6 +2,14 @@
 
 ## Evidence-scored HQ progress — 2026-10-14
 
+### HQ acceptance transition — 2026-10-14
+
+- **#79** transitioned from Draft to **Ready for review** with unchanged exact head `8287804f44a45534e85b3212fd15bbec12195d6e`, mergeable, GRS Control Plane SUCCESS. A documented GitHub review was submitted as **COMMENTED**, *not APPROVED*. Required independent/authorized review and active branch-rule verification remain outstanding. **Do not mark merged/accepted.**
+- **#80** remains **Ready for review**, exact head `1714d27758b2d4dcebe119988fa12293a562994e`, GRS SUCCESS; documented review **COMMENTED**, *not APPROVED*. Owner authorization and required integration gates remain unresolved.
+- **#82** remains security-sensitive **Draft**; its green CI does not imply publication/security approval or merge permission.
+- **#56** still OPEN: the owner must approve/revise/defer *specific* C01–C07 binding semantics and exceptions before any fleet-wide enforcing adoption. A broad request to complete the roadmap is not substituted for that explicit decision.
+- **No premature credit:** canonical `main` has accepted **0/3** named HQ PRs; GitHub milestone closure **6/9** and Governance closure **4/8** unchanged. Next meaningful percentage movement requires authorized merges with remote `main` evidence and/or satisfaction of a complete original milestone exit gate.
+
 **Active roadmap scope correction (owner reaffirmed 2026-10-14):** M6 Norway Geo and M7 External OSS & Engineering History are **removed from the current roadmap's milestone/task list**. They are not cancelled/completed: their prior 0% task plans remain recoverable in Git history and may be revisited through a separate, future owner-approved scope decision. No new repositories are included in active delivery. **The denominator was already nine** before removal, so this editorial correction does not generate earned progress: **6/9 = 66.7%**, active-milestone estimate **91.8%**. Governance remains **4/8 = 50%**. Do not re-display M6/M7 as active rows or count their zero estimates in averages.
 
 **Canonical baseline for subsequent Finish-First engineering rounds.** Do not equate estimated effort, CI passing, an open PR, merged default-branch code, runtime proof or owner-approved publication. Use one fixed objective denominator per metric; a percentage only advances on a newly accepted outcome supported by the right evidence. No manufactured small tasks, denominator shrinkage, artificial PR splitting or release gate bypass is authorized.
