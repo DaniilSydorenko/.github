@@ -147,7 +147,7 @@
       "grs_class": "oss-library",
       "discovery": {
         "roadmap": "docs/roadmap/haversine-v2-human-roadmap.md",
-        "agent": null,
+        "agent": "AGENTS.md",
         "authority": "docs/architecture/README.md",
         "governance": ".github/repository.json",
         "specialized_trackers": [
