@@ -173,19 +173,43 @@ class RoadmapAcceptanceScoreTests(unittest.TestCase):
         self.assert_score_reconciles(self.roadmap)
 
     def test_inflated_headline_fails_score_reconciliation(self):
-        poisoned = self.roadmap.replace(
-            "**6/9 = 66.7%**", "**7/9 = 77.8%**", 1
+        label = "Current GitHub scope — full milestone closure"
+        declared = claimed_closure(self.roadmap, label)
+        current = (
+            f"| **{label}** | **{declared[0]}/{declared[1]} = "
+            f"{declared[2]:.1f}%** |"
         )
+        inflated = current.replace(
+            f"{declared[0]}/{declared[1]}",
+            f"{declared[0] + 1}/{declared[1]}",
+            1,
+        )
+        poisoned = self.roadmap.replace(current, inflated, 1)
         self.assertNotEqual(poisoned, self.roadmap)
         with self.assertRaises(AssertionError):
             self.assert_score_reconciles(poisoned)
 
     def test_unearned_milestone_promotion_fails_score_reconciliation(self):
-        poisoned = self.roadmap.replace(
-            "| M4 — Career Ecosystem Public Extraction | 🔵 | 66% |",
-            "| M4 — Career Ecosystem Public Extraction | 🟢 | 100% |",
-            1,
+        active = milestone_rows(self.roadmap, governance=False)
+        unfinished = [
+            key for key in sorted(ACTIVE_MILESTONES)
+            if active[key][1] < 100
+        ]
+        if not unfinished:
+            self.skipTest("all active milestones are already complete")
+        key = unfinished[0]
+        section = self.roadmap.split(f"## {key} — ", 1)[1]
+        original_row = re.search(
+            r"(?m)^\\| " + re.escape(key) + r" — [^|\\n]+ \\| [^|\\n]+ \\| [0-9]+% \\|$",
+            section,
         )
+        self.assertIsNotNone(original_row)
+        promoted_row = re.sub(
+            r"\\| [^|\\n]+ \\| [0-9]+% \\|$",
+            "| 🟢 | 100% |",
+            original_row.group(0),
+        )
+        poisoned = self.roadmap.replace(original_row.group(0), promoted_row, 1)
         self.assertNotEqual(poisoned, self.roadmap)
         with self.assertRaises(AssertionError):
             self.assert_score_reconciles(poisoned)
