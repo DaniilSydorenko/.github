@@ -1,5 +1,26 @@
 # [CAREER][GITHUB] — Independent Live Roadmap
 
+## Evidence-scored HQ progress — 2026-10-14
+
+**Canonical baseline for subsequent Finish-First engineering rounds.** Do not equate estimated effort, CI passing, an open PR, merged default-branch code, runtime proof or owner-approved publication. Use one fixed objective denominator per metric; a percentage only advances on a newly accepted outcome supported by the right evidence. No manufactured small tasks, denominator shrinkage, artificial PR splitting or release gate bypass is authorized.
+
+| Metric / fixed scope | Recalculated today | What earns a measured increase |
+| --- | ---: | --- |
+| **GitHub HQ accepted milestone closure** — M0/M1/M2/M3/M4/M5/M8/M9/M10 | **6/9 = 66.7%** | A previously open canonical milestone reaches **100% with actual accepted exit-gate evidence**. M6/M7 remain deferred; optional M8 stays in this full-scope denominator for honest continuity. |
+| **Governance v1 accepted milestone closure** — GOV-M01…M08 | **4/8 = 50.0%** | An unfinished GOV milestone's original exit criteria are met; owner decision #56 and real fleet/runtime evidence may still be required. |
+| **Frozen existing HQ PR integration queue** — [#79](https://github.com/DaniilSydorenko/.github/pull/79), [#80](https://github.com/DaniilSydorenko/.github/pull/80), [#82](https://github.com/DaniilSydorenko/.github/pull/82) | **0/3 = 0.0% accepted into `main`** | Each *of these three named PRs* is authorized, merged and remote-`main` verified. This is a finite **delivery checkpoint**, not a new program milestone or product-PR quota. |
+| **Active HQ milestone effort estimate** (simple average of nine pre-existing rows) | **91.8% estimated, non-acceptance** | Recompute only when actual supported scope/task estimates change; **not** an accepted completion percentage. |
+| **Governance milestone effort estimate** (simple average of eight pre-existing rows) | **91.1% estimated, non-acceptance** | Same limitations; do not use historical 90% as accepted closure. |
+
+**Historical headline repair:** the old `Whole GitHub program 88%` and `Engineering Governance v1 90%` rows below are **legacy planning estimates, not current accepted progress**. They are preserved for provenance but must not be reported as today's overall engineering delivery completion. The *recomputed* simple row means 91.8% and 91.1% are also planning proxies, **not newly earned progress**. No credible weighted work-hour model exists across the distinct security/publication/governance tasks.
+
+**Round delta at this baseline:** GitHub milestone closure **+0.0 pp**, Governance closure **+0.0 pp**, existing HQ PR acceptance **+0.0 pp**. This is deliberate: the HQ PRs remain unmerged. The current round adds regression-tested integrity checks inside existing PR #79; **new CI-valid code on a Draft branch is verified proposed work, not completed default-branch integration**. When an approved PR is merged, update the fixed PR integration checkpoint, *even if* the top-level milestone denominator does not yet change.
+
+**Non-negotiable next-round rule:** select the highest-value *finishable* pre-existing acceptance gate before starting work; record concrete artifact, relevant tests, exact PR head, independent review/authority, accepted default branch and external/runtime evidence where applicable. If owner/security permission or required evidence is missing, mark **BLOCKED/OWNER DECISION** and continue a genuinely independent authorized task. No target of mandatory positive percentage change: **zero or a decline is correct if reality warrants it**. Never game the numerator or denominator merely to make a round appear productive.
+
+**Score integrity regression:** existing `grs/tests/test_engineering_round_protocol.py` in PR #79 now verifies the canonical full-closure table arithmetic, the frozen active/GOV milestone sets, and negative cases for invented milestone completion or inflated scoreboard claims. This is **HQ-only documentation integrity**, not cross-repository C01–C07 enforcement. The positive `main` acceptance proof still requires PR review/authorized merge and remote post-merge verification.
+
+
 ## Cross-chat Haversine adoption reconciliation — 2026-10-14
 
 **Source/authority:** Owner reports that the seven Haversine-style handoffs were distributed and approved in the separate domain chats. The adoption signals below are reconciled against live GitHub PR state, accepted default-branch files and local roadmap metrics on 2026-10-14. Chat approval is a **decision**, a PR is **proposed work**, and a merged/default-branch artifact is **accepted code**; runtime, publication and security sign-off are separate. This is an HQ-owned observational snapshot, **not** automatic C01–C07 enforcement or a rewrite of domain roadmaps.
@@ -212,7 +233,7 @@ Only on explicit owner request: (1) create repo, (2) select GRS class, (3) add l
 
 | Task | Color | % |
 | --- | --- | ---: |
-| Whole GitHub program | 🔵 | 88% |
+| Whole GitHub program — legacy planning estimate (NOT accepted closeout) | 🔵 | 88% |
 
 ## M0 — Final Forensic Audit
 
@@ -474,7 +495,7 @@ Only on explicit owner request: (1) create repo, (2) select GRS class, (3) add l
 
 | Task | Color | % |
 | --- | --- | ---: |
-| Engineering Governance v1 workstream | 🔵 | 90% |
+| Engineering Governance v1 workstream — legacy planning estimate (NOT accepted closeout) | 🔵 | 90% |
 | GOV-M01 — Baseline Inventory | 🟢 | 100% |
 | GOV-M02 — Authority & Conflict Matrix | 🟢 | 100% |
 | GOV-M03 — Governance Contract v1 | 🔵 | 92% |
