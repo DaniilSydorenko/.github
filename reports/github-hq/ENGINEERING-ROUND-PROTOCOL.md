@@ -13,13 +13,13 @@ Status: **HQ FINISH-FIRST PROCEDURE / NON-ENFORCING FOR DOMAIN WORKERS**. Owner:
 
 ## Round sequence
 
-1. **DISCOVERY** — fetch fresh default-branch SHA, local canonical roadmap/authority/agent guidance through registry, relevant issues, all open PRs with *paginated* changed-file lists, exact-head CI, and runtime/release evidence if relevant. Note unavailable surfaces.
+1. **DISCOVERY** — fetch fresh HQ target default-branch SHA, canonical HQ roadmap/authority, relevant HQ issues, **all open PRs on the HQ target repository** (changed-file lists when relevant), exact-head CI, and required infrastructure/runtime evidence. Domain PRs are out of scope except for a specific authorized shared-surface collision or owner-gated publication/security check. Note unavailable surfaces.
 2. **RECONCILIATION** — compare current GitHub evidence to roadmap claims, separate accepted main state from draft proposals, detect stale or conflicting assertions.
-3. **PLANNING** — FINISH-FIRST: inspect already-tested open PRs and existing milestone exit gates before creating work. Choose the smallest bounded closeout set with stable IDs, dependencies and explicit owners; no artificial milestone inflation.
+3. **PLANNING** — FINISH-FIRST: inspect already-tested **HQ-owned** open PRs and HQ infrastructure exit gates before creating work. Choose the smallest bounded closeout set with stable IDs, dependencies and explicit owners; no artificial milestone inflation.
 4. **DESIGN** — specify expected changed paths, allowed scope, exclusions, risk, rollback, acceptance criteria and stop conditions.
 5. **IMPLEMENTATION** — mutate only authorized paths on a dedicated branch after a fresh collision check. Never modify another worker's branch or roadmap.
 6. **VALIDATION** — run applicable tests, security/GRS checks and diff review; disclose tests that cannot be executed.
-7. **PR REVIEW** — compare *all* open PR changed paths again. Shared lockfiles, generated manifests and canonical status files are coordination hotspots. A shared path is a collision risk, **not automatically** a Git merge conflict.
+7. **PR REVIEW** — compare relevant changed paths of **HQ-owned target-repository PRs** again. Only when an explicitly authorized HQ change touches an external shared surface, inspect its specifically overlapping PRs. Never enumerate, score or manage unrelated domain PR queues. Shared paths are collision risks, **not automatically** Git merge conflicts.
 8. **EXACT-HEAD CI** — verify required checks for the precise immutable PR HEAD; no checks found is **UNKNOWN**, not PASS. A head change invalidates earlier evidence.
 9. **INTEGRATION OR BLOCKED** — accept only with verified current-run authorization, fresh no-overlap/ownership evidence, verified required CI and immutable expected head. A worker's own standing Class A/B approval can qualify only under the exact restrictions in `HQ-AUTOPILOT-BOUNDARIES.md`; synchronous HQ cannot inherit it. Otherwise report the exact OWNER_DECISION or EXTERNAL_BLOCKED and switch independent lanes. Do not bypass owner gates or enforce unapproved C01–C07.
 10. **POST-INTEGRATION AUDIT** — inspect default-branch accepted artifact and commit; check deployment/release/runtime separately when applicable.
@@ -39,7 +39,7 @@ Status: **HQ FINISH-FIRST PROCEDURE / NON-ENFORCING FOR DOMAIN WORKERS**. Owner:
 ## Finish-first exit discipline
 
 - Reuse the active `reports/github-hq/HQ-AUTOPILOT-BOUNDARIES.md` **Finish-first closeout contract**; no parallel policy or status database.
-- Each engineering round must select an **existing unfinished acceptance gate or tested PR** before starting new governance work. If all eligible work needs owner decisions, prepare one bounded batch; don't create compensating reports.
+- Each HQ engineering round must select an **existing HQ-owned unfinished acceptance gate or tested HQ PR** before starting new governance work; domain PR queues are not HQ work. If all eligible work needs owner decisions, prepare one bounded batch; don't create compensating reports.
 - After two equivalent failures without new information, **stop equivalent retries** and work on a non-colliding owned lane or return a precise single owner decision.
 - The only successful engineering closeout is **ACCEPTED** on a remotely verified canonical branch (and runtime/release evidence where originally required). **OWNER_DECISION**, **EXTERNAL_BLOCKED**, and **CONTINUE_ELSEWHERE** are truthful outcomes, not 100% completion.
 - No new milestones, scheduled workers, duplicated status trackers, forced seven-repo enforcement or weakened owner gate #56. Freeze the existing scope and denominator.
