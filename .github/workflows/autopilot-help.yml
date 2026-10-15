@@ -4,6 +4,9 @@ on:
   workflow_run:
     workflows:
       - "GRS Control Plane"
+    # Health inspection is default-branch-only. PR completions cannot change its signal.
+    # Keep immediate checks for main and the existing scheduled fallback.
+    branches: [main]
     types: [completed]
   schedule:
     - cron: "41 */3 * * *"
