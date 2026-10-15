@@ -14,7 +14,8 @@ class ReusableAutopilotHealthContractTest(unittest.TestCase):
         self.assertNotIn("gh pr list", text)
         self.assertNotIn("/pulls", text)
         self.assertNotIn("open_failing_pr_count", text)
-        self.assertIn('actions/runs?per_page=100', text)
+        self.assertIn('actions/runs?branch=$default_branch&per_page=100', text)
+        self.assertNotIn('actions/runs?per_page=100', text)
         self.assertIn('repos/$GITHUB_REPOSITORY" --jq \'.default_branch\'', text)
         self.assertIn('--arg default_branch "$default_branch"', text)
         self.assertIn('select(.head_branch == $default_branch)', text)
@@ -25,6 +26,18 @@ class ReusableAutopilotHealthContractTest(unittest.TestCase):
         self.assertIn('map(sort_by(.created_at) | reverse | .[0])', text)
         self.assertIn('latest_bad_workflow_count', text)
         self.assertNotIn('| .[0:1]', text)
+
+    def test_recent_runs_query_is_filtered_before_github_pagination(self):
+        # Default branch runs must not be evicted by a burst of PR runs
+        # before the existing jq health/group-by rules inspect the payload.
+        text = HEALTH.read_text()
+        default_knowledge = text.index('default_branch="$(gh api')
+        scoped_query = text.index('actions/runs?branch=$default_branch&per_page=100')
+        self.assertLess(default_knowledge, scoped_query)
+        self.assertIn('select(.head_branch == $default_branch)', text)
+        self.assertNotIn('actions/runs?per_page=100', text)
+        self.assertIn('group_by(.workflow_id)', text)
+        self.assertIn('latest_bad_workflow_count', text)
 
     def test_hq_help_ignores_pr_completions_but_keeps_main_and_schedule(self):
         # Reusable health checks only default-branch workflows. A GRS PR

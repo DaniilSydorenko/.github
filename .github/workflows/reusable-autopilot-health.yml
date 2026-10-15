@@ -25,7 +25,7 @@ jobs:
              | .id]
           ')"
 
-          latest_bad_count="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs?per_page=100"             | jq --argjson active "$active_workflow_ids" --arg default_branch "$default_branch" '
+          latest_bad_count="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs?branch=$default_branch&per_page=100"             | jq --argjson active "$active_workflow_ids" --arg default_branch "$default_branch" '
               [.workflow_runs[]
                | select(.name != "Autopilot Help Signal")
                | select(.name != "Reusable Autopilot Health")
