@@ -23,7 +23,7 @@
 
 - **Branch protections:** seven branch endpoints returned `protected: false`; public HQ/Haversine ruleset lists empty, private ruleset inspection hit GitHub plan/API restrictions. Native enforced branch review is **NOT VERIFIED**; this is a real security-review item for the owner, not owner acceptance of bypass. Existing policy/review gates stay binding.
 - **Publication:** [HQ PR #82](https://github.com/DaniilSydorenko/.github/pull/82) has exact-head GRS SUCCESS but still needs independent appropriate review. Do not weaken it, publish sensitive content or use it to block independent CI v1 development.
-- **M4 stays 66% with its original scope**; domain extraction, history/PII review and owner visibility decisions remain separate. Career Intelligence first private product version does NOT depend on M4 public release.
+- **M4 stays 66% with its original scope**; owner-directed sequencing on 2026-10-15 is **PUBLICATION DEFERRED / KEEP PRIVATE**, not M4 delivery accepted or 100%. Domain extraction, history/PII review and explicit owner visibility decisions remain separate. Career Intelligence first private product version and M8 profile polish do NOT depend on M4 public release.
 - **Noise:** latest 100 runs per repo sample yielded 320/700 Help Signal; Control Plane Reconcile 74/100 (unequal time windows, NOT a normalized cost/savings measure). HQ `3e14954` filters PR-triggered health fan-out; longer-term effect UNKNOWN. Optimize only proved redundancy inside each domain authority; never disable security/scheduler blindly.
 - **Control Plane-specific unresolved execution:** [Career scheduler bootstrap #152](https://github.com/DaniilSydorenko/autopilot-control-plane/issues/152) and [Career executor write block #160](https://github.com/DaniilSydorenko/autopilot-control-plane/issues/160) were open at the 2026-10-15 audit. Their live state belongs to Control Plane/executor and must be reread there; no duplicate scheduler, unconditional retries or HQ product takeover.
 - **Domain autonomy:** open LADVERO/Career/Handbook application PRs are not HQ governance gates. GitHub Autopilot and Control Plane keep their own scheduling/merge authority; synchronous HQ cannot borrow it.
@@ -57,6 +57,8 @@ Legacy **original portfolio Maps key matched exactly** to revoked credential; re
 | --- | --- | ---: |
 | M4 — Career Ecosystem Public Extraction | 🔵 | 66% |
 
+Publication remains deferred for Labs, Handbook and Career Intelligence. Original M4 security, current-tree/history, domain extraction and owner visibility gates remain OPEN; [security PR #82](https://github.com/DaniilSydorenko/.github/pull/82) requires independent approval. No visibility change or new repository, and no transfer of domain PR authority to HQ.
+
 ## M5 — Haversine OSS Flagship
 | Task | Color | % |
 | --- | --- | ---: |
@@ -68,6 +70,8 @@ HQ M5 closure is not Haversine product/release completion.
 | Task | Color | % |
 | --- | --- | ---: |
 | M8 — Super Profile | 🔵 | 62% |
+
+Owner-confirmed GitHub bio now aligns with `Senior Product / Frontend Engineer`; first-screen verified public OSS/governance evidence accepted in [profile PR #8](https://github.com/DaniilSydorenko/DaniilSydorenko/pull/8) (`0229069`). Remaining high-value M8: live pin review, public-link/metadata checks and one recruiter-first visual QA. Private-repository topics and cross-repo decorative consistency are optional, not HQ gates. Do not claim M8 100% without independent live profile acceptance.
 
 ## M9 — Living Governance
 | Task | Color | % |
@@ -102,4 +106,4 @@ GOV-M06 = **discovery adoption only**. M07 = existing read-only validator/report
 - **R4:** seven-repo discovery/CI proof — ACCEPTED for that **limited observed scope**, not full operational GRS PASS.
 - **R5:** governance frozen; any Actions cost optimization and branch security review stay **separate bounded maintenance**, no recurring new governance roadmap.
 
-**Next priority:** first **private** Career Intelligence v1 via the domain-owned [PLATFORM roadmap](https://github.com/DaniilSydorenko/career-intelligence/blob/main/docs/PLATFORM_ROADMAP_V2.md); do not copy its mutable percentages into HQ. No dependency on public-extraction M4, Handbook completion or other-domain PR queues. Stop enlarging governance.
+**Next priority:** compact M8 public-profile closeout and first **private** Career Intelligence v1 via the domain-owned [PLATFORM roadmap](https://github.com/DaniilSydorenko/career-intelligence/blob/main/docs/PLATFORM_ROADMAP_V2.md); do not copy its mutable percentages into HQ. No dependency on public-extraction M4, Handbook completion or other-domain PR queues. Stop enlarging governance.
