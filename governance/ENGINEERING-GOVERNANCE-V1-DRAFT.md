@@ -1,8 +1,8 @@
 # Engineering Governance v1 — Minimal Contract (owner-decision draft)
 
-**Status:** DRAFT / NON-ENFORCING. **Owner:** GitHub HQ. **Scope:** seven repositories in [repository-registry.json](repository-registry.json). **Decision:** [issue #56](https://github.com/DaniilSydorenko/.github/issues/56).
+**Status:** ACTIVE / OWNER-APPROVED LEAN V1 (non-enforcing); 2026-10-15. **Owner:** GitHub HQ. **Scope:** seven repositories in [repository-registry.json](repository-registry.json). **Decision:** [closed issue #56](https://github.com/DaniilSydorenko/.github/issues/56), Option B.
 
-This file **does not** create a second governing authority, mandatory seven-repository CI, universal agent framework, product acceptance, release/publishing rights, or scheduler permission. It summarizes accepted boundaries and isolates the one outstanding enforcement decision. The former verbose draft remains recoverable from Git history.
+This owner-approved, non-enforcing contract **does not** create a second governing authority, mandatory seven-repository CI, universal agent framework, product acceptance, release/publishing rights, or scheduler permission. It summarizes accepted boundaries and isolates the one outstanding enforcement decision. The former verbose draft remains recoverable from Git history.
 
 ## Simplicity & Speed Directive — already approved
 
@@ -16,7 +16,7 @@ This file **does not** create a second governing authority, mandatory seven-repo
 
 | ID | Existing baseline (keep) | New mandatory enforcement |
 | --- | --- | --- |
-| **C01 — Source of Truth** | Git default branch, per-domain roadmap/data authority, pointer registry; scheduler/provider owns live execution truth | **NOT APPROVED**: requiring new machine-verifiable local metadata |
+| **C01 — Source of Truth** | Git default branch, per-domain roadmap/data authority, pointer registry; scheduler/provider owns live execution truth | **DECLINED by #56**: requiring new machine-verifiable local metadata |
 | **C02 — Roadmap Integrity** | Existing stable milestones, owner-controlled edits, Git history and evidence-backed status | **NOT APPROVED**: cross-repo task/roadmap gate |
 | **C03 — Agent Execution** | Existing default-deny merge policy, bounded worker permissions, exact-head/CI/collision/owner gates | **NOT APPROVED**: mandatory worker policy-consumption instrumentation |
 | **C04 — Evidence & Completion** | `planned → implemented → tested → merged → deployed → released → runtime-verified` as advisory vocabulary; local exit gates prevail | **NOT APPROVED**: uniform required lifecycle gate |
@@ -24,7 +24,7 @@ This file **does not** create a second governing authority, mandatory seven-repo
 | **C06 — Security, Reliability & Cost** | GRS, secret scan, local security/CI, owner approval, least privilege and bounded retries | **NOT APPROVED**: forced all-repo equivalence/adoption gate |
 | **C07 — Reconciliation & Reporting** | Read-only drift auditor, existing fleet evidence reporter, canonical local status and truthful UNKNOWN | **NOT APPROVED**: recurring compulsory reporting/enforcement |
 
-**Control categories:** Existing required controls stay required *where already installed and authorized*. Existing advisory discovery and on-demand read-only validators remain advisory. Proposed binding C01–C07 changes remain blocked by #56; absence of approval is not a reason to disable existing security.
+**Control categories:** Existing required controls stay required *where already installed and authorized*. Existing advisory discovery and on-demand read-only validators remain advisory. New binding C01–C07 adoption was expressly declined by the owner in #56, not merely deferred. Only a separately authorized future defect-based decision may reopen it; existing security stays in place.
 
 ## Canonical authority and exceptions
 
@@ -36,11 +36,11 @@ This file **does not** create a second governing authority, mandatory seven-repo
 
 ## Explicit decision and exit gates
 
-**Issue #56:** Owner may (A) approve a precisely bounded mandatory subset with explicit exceptions, (B) reject new cross-repo enforcement and accept existing GRS/discovery as sufficient, or (C) defer. **Recommended lean disposition: B**, unless live operational evidence proves an unaddressed recurring safety gap. This draft is **not** that owner decision.
+**Issue #56 — CLOSED, owner Option B approved 2026-10-15:** no new mandatory cross-repo enforcement. Local manifests, uniform agent files, mandatory CI rollout and worker policy-consumption instrumentation are expressly out of this lean v1 scope. Existing safety/owner gates remain mandatory where already applicable.
 
-**GOV-M07 operational proof:** Run existing reporter against observed seven-repo discovery, manifest, class, CI and operational evidence; record PASS/FAIL/UNKNOWN/approved EXCEPTION and provenance. An all-UNKNOWN smoke test proves only reporter mechanics. Do not require domain PR completion.
+**GOV-M07 accepted scope:** existing registry/GRS reporter, read-only drift tests, 35/35 live pointer paths and 7/7 observed default-branch local CI success. Local manifest and new worker-enforcement adoption are owner-declined; unobserved class/runtime proof remains UNKNOWN, never PASS.
 
-**GOV-M08 acceptance & freeze:** Reconcile #56, true seven-repo evidence, three completed bounded engineering rounds, independent security/visibility gates (including [PR #82](https://github.com/DaniilSydorenko/.github/pull/82)), and actual operational overhead. Acceptance requires owner authorization and applicable CI, not extra governance documents.
+**GOV-M08 accepted lean freeze:** owner #56, Haversine pilot, accepted HQ R1/R2, verified seven-repo discovery/local CI and bounded overhead. This is **not** a claim of seven-repo worker/runtime compliance. Branch rulesets remain unverified; publication [PR #82](https://github.com/DaniilSydorenko/.github/pull/82) keeps independent security review. No new GOV tasks merely to eliminate those external UNKNOWNs.
 
 ## Conflict order
 
