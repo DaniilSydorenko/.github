@@ -71,7 +71,7 @@ HQ M5 closure is not Haversine product/release completion.
 | --- | --- | ---: |
 | M8 — Super Profile | 🔵 | 62% |
 
-Owner-confirmed GitHub bio now aligns with `Senior Product / Frontend Engineer`; first-screen verified public OSS/governance evidence accepted in [profile PR #8](https://github.com/DaniilSydorenko/DaniilSydorenko/pull/8) (`0229069`). Remaining high-value M8: live pin review, public-link/metadata checks and one recruiter-first visual QA. Private-repository topics and cross-repo decorative consistency are optional, not HQ gates. Do not claim M8 100% without independent live profile acceptance.
+GitHub bio aligns with `Senior Product / Frontend Engineer`; [profile PR #8](https://github.com/DaniilSydorenko/DaniilSydorenko/pull/8) accepted first-screen OSS/governance proof. **[Profile PR #9](https://github.com/DaniilSydorenko/DaniilSydorenko/pull/9) MERGED** at `5aaa2e8`: truthful Klarna Vue/Nuxt and Allegro React/TypeScript commercial evidence now appears above the fold; SVG/title/alt wording aligned. Exact-head and post-merge GRS + Secret Scan **SUCCESS**; remote profile `main` confirmed. Haversine `v2.0.0-alpha.1` public prerelease verified. **M8 remains 62%**: actual GitHub pinned selection, account/repository metadata (Haversine description is legacy), external website HTTP validation and real desktop/mobile recruiter-view acceptance are not fully verified. Pin/account edits need owner GitHub UI; Haversine metadata belongs to its domain. Prioritize Haversine and public `.github` as honest visible proof; do not pad with private projects or guess pin state. No new profile PR without a real defect. Private-repository topics, decorative consistency and M4 publication are not M8 gates.
 
 ## M9 — Living Governance
 | Task | Color | % |
