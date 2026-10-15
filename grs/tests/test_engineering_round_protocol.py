@@ -192,6 +192,21 @@ class RoadmapAcceptanceScoreTests(unittest.TestCase):
         self.assertIn(required_path, pull)
         self.assertIn(required_path, push)
 
+    def test_hq_authority_and_round_protocol_changes_trigger_grs_ci(self):
+        # Both files are tested here, so either edited alone must start GRS CI
+        # on pull requests and main. Do not silently skip required validation.
+        workflow = (ROOT / ".github/workflows/grs-control-plane.yml").read_text(
+            encoding="utf-8"
+        )
+        pull, push = workflow.split("  push:", 1)
+        for path in (
+            "reports/github-hq/HQ-AUTOPILOT-BOUNDARIES.md",
+            "reports/github-hq/ENGINEERING-ROUND-PROTOCOL.md",
+        ):
+            for event in (pull, push):
+                with self.subTest(path=path):
+                    self.assertIn(f'"{path}"', event)
+
     def test_live_roadmap_is_compact_with_immutable_history_link(self):
         self.assertLessEqual(len(self.roadmap.splitlines()), 150)
         self.assertLessEqual(len(self.roadmap.encode("utf-8")), 15 * 1024)

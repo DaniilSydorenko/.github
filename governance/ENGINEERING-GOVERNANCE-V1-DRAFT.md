@@ -1,153 +1,47 @@
-# Engineering Governance v1 — Draft Contract
+# Engineering Governance v1 — Minimal Contract (owner-decision draft)
 
-Status: DRAFT — architecture reconciliation only
-Date: 2026-10-12
-Owner: [CAREER][GITHUB] HQ
+**Status:** DRAFT / NON-ENFORCING. **Owner:** GitHub HQ. **Scope:** seven repositories in [repository-registry.json](repository-registry.json). **Decision:** [issue #56](https://github.com/DaniilSydorenko/.github/issues/56).
 
-This contract does not create new product authority, scheduler authority, deployment authority, visibility authority, or evidence-promotion authority. It reconciles existing GitHub governance into one discoverable operating model.
+This file **does not** create a second governing authority, mandatory seven-repository CI, universal agent framework, product acceptance, release/publishing rights, or scheduler permission. It summarizes accepted boundaries and isolates the one outstanding enforcement decision. The former verbose draft remains recoverable from Git history.
 
-## Simplicity & Speed Directive
+## Simplicity & Speed Directive — already approved
 
-Governance v1 exists to make engineering faster, safer and easier to manage. It is not a governance product.
+- **Reuse before build.** Existing GRS, local CI, repository registry, and Control Plane are the infrastructure. No new database, service, dashboard, scheduler, agent or standing manual review without a proven defect.
+- **One status owner.** Repository-local roadmaps own priorities; Issues own actionable decisions/defects; PRs and exact-head CI prove proposed changes; accepted default branches prove integration; external providers prove runtime state. No mirrored progress databases.
+- **Discovery, not forced layout.** Registry pointers locate local authority. Existing local trackers, file names and release flows stay domain-owned.
+- **Consequence-based gates.** Normal authorized Class A/B paths should be fast; Class C, credentials, publication/visibility, history rewrite, stable releases, and owner/security approvals remain gated.
+- **Stop building.** After evidenced infrastructure acceptance, freeze this program. Documentation, drafts and green PR CI alone do not earn acceptance.
 
-1. **Reuse before building.** Extend GRS, existing manifests, contracts and workflows before adding machinery.
-2. **Roadmap ≠ Issues ≠ PRs.** Roadmaps own milestones/priorities; Issues own independently actionable work, bugs and blockers; PRs provide implementation evidence. Tiny changes do not require Issues.
-3. **One owner per status.** Do not copy mutable completion state into ROADMAP, TASKS, Issues and reports. Reference the canonical owner instead.
-4. **Standardize discovery, not file locations.** Existing roadmap/tracker paths remain valid; discovery tells an agent where canonical local sources are.
-5. **Preserve local authority.** Specialized product, execution, readiness and design trackers may coexist when their responsibilities differ; reconcile contradictions instead of flattening useful documents.
-6. **AI BASE stays tiny.** Inventory existing AGENTS.md, Cursor rules, skills/hooks and CI before proposing shared agent guidance. Prefer a minimal shared contract plus tool-specific adapters only where needed.
-7. **No new infrastructure by default.** No database, dashboard, service, scheduler or universal agent framework without demonstrated recurring need.
-8. **No milestone inflation.** Governance v1 stays GOV-M01–M08 and overlays existing M0–M10.
-9. **Prioritize execution.** Contract acceptance and practical pilot evidence come before broader rollout.
-10. **Stop building when maintenance exceeds verified value.** Defer or reject proposals that add more governance cost than demonstrated benefit.
+## C01–C07 — compact contract and disposition
 
-## C01 — Source of Truth
+| ID | Existing baseline (keep) | New mandatory enforcement |
+| --- | --- | --- |
+| **C01 — Source of Truth** | Git default branch, per-domain roadmap/data authority, pointer registry; scheduler/provider owns live execution truth | **NOT APPROVED**: requiring new machine-verifiable local metadata |
+| **C02 — Roadmap Integrity** | Existing stable milestones, owner-controlled edits, Git history and evidence-backed status | **NOT APPROVED**: cross-repo task/roadmap gate |
+| **C03 — Agent Execution** | Existing default-deny merge policy, bounded worker permissions, exact-head/CI/collision/owner gates | **NOT APPROVED**: mandatory worker policy-consumption instrumentation |
+| **C04 — Evidence & Completion** | `planned → implemented → tested → merged → deployed → released → runtime-verified` as advisory vocabulary; local exit gates prevail | **NOT APPROVED**: uniform required lifecycle gate |
+| **C05 — Cross-Repository Authority** | HQ owns GRS and portfolio discovery; Control Plane owns fleet/runtime; domains own products, releases, source data and PRs | **NOT APPROVED**: new centralized product-control checks |
+| **C06 — Security, Reliability & Cost** | GRS, secret scan, local security/CI, owner approval, least privilege and bounded retries | **NOT APPROVED**: forced all-repo equivalence/adoption gate |
+| **C07 — Reconciliation & Reporting** | Read-only drift auditor, existing fleet evidence reporter, canonical local status and truthful UNKNOWN | **NOT APPROVED**: recurring compulsory reporting/enforcement |
 
-1. GitHub is authoritative for accepted engineering artifacts: code, merged pull requests, Issues, ADRs, repository governance and repository-local roadmaps.
-2. The default branch is the accepted repository state unless an explicit repository policy defines another canonical branch.
-3. An open PR or feature branch is proposed evidence, not accepted canonical state.
-4. Career Intelligence retains semantic authority over career facts, evidence and provenance.
-5. PostgreSQL remains the canonical runtime career store after import/canonicalization.
-6. Engineering Handbook Git owns canonical theory.
-7. Engineering Labs Git owns practice definitions and artifacts.
-8. Product repositories own their implementations.
-9. External schedulers/runtime platforms remain authoritative for live scheduler/runtime state.
-10. Chat memory is context, never independent completion evidence.
+**Control categories:** Existing required controls stay required *where already installed and authorized*. Existing advisory discovery and on-demand read-only validators remain advisory. Proposed binding C01–C07 changes remain blocked by #56; absence of approval is not a reason to disable existing security.
 
-Existing mechanisms:
-- `grs/OPERATING-MODEL.md`;
-- `reports/github-hq/HQ-AUTOPILOT-BOUNDARIES.md`;
-- `autopilot-control-plane/CONTROL_PLANE.md`;
-- repository-local roadmaps and policies.
+## Canonical authority and exceptions
 
-## C02 — Roadmap Integrity
+- HQ: [GRS](../grs/OPERATING-MODEL.md), [HQ boundaries](../reports/github-hq/HQ-AUTOPILOT-BOUNDARIES.md), [default-deny merge policy](autopilot-merge-policy.json), [round protocol](../reports/github-hq/ENGINEERING-ROUND-PROTOCOL.md).
+- Control Plane: its own `AUTHORITY.md`, `CONTROL_PLANE.md`, scheduler and telemetry contracts. Synchronous HQ does **not** inherit scheduled worker merge authority.
+- Domains: LADVERO/ListingKit, Career Intelligence (private career-data authority), Handbook, Labs and Haversine retain code/content/release/roadmap decisions.
+- Private repositories do not automatically require public OSS assets; Haversine retains `master`, OSS/release gates and package-specific CI. Archived repositories are read-only by default. The profile repository is outside the seven-repo scope.
+- GRS pilot/discovery coverage **does not equal** seven-repository manifest enforcement or publication safety; missing evidence is **UNKNOWN**, and a tracked private path requires independent publication review.
 
-1. Existing repository roadmaps remain canonical in their own bounded contexts.
-2. This initiative does not replace or renumber M0–M10.
-3. Governance tasks use stable GOV identifiers.
-4. Defects discovered during execution remain visible; do not hide them to protect percentages.
-5. Historical decisions and superseded tasks remain traceable.
-6. Status changes require repository evidence appropriate to the claimed stage.
-7. A central registry, if approved, may point to roadmap locations but must not copy mutable task percentages.
+## Explicit decision and exit gates
 
-Existing mechanisms:
-- HQ `[NEW]` task rule;
-- Control Plane fixed release baseline / no-moving-goal rule;
-- Haversine human roadmap;
-- repository-local task/readiness documents.
+**Issue #56:** Owner may (A) approve a precisely bounded mandatory subset with explicit exceptions, (B) reject new cross-repo enforcement and accept existing GRS/discovery as sufficient, or (C) defer. **Recommended lean disposition: B**, unless live operational evidence proves an unaddressed recurring safety gap. This draft is **not** that owner decision.
 
-## C03 — Agent Execution
+**GOV-M07 operational proof:** Run existing reporter against observed seven-repo discovery, manifest, class, CI and operational evidence; record PASS/FAIL/UNKNOWN/approved EXCEPTION and provenance. An all-UNKNOWN smoke test proves only reporter mechanics. Do not require domain PR completion.
 
-1. Every mutation begins with fresh default-branch, open-PR, target-head and CI inspection.
-2. Work must remain inside the actor's explicit repository and domain scope.
-3. Exact-head verification is required before bounded autonomous merge.
-4. Changed heads, red required CI, ambiguous ownership or overlapping worker surfaces stop the merge path.
-5. Scheduled workers must not change their own scheduler configuration.
-6. Consequential owner gates remain owner-only.
-7. Execution budgets favor bounded attempts and strategy changes over repeated equivalent retries.
-8. A repository-local discovery entrypoint may tighten these rules but cannot weaken global safety boundaries.
-
-Existing mechanisms:
-- `governance/autopilot-merge-policy.json`;
-- `governance/AUTOPILOT-MERGE-SAFETY.md`;
-- Control Plane `AUTHORITY.md`;
-- repository-local worker/agent policies.
-
-## C04 — Evidence & Completion
-
-Use these evidence stages as vocabulary, not as a new status database:
-
-- **planned** — accepted task exists;
-- **implemented** — change exists in a branch/working change;
-- **tested** — relevant checks passed for an exact head;
-- **merged** — accepted into the canonical branch;
-- **deployed** — deployed to the intended runtime/environment;
-- **released** — published/tagged/released to the intended consumer surface;
-- **runtime-verified** — behavior verified from the target runtime or published artifact.
-
-Rules:
-
-1. Later stages imply evidence, not merely documentation text.
-2. `implemented` is not `merged`.
-3. `merged` is not automatically `deployed` or `released`.
-4. `released` is not automatically `runtime-verified`.
-5. Documentation saying DONE cannot overrule missing required evidence.
-6. Repository-specific acceptance gates remain authoritative.
-
-## C05 — Cross-Repository Authority
-
-- `.github` owns GitHub-wide governance architecture and GRS.
-- `autopilot-control-plane` owns fleet scheduling/telemetry/worker-health governance; external scheduler live state remains externally authoritative.
-- `listing-kit` owns Ladvero implementation/product state.
-- `career-intelligence` owns Career Intelligence product/platform state and semantic career-data boundaries.
-- `engineering-handbook` owns theory.
-- `engineering-labs` owns practice definitions/artifacts.
-- `haversine-geolocation` owns Haversine OSS/API/release state.
-
-Cross-repository governance may validate boundaries and evidence but must not silently become product management.
-
-## C06 — Security, Reliability & Cost
-
-1. Never weaken security, tests, evidence semantics or owner gates to obtain a green result.
-2. Use least privilege and immutable/pinned workflow dependencies where supported.
-3. Secret scanning remains a baseline, not a substitute for private-content/history review.
-4. Retry/churn suppression is required for repeated equivalent external failures.
-5. No new service, database, dashboard, GitHub App or recurring worker is added without repeated evidence that existing Git-native mechanisms are insufficient.
-6. Stable releases, visibility changes, credential operations and destructive history changes remain consequential owner gates.
-7. Prefer subtraction and reuse over governance infrastructure growth.
-
-Existing mechanisms:
-- GRS policy-as-code;
-- secret scans;
-- Control Plane stop-building contract;
-- default-deny merge policy.
-
-## C07 — Reconciliation & Reporting
-
-1. Reports are reconstructed from current GitHub/runtime evidence, not chat memory.
-2. The owner-facing HQ roadmap records cross-repository progress and newly discovered gaps.
-3. Domain repositories retain their own local completion truth.
-4. Control Plane reconciliation retains runtime/fleet health truth within its scope.
-5. Drift checks must be read-only unless a separate bounded repair is explicitly authorized.
-6. Conflicting records resolve by authority and freshness.
-7. Reports must expose blockers and stale evidence rather than normalizing them away.
-8. GOV adoption should add pointers and validation, not duplicate live status.
+**GOV-M08 acceptance & freeze:** Reconcile #56, true seven-repo evidence, three completed bounded engineering rounds, independent security/visibility gates (including [PR #82](https://github.com/DaniilSydorenko/.github/pull/82)), and actual operational overhead. Acceptance requires owner authorization and applicable CI, not extra governance documents.
 
 ## Conflict order
 
-When rules overlap:
-
-1. safety / owner approval boundary;
-2. explicit canonical domain authority;
-3. central GitHub governance;
-4. repository-local governance;
-5. worker/runtime prompt;
-6. chat context.
-
-A lower layer may tighten safety but must not silently weaken a higher-level constraint.
-
-## Draft acceptance state
-
-C01–C07 are reconciled against current GRS, HQ and Control Plane rules.
-
-This document remains a draft until the proposed cross-repository authority deltas are owner-approved. No repository is required to add or change a local entrypoint solely because this draft exists.
+Safety/owner gates → explicit domain authority → active central GRS → local rules → worker prompt → chat memory. Local policy can tighten but cannot silently weaken a higher safety boundary. No change to M4 scope without a separate owner decision.
