@@ -26,6 +26,20 @@ class ReusableAutopilotHealthContractTest(unittest.TestCase):
         self.assertIn('latest_bad_workflow_count', text)
         self.assertNotIn('| .[0:1]', text)
 
+    def test_hq_help_ignores_pr_completions_but_keeps_main_and_schedule(self):
+        # Reusable health checks only default-branch workflows. A GRS PR
+        # completion cannot alter that health result and must not launch
+        # a redundant Help Signal workflow.
+        help_text = (ROOT / ".github" / "workflows" / "autopilot-help.yml").read_text()
+        self.assertIn("  workflow_run:", help_text)
+        trigger = help_text.split("  workflow_run:", 1)[1].split("  schedule:", 1)[0]
+        self.assertIn('      - "GRS Control Plane"', trigger)
+        self.assertIn("    branches: [main]", trigger)
+        self.assertIn("    types: [completed]", trigger)
+        self.assertIn('    - cron: "41 */3 * * *"', help_text)
+        self.assertIn("  workflow_dispatch:", help_text)
+        self.assertIn("reusable-autopilot-health.yml@main", help_text)
+
     def test_health_workflow_changes_are_ci_guarded(self):
         text = CONTROL.read_text()
         for path in (
