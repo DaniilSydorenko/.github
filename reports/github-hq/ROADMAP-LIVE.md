@@ -1,36 +1,31 @@
 # [CAREER][GITHUB] — Independent Live Roadmap
 
-**Owner:** synchronous GitHub HQ. **Reset:** Infrastructure Reset v1, owner-approved 2026-10-15. Accepted truth comes from repository default branches and applicable runtime providers, not from chat status or open PRs.
-**Complete pre-reset history:** [immutable original roadmap at commit 37dde39](https://github.com/DaniilSydorenko/.github/blob/37dde39e6311f4c3176f156f8ed2a49ca9cf7fa2/reports/github-hq/ROADMAP-LIVE.md) (742 lines, 101,372 characters, including all task-level estimates and prior updates). No historical evidence or tasks are deleted; this file carries the current view.
-**Authority:** [HQ / Autopilot boundaries](HQ-AUTOPILOT-BOUNDARIES.md), [engineering round protocol](ENGINEERING-ROUND-PROTOCOL.md), [GRS](../../grs/OPERATING-MODEL.md), [seven-repository registry](../../governance/repository-registry.json), and separately owned [Autopilot roadmap](../github-autopilot/ROADMAP-2026-10-11.md).
-**Core boundary:** infrastructure ready does not mean domain product complete or safe to publish. No change to M4 acceptance scope, existing owner/security gates, or unapproved C01–C07 enforcement.
+**Owner:** GitHub HQ. **Strategy:** Infrastructure Reset v1 (2026-10-15). Accepted code = default branches; runtime = actual provider. **Historical record:** [immutable pre-reset roadmap](https://github.com/DaniilSydorenko/.github/blob/37dde39e6311f4c3176f156f8ed2a49ca9cf7fa2/reports/github-hq/ROADMAP-LIVE.md). No second archive.
+**Authority:** [HQ boundaries](HQ-AUTOPILOT-BOUNDARIES.md) · [round protocol](ENGINEERING-ROUND-PROTOCOL.md) · [GRS](../../grs/OPERATING-MODEL.md) · [registry](../../governance/repository-registry.json) · [owner gate #56](https://github.com/DaniilSydorenko/.github/issues/56). Domain roadmaps and Control Plane remain independent.
 
 ## Current accepted scoreboard
 
 | Score | Accepted result | Scope |
 | --- | --- | --- |
-| **Current GitHub scope — full milestone closure** | **7/9 = 77.8%** | M0/M1/M2/M3/M5/M9/M10 accepted; M4 and optional M8 open; M6/M7 deferred, preserved in history. |
-| **Governance v1 — full milestone closure** | **4/8 = 50.0%** | GOV-M01/M02/M05/M06 accepted; M03/M04/M07/M08 open. |
-| Historical whole-program estimate | 88% (not acceptance) | Unweighted legacy effort score; do not mix domain percentages. |
-| Historical governance estimate | 90% (not acceptance) | Not seven-repo operational proof. |
+| **Current GitHub scope — full milestone closure** | **7/9 = 77.8%** | M0/M1/M2/M3/M5/M9/M10 closed; M4/M8 open. M6/M7 deferred in Git history. |
+| **Governance v1 — full milestone closure** | **8/8 = 100.0%** | Owner-approved **lean non-enforcing** C01–C07, existing GRS/discovery/read-only validation, observed local CI and documented exceptions. NOT universal fleet operational PASS. |
 
-## Execution boundaries and outstanding decisions
+## Governance v1 — ACCEPTED / FROZEN within Option B scope
 
-- HQ owns GitHub-wide GRS/policies, registry, owner-facing roadmap, cross-repository discovery, and publication/security controls. GitHub Autopilot owns its scheduled execution plan; Control Plane owns fleet/runtime governance. Labs, Handbook, Career Intelligence, LADVERO and Haversine own their code, product/content roadmaps, PR integration and release decisions.
-- Do NOT require closing domain PR queues or completing content/product backlogs to accept GitHub infrastructure. Protect local CI and worker permissions. A repository may remain private while engineering proceeds normally.
-- [Owner gate #56](https://github.com/DaniilSydorenko/.github/issues/56): proposed binding C01–C07 governance semantics remain unapproved. Registry discovery is not evidence of local enforcement.
-- **M4 stays 66% with its original scope** until separately approved owner rescoping. Its domain extraction, history audit and visibility approvals remain unfinished; owner publication approval stays mandatory.
-- [HQ PR #82](https://github.com/DaniilSydorenko/.github/pull/82): publication-auditor hardening under independent review at reset baseline; do not infer publication permission from CI or hold unrelated HQ work hostage to its review.
-- **M1 stays 100%:** original portfolio Maps key matched exactly to revoked Cloud key; historic PR diff still contains the revoked credential. [Evidence report](M1-GCP-LEGACY-CLEANUP-EVIDENCE-2026-10-14.md) and the preserved original roadmap record owner risk acceptance and later technical correlation. Do not publish key strings.
-- Governance live pointer proof 2026-10-15: all **35/35** registry-declared roadmap/authority/governance/tracker paths exist across seven non-truncated default-branch trees (HQ `e1835f6`, Control Plane `4d1298e`, LADVERO `acc8404`, Career `cbdf8e8`, Handbook `b0b886f`, Labs `25ca1a8`, Haversine `76f99cf`). Discovery evidence only: 6/7 have no local GRS manifest; required local enforcement and runtime policy-consumption evidence are unapproved/UNKNOWN.
-- Read-only GRS inventory confirmed again 2026-10-15: `.github/repository.json` exists in 1/7 (Haversine); this is discovery evidence, not seven-repo operational PASS. Local-domain CI can remain healthy without new C01–C07 enforcement.
-- Live branch safety: all seven branch endpoints return `protected: false`; public `.github`/Haversine ruleset lists are empty, and the five private ruleset reads return GitHub 403/plan restrictions. Required branch protection/review enforcement is therefore **NOT VERIFIED** (do not infer it from green checks). Owner/security gates remain binding policy even when GitHub settings do not prove technical enforcement.
-- Actions sample (2026-10-15; latest 100 runs per repo, unequal time windows): **320/700 Help Signal** vs previous **322/700**; by registry order `.github` 53, Control Plane 9, LADVERO 55, Career Intelligence 49, Handbook 55, Labs 67, Haversine 32. Control Plane Reconcile = **74/100**. This is event composition, not a time-normalized rate, cost calculation or demonstrated reduction.
-- HQ [main 3e14954](https://github.com/DaniilSydorenko/.github/commit/3e14954ab0645080b0e0b5c8497d9a33d5b7a766) now filters Help Signal `workflow_run` to `main` while keeping schedule/dispatch; regression and main CI passed. Post-fix savings **UNKNOWN**: most of the sampled activity precedes the patch. Other domains still have unfiltered workflow-run triggers; changes remain domain-owned.
-- Current open PR inventory (paginated where needed): HQ 1 (security [#82](https://github.com/DaniilSydorenko/.github/pull/82)), Control Plane 0, LADVERO 7, Career Intelligence 7, Handbook 44 (43 Draft), Labs 0, Haversine 0. Open domain PRs are not HQ acceptance blockers. #82 exact-head CI passed; only a COMMENTED review was found, not independent approval.
-- Noise causes to investigate within owner scope: workflow-run fan-out from PR CI/secret scans, Help Signal schedule overlap and Handbook cancellation supersession; Control Plane telemetry/reconcile pushes and derived-state writes. Labs/LADVERO historical Help Signal failures are health alerts (exit 1), not yet proof of defective signal code. Actions-minutes and scheduler truth remain UNKNOWN.
-- **R2 proposed repair (branch, not yet accepted):** replace 154-line repetitive C01–C07 draft with a 47-line advisory decision matrix; add missing HQ authority/protocol paths to GRS PR and push triggers with a regression test. No new GRS enforcement. [Issue #56](https://github.com/DaniilSydorenko/.github/issues/56) remains the exact owner-only adoption decision; recommend no additional mandatory rollout unless a repeated safety failure justifies it.
-- GRS evidence uses PASS / FAIL / UNKNOWN / EXCEPTION. No evidence means UNKNOWN. Routine domain PRs follow locally authorized fast paths; Class C, credentials, visibility, releases, history rewrites and changed exact heads keep their established gates.
+- [Issue #56](https://github.com/DaniilSydorenko/.github/issues/56) **closed with explicit owner Option B** on 2026-10-15: new binding C01–C07 enforcement, forced seven-repo manifests, agent-file templates, status databases, dashboards and mandatory fleet CI are **not planned**. Existing GRS/default-deny/local CI/security/owner gates remain. No implicit authority expansion.
+- [Lean contract](../../governance/ENGINEERING-GOVERNANCE-V1-DRAFT.md) · [GRS tests](../../grs/tests/) · [read-only drift audit](../../grs/audit_repository_registry_drift.py) · [fleet evidence reporter](../../grs/report_fleet_conformance.py). The legacy filename is preserved to avoid path churn; Git history preserves former text.
+- **Observed discovery proof:** 35/35 registered pointer paths exist in seven complete default-branch Git trees (2026-10-15). **Local CI evidence:** 7/7 current default-branch SHAs have successful repository-specific CI; these facts do not prove all worker schedules, releases, branch protections or GRS-class enforcement.
+- **Owner-approved exceptions / nonrequirements:** only Haversine has an active local `.github/repository.json`; other six are not required to adopt one. Class-profile/worker policy-consumption/runtime evidence is UNKNOWN when not observed, never fabricated PASS. No profile or archived-repo forced rollout.
+- **Repeatable bounded engineering evidence:** Haversine pilot [#150](https://github.com/DaniilSydorenko/haversine-geolocation/pull/150) and reconciliation #151; HQ compact reset [#87](https://github.com/DaniilSydorenko/.github/pull/87); HQ lean CI+contract [#90](https://github.com/DaniilSydorenko/.github/pull/90), exact-head and post-merge GRS green. [Overhead acceptance](../governance-v1/GOV-M08-OVERHEAD-COST-ACCEPTANCE-2026-10-12.md): no new service, scheduler or status store.
+- **Freeze:** no Governance v2 or new mandatory controls absent a separately evidenced recurring safety defect and new owner authorization. Governance 100% means accepted **bounded design and validation**, not that every independent repository, scheduler or GitHub account configuration is fully compliant.
+
+## Independent infrastructure risks / next actions (not GOV reopening)
+
+- **Branch protections:** seven branch endpoints returned `protected: false`; public HQ/Haversine ruleset lists empty, private ruleset inspection hit GitHub plan/API restrictions. Native enforced branch review is **NOT VERIFIED**; this is a real security-review item for the owner, not owner acceptance of bypass. Existing policy/review gates stay binding.
+- **Publication:** [HQ PR #82](https://github.com/DaniilSydorenko/.github/pull/82) has exact-head GRS SUCCESS but still needs independent appropriate review. Do not weaken it, publish sensitive content or use it to block independent CI v1 development.
+- **M4 stays 66% with its original scope**; domain extraction, history/PII review and owner visibility decisions remain separate. Career Intelligence first private product version does NOT depend on M4 public release.
+- **Noise:** latest 100 runs per repo sample yielded 320/700 Help Signal; Control Plane Reconcile 74/100 (unequal time windows, NOT a normalized cost/savings measure). HQ `3e14954` filters PR-triggered health fan-out; longer-term effect UNKNOWN. Optimize only proved redundancy inside each domain authority; never disable security/scheduler blindly.
+- **Domain autonomy:** open LADVERO/Career/Handbook application PRs are not HQ governance gates. GitHub Autopilot and Control Plane keep their own scheduling/merge authority; synchronous HQ cannot borrow it.
 
 ## GitHub HQ milestones — canonical acceptance rows
 
@@ -43,6 +38,8 @@
 | Task | Color | % |
 | --- | --- | ---: |
 | M1 — Clean & Secure Account | 🟢 | 100% |
+
+Legacy **original portfolio Maps key matched exactly** to revoked credential; residual historical exposure recorded with **owner risk acceptance** in [M1 evidence](M1-GCP-LEGACY-CLEANUP-EVIDENCE-2026-10-14.md). Never reproduce key strings.
 
 ## M2 — Professional GitHub Shell
 | Task | Color | % |
@@ -59,35 +56,27 @@
 | --- | --- | ---: |
 | M4 — Career Ecosystem Public Extraction | 🔵 | 66% |
 
-M4-A inventory accepted; Labs, Handbook, Career Intelligence extraction, full-history content/PII checks and M4-G visibility approvals remain unaccepted. Original M4-B/C/D/E/F/G subtasks and estimates are preserved in [pre-reset M4 details](https://github.com/DaniilSydorenko/.github/blob/37dde39e6311f4c3176f156f8ed2a49ca9cf7fa2/reports/github-hq/ROADMAP-LIVE.md#M4--career-ecosystem-public-extraction).
-
 ## M5 — Haversine OSS Flagship
 | Task | Color | % |
 | --- | --- | ---: |
 | M5 — Haversine OSS Flagship | 🟢 | 100% |
 
-HQ M5 acceptance does not claim the Haversine domain roadmap, beta/stable releases or future API work are complete.
+HQ M5 closure is not Haversine product/release completion.
 
 ## M8 — Super Profile
 | Task | Color | % |
 | --- | --- | ---: |
 | M8 — Super Profile | 🔵 | 62% |
 
-Optional but retained in the nine-milestone denominator. Pins, metadata/topics, recruiter-first presentation and final visual QA remain.
-
 ## M9 — Living Governance
 | Task | Color | % |
 | --- | --- | ---: |
 | M9 — Living Governance | 🟢 | 100% |
 
-Existing GRS base accepted; this is NOT approval of new C01–C07 cross-repository enforcement.
-
 ## M10 — GitHub Autopilot
 | Task | Color | % |
 | --- | --- | ---: |
 | M10 — GitHub Autopilot | 🟢 | 100% |
-
-HQ closeout does not replace independently owned Control Plane or scheduled-runtime evidence.
 
 ## GOV — Engineering Governance v1
 
@@ -95,29 +84,21 @@ HQ closeout does not replace independently owned Control Plane or scheduled-runt
 | --- | --- | ---: |
 | GOV-M01 — Baseline Inventory | 🟢 | 100% |
 | GOV-M02 — Authority & Conflict Matrix | 🟢 | 100% |
-| GOV-M03 — Governance Contract v1 | 🔵 | 92% |
-| GOV-M04 — Machine-Readable Baseline | 🔵 | 95% |
+| GOV-M03 — Governance Contract v1 | 🟢 | 100% |
+| GOV-M04 — Machine-Readable Baseline | 🟢 | 100% |
 | GOV-M05 — Haversine Pilot | 🟢 | 100% |
 | GOV-M06 — Seven-Repository Adoption | 🟢 | 100% |
-| GOV-M07 — Automated Validation | 🔵 | 84% |
-| GOV-M08 — Acceptance & Freeze | 🔵 | 58% |
+| GOV-M07 — Automated Validation | 🟢 | 100% |
+| GOV-M08 — Acceptance & Freeze | 🟢 | 100% |
 
-M05/M06 close pilot and *discovery mapping*, NOT full fleet operational validation. M03/M04 require owner decisions; M07 needs observed evidence (not only an all-UNKNOWN test); M08 requires explicit operational acceptance and architecture freeze.
+GOV-M06 = **discovery adoption only**. M07 = existing read-only validator/reporter and real pointer/CI proof, **not mandatory all-repo enforcement**. M08 = owner-approved scoped freeze with explicit exceptions and UNKNOWNs, **not fleet/scheduler readiness certification**.
 
-## Infrastructure Reset v1 — five bounded rounds (approved 2026-10-15)
+## Infrastructure Reset v1 — bounded continuation
 
-| Round | Deliverable | Evidence and gate |
-| --- | --- | --- |
-| R1 — Compact live roadmap / authority | ≤150 lines and ≤15 KiB; preserved Git history; parser tests; additive HQ scope clarification | Exact-head CI, permitted review/integration, remote-main verification |
-| R2 — Minimal contract | Reconcile already-active GRS/discovery, advisory C01–C07 vocabulary and genuinely proposed required controls under [#56](https://github.com/DaniilSydorenko/.github/issues/56); avoid duplicate rules | No new binding enforcement without explicit owner authorization |
-| R3 — Safe fast path | Reuse existing local CI and approved bounded worker merges; eliminate repetitive HQ gatekeeping | Demonstrate low-risk autonomous path and Class C fail-closed safety |
-| R4 — Seven-repo evidence | Existing GRS reporter, live observed discovery/class/CI/operational evidence | PASS/FAIL/UNKNOWN/EXCEPTION per repo; no dependence on domain PR completion |
-| R5 — Optimize / accept / freeze | Measure and reduce avoidable Actions churn; verify safety and governance closure | Owner-approved gates, no invented acceptance, stop building mechanics |
+- **R1:** compact roadmap and authority — ACCEPTED [#87](https://github.com/DaniilSydorenko/.github/pull/87).
+- **R2:** minimal non-enforcing governance, CI coverage repair and owner Option B — ACCEPTED [#90](https://github.com/DaniilSydorenko/.github/pull/90) + #56 + this freeze.
+- **R3:** safe fast path — reuse existing bounded Class A/B and local CI; domain-owned proof, no universal worker or centralized approvals.
+- **R4:** seven-repo discovery/CI proof — ACCEPTED for that **limited observed scope**, not full operational GRS PASS.
+- **R5:** governance frozen; any Actions cost optimization and branch security review stay **separate bounded maintenance**, no recurring new governance roadmap.
 
-**Stop rules:** one genuine owner/security blocker is recorded once; continue elsewhere without changing domain ownership. No new database, service, dashboard, scheduler, duplicated status tracker, or inferred green check.
-
-## Historical access and handoff
-
-- [Full pre-reset 2026-10-14 roadmap](https://github.com/DaniilSydorenko/.github/blob/37dde39e6311f4c3176f156f8ed2a49ca9cf7fa2/reports/github-hq/ROADMAP-LIVE.md) is an immutable Git-commit reference, preserving 100% of old narrative, detailed tasks, evidence links and historical decisions without creating another giant file.
-- [M1 evidence](M1-GCP-LEGACY-CLEANUP-EVIDENCE-2026-10-14.md) · [governance draft](../../governance/ENGINEERING-GOVERNANCE-V1-DRAFT.md) · [registry](../../governance/repository-registry.json). M6/M7 remain deferred, not cancelled or earned.
-- When the infrastructure satisfies its approved exit gates, stop expanding governance and return to low-churn maintenance.
+**Next priority:** first **private** Career Intelligence v1 in its owning repository; no dependency on public-extraction M4, Handbook content completion, or other-domain PR queues. Stop enlarging governance.
