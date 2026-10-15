@@ -179,6 +179,19 @@ class RoadmapAcceptanceScoreTests(unittest.TestCase):
         self.assertIn("owner risk acceptance", self.roadmap)
         self.assertIn("7/9 = 77.8%", self.roadmap)
 
+    def test_roadmap_only_changes_trigger_grs_exact_head_ci(self):
+        # Roadmap limits and milestone integrity are checked in this suite.
+        # The workflow must actually run this suite when only the roadmap changes.
+        workflow = (ROOT / ".github/workflows/grs-control-plane.yml").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("  pull_request:", workflow)
+        self.assertIn("  push:", workflow)
+        pull, push = workflow.split("  push:", 1)
+        required_path = '"reports/github-hq/ROADMAP-LIVE.md"'
+        self.assertIn(required_path, pull)
+        self.assertIn(required_path, push)
+
     def test_live_roadmap_is_compact_with_immutable_history_link(self):
         self.assertLessEqual(len(self.roadmap.splitlines()), 150)
         self.assertLessEqual(len(self.roadmap.encode("utf-8")), 15 * 1024)
