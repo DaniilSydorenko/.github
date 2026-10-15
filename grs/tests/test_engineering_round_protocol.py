@@ -188,7 +188,7 @@ class RoadmapAcceptanceScoreTests(unittest.TestCase):
             self.roadmap,
         )
         self.assertIn("M4 stays 66% with its original scope", self.roadmap)
-        self.assertIn("owner decision #56", self.roadmap.lower())
+        self.assertIn("owner gate #56", self.roadmap.lower())
         self.assertIn("Infrastructure Reset v1", self.roadmap)
 
     def test_reset_preserves_owner_and_domain_authority_boundaries(self):
