@@ -77,6 +77,18 @@ The registry standardizes discovery, not repository file layouts. It points to l
 
 The registry validator is intentionally not a required cross-repository CI gate until the remaining Governance v1 enforcement/adoption decision is approved.
 
+## Pull-request WIP limits — owner-requested, advisory (seven-repository scope)
+
+The recommended **flow target** per repository is **at most 3 open human-authored PRs**, with **at most 1 active Draft** and normally **at most 2 review-ready PRs**. These are independent delivery units, not a limit on accepted commits or releases. Prefer finish/merge/rework before starting another nonurgent PR. Domain owners decide their own queues and merges; GitHub HQ does not close their PRs.
+
+Dependency bot updates target **at most 3 routine open PRs per repository**; group compatible updates using existing bot configuration when useful. Never defer a critical security fix solely to satisfy a number. Any change to bot settings is repository-owned, not a cross-repository HQ mutation.
+
+Intentional stacked work should preferably stay within **5 dependent PRs** and expose its dependency order. Existing deeper stacks (notably Handbook) are **grandfathered**: inspect parent/child branches, preserve all unique work, and reduce incrementally through authorized domain integration. Never bulk-close, force-push, delete branches, bypass reviews, or falsely mark work completed to meet a target.
+
+When above target: finish one eligible PR first, or record one precise BLOCKED/owner-gated exception and continue independent low-collision work. A blocked security/publishing review may stay open without freezing unrelated work. Count Draft, ready, stacked and bot PRs separately; do not treat the aggregate count as an enforcement gate or a product-completion score.
+
+**Scope:** an operating guideline requested by the owner, **not** a new mandatory C01–C07 fleet policy. No new workflow, recurring auditor, PR status database, issue-per-PR ceremony or required CI check. Domain owners retain final authority and may document necessary exceptions in an existing PR or Issue.
+
 ## Finish-line principle
 
 GRS should prevent regressions and make repository expectations explicit, not create permanent governance work for its own sake.
