@@ -175,9 +175,35 @@ class RoadmapAcceptanceScoreTests(unittest.TestCase):
     def test_m1_risk_acceptance_keeps_machine_readable_score(self):
         milestones = milestone_rows(self.roadmap, governance=False)
         self.assertEqual(milestones["M1"], ("🟢", 100))
-        self.assertIn("original Maps-key identity verified", self.roadmap)
-        self.assertIn("owner-authorized risk-accepted closeout", self.roadmap)
+        self.assertIn("original portfolio Maps key matched exactly", self.roadmap)
+        self.assertIn("owner risk acceptance", self.roadmap)
         self.assertIn("7/9 = 77.8%", self.roadmap)
+
+    def test_live_roadmap_is_compact_with_immutable_history_link(self):
+        self.assertLessEqual(len(self.roadmap.splitlines()), 150)
+        self.assertLessEqual(len(self.roadmap.encode("utf-8")), 15 * 1024)
+        self.assertIn(
+            "blob/37dde39e6311f4c3176f156f8ed2a49ca9cf7fa2/"
+            "reports/github-hq/ROADMAP-LIVE.md",
+            self.roadmap,
+        )
+        self.assertIn("M4 stays 66% with its original scope", self.roadmap)
+        self.assertIn("owner decision #56", self.roadmap.lower())
+        self.assertIn("Infrastructure Reset v1", self.roadmap)
+
+    def test_reset_preserves_owner_and_domain_authority_boundaries(self):
+        boundaries = (
+            ROOT / "reports/github-hq/HQ-AUTOPILOT-BOUNDARIES.md"
+        ).read_text(encoding="utf-8")
+        for required in (
+            "Infrastructure readiness does not depend on domain product",
+            "No new C01–C07 binding enforcement",
+            "No change to M4's existing scope",
+            "do not transfer merge authority to synchronous HQ",
+            "150 lines / 15 KiB maximum",
+        ):
+            with self.subTest(required=required):
+                self.assertIn(required.lower(), boundaries.lower())
 
     def test_inflated_headline_fails_score_reconciliation(self):
         label = "Current GitHub scope — full milestone closure"
