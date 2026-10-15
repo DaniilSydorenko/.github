@@ -131,6 +131,24 @@ class EngineeringRoundProtocolTests(unittest.TestCase):
             with self.subTest(phrase=phrase):
                 self.assertIn(phrase.lower(), policy.lower())
 
+    def test_hq_infrastructure_only_scope_excludes_domain_pr_management(self):
+        boundaries = (ROOT / "reports/github-hq/HQ-AUTOPILOT-BOUNDARIES.md").read_text(
+            encoding="utf-8"
+        )
+        grs = (ROOT / "grs/OPERATING-MODEL.md").read_text(encoding="utf-8")
+        for requirement in (
+            "HQ-only infrastructure mission",
+            "MUST NOT count, triage, prioritize, merge, close or manage domain PR queues",
+            "NARROW SAFETY EXCEPTION",
+            "No re-interpretation",
+        ):
+            with self.subTest(requirement=requirement):
+                self.assertIn(requirement, boundaries)
+        self.assertIn("No cross-repository PR WIP targets", grs)
+        self.assertNotIn("## Pull-request WIP limits", grs)
+        self.assertIn("all open PRs on the HQ target repository", self.content)
+        self.assertIn("Never enumerate, score or manage unrelated domain PR queues", self.content)
+
     def test_pilot_does_not_claim_acceptance(self):
         self.assertIn("Pilot acceptance checklist", self.content)
         self.assertIn("**not** a second task-status store", self.content)

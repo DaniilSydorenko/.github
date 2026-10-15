@@ -75,19 +75,13 @@ The governed engineering repositories are discoverable through:
 
 The registry standardizes discovery, not repository file layouts. It points to local canonical roadmaps, authority documents, agent guidance and specialized trackers without copying mutable progress, PR, CI or runtime state.
 
-The registry validator is intentionally not a required cross-repository CI gate until the remaining Governance v1 enforcement/adoption decision is approved.
+The registry validator remains on-demand/non-mandatory for other repositories: owner decision [#56](https://github.com/DaniilSydorenko/.github/issues/56) **declined** new mandatory seven-repository enforcement (Option B).
 
-## Pull-request WIP limits — owner-requested, advisory (seven-repository scope)
+## HQ ownership firewall
 
-The recommended **flow target** per repository is **at most 3 open human-authored PRs**, with **at most 1 active Draft** and normally **at most 2 review-ready PRs**. These are independent delivery units, not a limit on accepted commits or releases. Prefer finish/merge/rework before starting another nonurgent PR. Domain owners decide their own queues and merges; GitHub HQ does not close their PRs.
+**No cross-repository PR WIP targets.** GitHub HQ owns shared infrastructure, not domain PR counts, backlog triage, integration, branch cleanup, product delivery or review queues. The former portfolio-wide WIP suggestion is withdrawn. Each domain may manage its own flow and dependency-bot settings independently.
 
-Dependency bot updates target **at most 3 routine open PRs per repository**; group compatible updates using existing bot configuration when useful. Never defer a critical security fix solely to satisfy a number. Any change to bot settings is repository-owned, not a cross-repository HQ mutation.
-
-Intentional stacked work should preferably stay within **5 dependent PRs** and expose its dependency order. Existing deeper stacks (notably Handbook) are **grandfathered**: inspect parent/child branches, preserve all unique work, and reduce incrementally through authorized domain integration. Never bulk-close, force-push, delete branches, bypass reviews, or falsely mark work completed to meet a target.
-
-When above target: finish one eligible PR first, or record one precise BLOCKED/owner-gated exception and continue independent low-collision work. A blocked security/publishing review may stay open without freezing unrelated work. Count Draft, ready, stacked and bot PRs separately; do not treat the aggregate count as an enforcement gate or a product-completion score.
-
-**Scope:** an operating guideline requested by the owner, **not** a new mandatory C01–C07 fleet policy. No new workflow, recurring auditor, PR status database, issue-per-PR ceremony or required CI check. Domain owners retain final authority and may document necessary exceptions in an existing PR or Issue.
+HQ inspects another repository's PR metadata **only when** a specific authorized shared-infrastructure change has an actual overlapping surface, or a publication/security gate explicitly requires it. Check only relevant paths/heads/CI and preserve existing owner gates; do not turn that exception into a recurring cross-repository PR audit.
 
 ## Finish-line principle
 
