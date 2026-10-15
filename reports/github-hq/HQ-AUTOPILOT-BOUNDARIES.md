@@ -59,6 +59,16 @@ Owner clarified on 2026-10-13: the GitHub HQ and GRS roadmap **must not require 
 - **GOV-M07/M08 distinction:** existing seven-repo governance discovery/operational evidence may be required under the agreed scope; clearing domain PR queues, finishing Handbook chapters, shipping product features and updating every dependency are **not** required. C01–C07 enforcement still requires separate owner decision #56.
 - **Finish First applies within ownership.** Review and close GitHub-owned PRs before opening more GitHub governance work; don't absorb domain PR stacks into HQ simply because they are large. Keep their status truthful, never inflate milestone percentages or silently amend existing acceptance criteria.
 
+## Infrastructure Reset v1 — owner-approved operational focus (2026-10-15)
+
+The primary HQ deliverable is reliable, low-friction GitHub infrastructure across seven independently owned repositories. **Infrastructure readiness does not depend on domain product features, content completion, open PR backlog size or coordinated releases.** A domain's PR queue is evidence for collision checks when relevant to a concrete HQ write, not an HQ completion queue.
+
+The existing GRS, per-repo local CI, registry and Control Plane are the platform; do **not** introduce a new scheduler, dashboard, database, duplicate tracker, agent framework, or standing human review for ordinary authorized changes. Reuse established bounded Class A/B permissions **only for the worker that owns them**; do not transfer merge authority to synchronous HQ. Keep Class C/security, credential, visibility, release, destructive-history and owner-publication gates unchanged.
+
+Apply the 12-stage engineering round internally as a coherent work cycle, **not** twelve manual owner approvals or one PR per stage. If a single security-sensitive PR needs independent approval, record that one gate and continue independent HQ work rather than repeatedly modifying it without a real defect. No new C01–C07 binding enforcement without owner issue #56 approval. No change to M4's existing scope or acceptance gates without separate explicit owner approval.
+
+The live HQ roadmap should stay at **150 lines / 15 KiB maximum**; preserve its detailed pre-reset content through immutable Git history rather than copy outdated snapshots into active status. Updating the canonical score still requires evidence and its original milestone exit gate, not cleaner presentation alone.
+
 ## Collision rules
 
 Before every mutation:
