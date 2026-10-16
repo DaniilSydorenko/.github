@@ -3,7 +3,7 @@
 
 This tool never rewrites history. It answers whether any path declared in a
 publication manifest has existed anywhere in the repository's reachable Git
-history. A match means history still requires review before a private→public
+history. A match (including a supposedly private-runtime-only path) requires review before a private→public
 visibility change.
 """
 
@@ -15,7 +15,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-AUDITED_DISPOSITIONS = {"externalize", "sanitize", "syntheticize", "review"}
+AUDITED_DISPOSITIONS = {"externalize", "sanitize", "syntheticize", "private-runtime", "review"}
 
 
 def fail(message: str, code: int = 1) -> int:
@@ -33,7 +33,11 @@ def git(repo: Path, *args: str) -> subprocess.CompletedProcess[str]:
 
 
 def normalize(path: str) -> str:
-    return path.strip().lstrip("./")
+    """Remove only literal ./ prefixes; preserve hidden-directory dots (.local)."""
+    value = path.strip()
+    while value.startswith("./"):
+        value = value[2:]
+    return value
 
 
 def matches(candidate: str, sensitive: str) -> bool:
@@ -71,20 +75,37 @@ def main() -> int:
     except (OSError, json.JSONDecodeError) as exc:
         return fail(f"cannot read manifest: {exc}")
 
+    if not isinstance(manifest, dict):
+        return fail("publication manifest root must be an object")
+    history = manifest.get("history", {})
+    if not isinstance(history, dict):
+        return fail("manifest history must be an object")
+    if history.get("audit_required") is False:
+        return fail("history audit cannot declare a clean result when history.audit_required is false")
+
     surfaces = manifest.get("sensitive_surfaces")
     if not isinstance(surfaces, list):
         return fail("manifest sensitive_surfaces must be an array")
 
-    sensitive_paths = sorted(
-        {
-            normalize(surface.get("path", ""))
-            for surface in surfaces
-            if isinstance(surface, dict)
-            and surface.get("disposition") in AUDITED_DISPOSITIONS
-            and isinstance(surface.get("path"), str)
-            and normalize(surface["path"])
-        }
-    )
+    sensitive_paths_set: set[str] = set()
+    for index, surface in enumerate(surfaces):
+        if not isinstance(surface, dict) or surface.get("disposition") not in AUDITED_DISPOSITIONS:
+            return fail(f"sensitive_surfaces[{index}]: missing or unsupported disposition")
+        raw_path = surface.get("path")
+        if not isinstance(raw_path, str):
+            return fail(f"sensitive_surfaces[{index}]: path must be a string")
+        sensitive = normalize(raw_path)
+        parts = sensitive.split("/")
+        if (
+            not sensitive
+            or sensitive.startswith("/")
+            or "\\" in sensitive
+            or "//" in sensitive
+            or any(part in {".", ".."} for part in parts)
+        ):
+            return fail(f"sensitive_surfaces[{index}]: unsafe or ambiguous Git path")
+        sensitive_paths_set.add(sensitive)
+    sensitive_paths = sorted(sensitive_paths_set)
 
     if not sensitive_paths:
         print("PASS: no history-audited sensitive paths are declared")
