@@ -17,6 +17,15 @@
 
 Do not conflate raw tokens, cached tokens, included usage, charged dollars, API list price or GitHub Actions minutes. A personal screenshot showing `included` and `on-demand 0` for a period **does not** prove per-run zero cost or future free executions.
 
+## October 2026 owner dashboard reconciliation (privacy-safe)
+
+- Owner showed a **legacy Pro+** Spending view with **separate monthly Cursor Models and Other Models included pools** and a next usage reset date. Cursor Models includes first-party Composer and Grok; Other Models represents the third-party allowance. **Quota percentage is not USD charged**. Exact personal quotas and any billing exports remain private and should not be copied here.
+- Owner also showed a historic **October 1, 2026** Usage day classified entirely as `Included`, with zero `On-demand` **for that selected date only**. This is **not** evidence of Pilot 01/02 task-specific cost: those were executed on October 21 UTC. Current-cycle on-demand enablement, cap, charged cost and the model actually used by each pilot **remain UNKNOWN**.
+- Owner's Cloud Agent default `composer-2.5-fast` was observed, but the provider may use a different model when a run explicitly selects it. Do not infer per-run price from the default-model setting.
+- The owner's Haversine **Recurring Environment Build** succeeded. Cursor documentation states these scheduled pre-builds refresh machine snapshots and **do not cost extra**; they are **not** autonomous coding-agent executions. Do not launch manual Builds or treat recurring Builds as token-consuming model loops. The environment may still start from a cached default-branch SHA, so each task must verify a fresh Git baseline and its feature branch.
+- **Outstanding UI check:** account `Spending` page further down: whether `on-demand` is enabled and the exact allowed monthly overage cap. **Never infer a cap from zero charges.** Compare specific Pilot 01/02 usage rows in the **October 21 UTC** interval only if the usage dashboard exposes per-run details.
+- Sources: [Cursor usage and limits](https://prod.cursor.com/help/models-and-usage/usage-limits) · [Cursor legacy overages](https://prod.cursor.com/help/account-and-billing/overages) · [Cloud Agent Builds](https://cursor.com/docs/cloud-agent/builds).
+
 ## Mandatory budget modes
 
 **Mode P0 — Controlled pilots (current default)**
