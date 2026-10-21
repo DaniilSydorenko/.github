@@ -54,7 +54,7 @@ These are *hypotheses* for learning, **not guarantees, historical spending or pe
 - Cursor SDK docs describe per-agent `getUsage()` that can include raw and charged cents, with account feature availability differences. API/SDK **must be tested before depending on it for a per-task guard** ([TypeScript SDK](https://cursor.com/docs/sdk/typescript)). No SDK/API key or billing export is needed just to store this roadmap.
 - Account's current **`composer-2.5-fast`** default was observed in a prior screenshot; **non-Fast availability and exact billable model in future runs are UNVERIFIED**. Before choosing a default for autonomous work, compare provider rates and real measured outcomes; avoid blanket claims about Fast being economical.
 
-## Evidence schema (record in existing pilot issue/PR; do not create a new service)
+## Evidence schema (keep exact billing private; no new service)
 
 ```yaml
 pilot_id: P02
@@ -79,6 +79,8 @@ exact_head_ci: PASS | FAIL | UNKNOWN | N/A
 post_merge_ci: PASS | FAIL | UNKNOWN | N/A
 accepted_commit: sha-or-N/A
 ```
+
+**Privacy boundary:** GitHub Issues/PRs in public repositories may show task identifiers, evidence, model category and cost status (`MEASURED_PRIVATE` / `UNKNOWN`), but **not** precise billed amounts, account identifiers, invoice exports or token logs that the owner considers private. Keep detailed charged cents and source data in the Cursor dashboard or a private owner-controlled location; no shared persistent cost database is required. The schema above is an internal analysis shape, **not** a requirement to publish these values.
 
 **Primary metric:** `charged cost / verified accepted task`, always accompanied by **owner interventions**, **elapsed time**, **regressions** and **policy violations**. When `charged_cost_usd` is unavailable, report UNKNOWN; a `0` requires billing proof. Track total economic effort separately if desired, not falsely equate a usage pool debit to cash overage.
 
