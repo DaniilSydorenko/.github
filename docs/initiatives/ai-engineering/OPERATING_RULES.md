@@ -59,7 +59,7 @@ deliverable: PR-with-evidence | BLOCKED-report
 - First-line policy: **minimize cost per VERIFIED accepted result**, not tokens per prompt.
 - Select a model explicitly when the platform supports it. Never assume that `Fast` is cheap; verify its live price/performance and the **actual billed model**. Use expensive reasoning only on a documented problem.
 - Do not enlarge context window by default, ingest full chat history or load large logs/datasets when a narrow excerpt is sufficient.
-- Use provider-side account spending controls (and on-demand off/zero when feasible) **before** unattended/recurring executions. Only the owner changes billing settings.
+- **Current observed account protection (2026-10-22):** Cursor `On-Demand Spending` is **Disabled**; preserve it during P0. Verify again before unattended/recurring execution. This is a provider financial backstop, **not** a per-task cost cap or protection against burning included quota. Only the owner changes billing settings.
 - Run count, retries, subagents and platform automations are separate hazards; a per-task budget is initially a **soft stop** until tested technical enforcement exists.
 - Pause if actual cost/usage is unavailable for a run and the next step would launch an unapproved additional agent. Report UNKNOWN instead of zero.
 - Preserve human approval and quality checks even if they make a run more expensive. See [Budget & Measurement](BUDGET_AND_MEASUREMENT.md).
