@@ -138,8 +138,8 @@ Statuses below describe the *AI Engineering initiative*, not Haversine's 88% or 
 
 ## Independent boundaries — no reorganization of existing systems
 
-- [GitHub HQ roadmap](../../../../reports/github-hq/ROADMAP-LIVE.md) owns GitHub **infrastructure only**; this initiative is **not** an HQ milestone and does not reopen frozen Governance v1 or issue #56 Option B.
-- [HQ/autopilot boundary](../../../../reports/github-hq/HQ-AUTOPILOT-BOUNDARIES.md) forbids HQ domain PR management. Initiative experiments require the **relevant domain owner's permission**; a ChatGPT-to-Cursor task is not universal write authority.
+- [GitHub HQ roadmap](../../../reports/github-hq/ROADMAP-LIVE.md) owns GitHub **infrastructure only**; this initiative is **not** an HQ milestone and does not reopen frozen Governance v1 or issue #56 Option B.
+- [HQ/autopilot boundary](../../../reports/github-hq/HQ-AUTOPILOT-BOUNDARIES.md) forbids HQ domain PR management. Initiative experiments require the **relevant domain owner's permission**; a ChatGPT-to-Cursor task is not universal write authority.
 - [Autopilot Control Plane](https://github.com/DaniilSydorenko/autopilot-control-plane/blob/main/CONTROL_PLANE.md) owns scheduled fleet governance and telemetry; this initiative neither joins its fleet nor changes its scheduler, policy, reporting or approval.
 - Domain roadmaps, AGENTS.md, CI, package/release state, publication and owner gates remain authoritative; this document never overwrites them.
 - Public-safe descriptions only; no private customer/work data, credentials, billing exports or raw usage/account identifiers in this public repository.
