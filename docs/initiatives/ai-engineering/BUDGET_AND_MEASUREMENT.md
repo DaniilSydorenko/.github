@@ -23,7 +23,7 @@ Do not conflate raw tokens, cached tokens, included usage, charged dollars, API 
 - **October 21 UTC usage now observed:** owner screenshot shows two cloud-icon rows matching the pilot execution times: **22:30 UTC — `grok-4.7-high-fast` (Pilot 01 read-only)**; **22:49 UTC — `composer-2.5-fast` (Pilot 02 code fix)**. Both rows are classified `Included`. The selected-day aggregate shows **zero `On-demand` usage**. These are provider UI observations with high-confidence timestamp/agent correlation, **not per-run token or charged-cost breakdown**. Precise per-task input/output/cache usage, financial cap and enablement of future on-demand remain **UNKNOWN**. Earlier Oct 1 Included-only screenshots are historical background, not pilot billing evidence.
 - Owner's Cloud Agent default `composer-2.5-fast` was observed, but the provider may use a different model when a run explicitly selects it. Do not infer per-run price from the default-model setting.
 - The owner's Haversine **Recurring Environment Build** succeeded. Cursor documentation states these scheduled pre-builds refresh machine snapshots and **do not cost extra**; they are **not** autonomous coding-agent executions. Do not launch manual Builds or treat recurring Builds as token-consuming model loops. The environment may still start from a cached default-branch SHA, so each task must verify a fresh Git baseline and its feature branch.
-- **Outstanding UI check:** scroll further down in `Spending` to verify whether `on-demand` is enabled and the actual monthly overage cap (or documented account-level stop). **Never infer a cap from zero charges.** If desired, open the two cloud-icon rows or use provider-supported per-run usage details to measure each pilot's token breakdown; do not upload private invoices or billing CSVs to public GitHub.
+- **Account-level safeguard VERIFIED (owner screenshot, 2026-10-22):** `On-Demand Spending: Disabled`; `Monthly Limit: Disabled`, with `Disabled` selected from `Fixed / Unlimited / Disabled`. **No active dollar-valued overage allowance exists in this setting.** Leave disabled for current P0 pilots. This controls additional on-demand charging but **does not reserve or preserve included model quota**, nor enforce a per-task token cap. Recheck only before future unattended runs or an owner-authorized settings change. For per-pilot cost calibration, inspect the two cloud-icon usage rows or provider-supported per-run details; never publish private invoices/CSV.
 - Sources: [Cursor usage and limits](https://prod.cursor.com/help/models-and-usage/usage-limits) · [Cursor legacy overages](https://prod.cursor.com/help/account-and-billing/overages) · [Cloud Agent Builds](https://cursor.com/docs/cloud-agent/builds).
 
 ## Mandatory budget modes
@@ -32,7 +32,7 @@ Do not conflate raw tokens, cached tokens, included usage, charged dollars, API 
 - One explicit owner-approved agent invocation per bounded task. **No unattended automations or self-selected task queue.**
 - One active writing agent per branch; no default subagents; at most **two distinct evidence-backed corrections** after initial attempt.
 - Confirm selected model, context-window mode and Cursor **Spending** settings before starting a *larger* coding session.
-- Keep **on-demand spending disabled or its limit at the minimum owner-accepted value, if supported**, until owner deliberately authorizes paid overages.
+- Keep **on-demand spending Disabled (owner-confirmed 2026-10-22)**. If this changes, require explicit owner approval before additional agent runs or enabling unattended operation. Do not configure a nonzero or Unlimited overage allowance as a workaround for a stopped agent.
 - Treat unknown cost as UNKNOWN and **do not launch another autonomous paid step** solely to complete an internal report.
 - Owner must explicitly authorize changes to usage limits, account billing, secrets and recurring launches.
 
@@ -51,7 +51,7 @@ Do not conflate raw tokens, cached tokens, included usage, charged dollars, API 
 | Narrow read-only code investigation (only when connector insufficient) | **up to $1** | Owner-authorized pilot |
 | Focused fix + tests | **up to $3** | Owner-authorized, bounded code paths |
 | Multi-file difficult diagnosis | **up to $5** | Separate owner approval; do not auto-upgrade |
-| Additional *on-demand* experimental reserve | **$10 per billing period maximum proposal**, **not set** | Owner to choose/confirm in account UI |
+| Additional *on-demand* experimental reserve | **$10 per billing period hypothetical future ceiling; NOT enabled** | Current owner setting: **Disabled**. Enabling a paid reserve would require a new explicit decision. |
 
 These are *hypotheses* for learning, **not guarantees, historical spending or permission to incur charges**. Recalibrate after at least three comparable observed run costs. Never implement made-up dollar cutoffs inside a text prompt and call them enforced. Runtime dollar caps require tested provider support or a correctly designed API/SDK executor gate.
 
@@ -97,7 +97,7 @@ accepted_commit: sha-or-N/A
 
 From **Cursor Dashboard → Spending / Usage**, manually review the billing-cycle status and model/runs associated with completed Haversine [Pilot 01 #173](https://github.com/DaniilSydorenko/haversine-geolocation/issues/173) and [Pilot 02 #174 / PR #175](https://github.com/DaniilSydorenko/haversine-geolocation/pull/175). Record only **non-sensitive aggregate measurements** in the matching existing GitHub task if owner chooses; keep raw invoices, account IDs, API keys, payment details and private CSV exports **outside the public .github repository**.
 
-Minimum to examine: actual selected/billed model, per-run charged or included usage if available, whether on-demand is enabled, current spending cap, next reset date, subagent count and whether the cloud environment consumed unnecessary context. This does **not** block creating documentation; it blocks claiming measured budget performance and enabling automated queues.
+Minimum remaining measurement: actual selected/billed model (observed for pilots), per-run token split and equivalent/charged cost if available, agent/subagent count, and whether cloud execution consumed unnecessary context. The **on-demand enablement and current overage setting are already verified as Disabled**, not a pending UI task. This does **not** block creating documentation; it blocks claiming measured budget performance and enabling automated queues.
 
 ## Evidence-based calibration gate
 
