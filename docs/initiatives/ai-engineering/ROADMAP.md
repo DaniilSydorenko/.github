@@ -24,7 +24,7 @@ This ChatGPT conversation is a *human decision interface*, **not** a continuousl
 - **BLOCKED:** exact missing permission, environment or decision with evidence.
 - **N/A:** capability not needed unless a verified gap emerges.
 
-Statuses below describe the *AI Engineering initiative*, not Haversine's 88% or GitHub HQ's milestone score. **No synthetic phase percentage.** Each gate is independently accepted or open. Never copy mutable product roadmap data here.
+Statuses below describe the *AI Engineering initiative*, not any domain product's mutable task percentage or GitHub HQ's milestone score. **No synthetic phase percentage.** Each gate is independently accepted or open. Never copy mutable product roadmap data here.
 
 ## Current verified baseline (2026-10-22)
 
@@ -32,7 +32,8 @@ Statuses below describe the *AI Engineering initiative*, not Haversine's 88% or 
 - **Pilot 02:** [task #174](https://github.com/DaniilSydorenko/haversine-geolocation/issues/174) → [Cursor-authored PR #175](https://github.com/DaniilSydorenko/haversine-geolocation/pull/175). A real V2 pole-distance regression was reproduced and fixed in two scoped files, with regression tests, owner-reviewed diff and **10/10 applicable exact-PR-head CI jobs** verified. Owner-authorized squash merge: [`029faec92c1821fca343595d1fefa423d21b9c62`](https://github.com/DaniilSydorenko/haversine-geolocation/commit/029faec92c1821fca343595d1fefa423d21b9c62). Roadmap sync [PR #176](https://github.com/DaniilSydorenko/haversine-geolocation/pull/176) merged at [`7ca9456b33761cda2b6e52aeef5df8ff157f6f5b`](https://github.com/DaniilSydorenko/haversine-geolocation/commit/7ca9456b33761cda2b6e52aeef5df8ff157f6f5b). **Push-triggered post-merge CI not independently retrieved with the connector and remains UNKNOWN**; PR CI must not be substituted.
 - **Provider configuration observed from owner's screenshots:** GitHub App connected; Cursor Cloud available; outbound network reduced to provider defaults + user allowlist; model dropdown showed `composer-2.5-fast`. **Owner verified `On-Demand Spending: Disabled` and `Monthly Limit: Disabled` on 2026-10-22**; this means the extra on-demand charging path is currently off, not that the included subscription pool is unlimited or that individual tasks have dollar caps. Account settings may change; verify before unattended work.
 - **Usage attribution:** owner Cursor Usage screenshot for Oct 21 UTC shows cloud-marked `grok-4.7-high-fast` at 22:30 (Pilot 01) and `composer-2.5-fast` at 22:49 (Pilot 02), both classified `Included`, and no `On-demand` for the selected day. This does **not** establish exact per-pilot tokens or charged USD; future on-demand behavior depends on the account setting remaining disabled. **Per-pilot cost: UNKNOWN.**
-- **Next:** Pilot 03 — prove continuation on the **same existing PR and branch** with one active writer, review response, updated exact-head checks, and measured incremental usage. Avoid repeating Pilot 01/02 to generate activity.
+- **Pilot 03 ACCEPTED (2026-10-22):** [Issue #177](https://github.com/DaniilSydorenko/haversine-geolocation/issues/177) → [PR #178](https://github.com/DaniilSydorenko/haversine-geolocation/pull/178). Stage A produced North Pole `nearest()` test at `76ccbeaade69bce6960d1ddb8e9198708c6fac82`; ChatGPT issued exactly one owner-authorized review comment **on existing PR #178** for South Pole coverage. Cursor updated the **same PR and branch** `cursor/nearest-north-pole-regression-0b6f` and linked the **same provider Cloud session ID** `bc-e11ca7b4-d48d-4d8d-9f13-3a0f85df0b6f`, reaching exact head `45fbf48a119d1a09b6ed5a5183b95851cafd61ff`. Local focused tests (12), quality and typecheck reported PASS; independent [CI](https://github.com/DaniilSydorenko/haversine-geolocation/actions/runs/39754263327) and [Secret Scan](https://github.com/DaniilSydorenko/haversine-geolocation/actions/runs/39754263245) confirmed PASS on the exact PR HEAD. Owner-authorized squash merge [`9330b4585cc3d4ec9289c52f90730cf751a1fedc`](https://github.com/DaniilSydorenko/haversine-geolocation/commit/9330b4585cc3d4ec9289c52f90730cf751a1fedc); accepted `master` and issue closure verified. **No second PR/writer observed; this does not prove a technical branch lock. Post-merge push CI: UNKNOWN via connector. Per-run cost: UNKNOWN.** Haversine release/RC decisions are independent.
+- **Next:** Pilot 04 — a bounded **self-correction after an actual failed test or CI**, with limited evidence-based retries, explicit STOP, exact-head verification and no automatic merge. Separately measure per-run Cursor usage; test technical branch-lock/device switching later. Do not repeat passed pilots merely to generate activity.
 
 ## Phase 1 — Foundation and spending safety — PARTIAL
 
@@ -50,29 +51,29 @@ Statuses below describe the *AI Engineering initiative*, not Haversine's 88% or 
 2. **Agent Trigger** — GitHub `@cursor` starts authorized Cursor Cloud task. **VERIFIED.**
 3. **Execution** — Cursor reads repo and executes one bounded task. **VERIFIED.**
 4. **Result Handoff** — completion and PR evidence flow back to GitHub for ChatGPT to inspect. **VERIFIED.**
-5. **Review Loop** — ChatGPT issues follow-up to existing PR; Cursor incorporates it and reports back, **without new competing work**. **OPEN.**
+5. **Review Loop** — ChatGPT issues follow-up to existing PR; Cursor incorporates it and reports back, **without new competing work**. **VERIFIED once in Pilot 03 (#178), with same provider session identifier; no duplicate PR observed.**
 6. **Deduplication** — avoid double-dispatch/repeated bot mentions. **OPEN for automated triggers.**
 
 **Exit:** two-way follow-up confirmed, at least one corrected task accepted with no manual prompt/result transport, explicit prevention of duplicate launches.
 
 ## Phase 3 — One PR, one active writer — PARTIAL
 
-1. **PR Binding** — target a specific existing PR/head branch. **OPEN.**
+1. **PR Binding** — target a specific existing PR/head branch. **VERIFIED once in Pilot 03; same PR #178 and branch before/after follow-up.**
 2. **Branch Lease** — enforce at most one active writer; provider `agent_busy` does not protect desktop vs cloud alone. **OPEN.**
-3. **Session Continuity** — continue an existing Cursor agent/run without accidentally starting a new one. **OPEN.**
+3. **Session Continuity** — continue an existing Cursor agent/run without accidentally starting a new one. **VERIFIED for Pilot 03 via same Cloud session ID in both bot replies.** This does not imply transferable desktop writer locks.
 4. **Device Switching** — safe handoff from MacBook to Cloud, with pushed state first and a fresh read on return. **OPEN.**
-5. **Conflict Protection** — read relevant open PR changed paths before edit/merge. **VERIFIED manually for Pilot 02; enforcement OPEN.**
+5. **Conflict Protection** — read relevant open PR changed paths before edit/merge. **VERIFIED manually for Pilots 02/03; enforcement OPEN.**
 
 **Exit:** a real PR follow-up with unchanged branch ownership, serial execution, audited latest HEAD, and no competing writer.
 
 ## Phase 4 — Autonomous verified engineering loop — PARTIAL
 
 1. **Discover & Plan** — live baseline, applicable repo policy, bounded acceptance contract. **VERIFIED once.**
-2. **Implement** — isolated scoped code/test change. **VERIFIED once.**
-3. **Verify** — focused checks, repository-required CI and exact-head evidence. **VERIFIED for Pilot 02.**
+2. **Implement** — isolated scoped code/test change. **VERIFIED in Pilots 02/03.**
+3. **Verify** — focused checks, repository-required CI and exact-head evidence. **VERIFIED for Pilots 02/03.**
 4. **Self-Correction** — react to a failed test/CI with diagnosis and limited retry. **NOT VERIFIED; no observed failure loop.**
 5. **Stop Rules** — no release/merge without authority; stop on blocked scope or budget. **INSTRUCTIONS USED; technical enforcement OPEN.**
-6. **Completion** — concise PR plus evidence or transparent BLOCKED/INCONCLUSIVE. **VERIFIED once.**
+6. **Completion** — concise PR plus evidence or transparent BLOCKED/INCONCLUSIVE. **VERIFIED in Pilots 02/03.**
 
 **Exit:** fail→diagnose→repair→recheck or safe stop in a single agent workflow; no unsafe scope expansion; measured attempt count.
 
@@ -131,8 +132,8 @@ Statuses below describe the *AI Engineering initiative*, not Haversine's 88% or 
 
 ## Next ordered experiments (not standing automations)
 
-1. **Pilot 03: PR follow-up continuity** — one existing scoped PR, one writer, one review comment, one evidence-backed correction, measured cost.
-2. **Pilot 04: self-correction** — small deterministic failing test, at most two evidence-based corrections, exact-head CI or stop.
+1. **Pilot 03: PR follow-up continuity — VERIFIED/ACCEPTED** in [#177](https://github.com/DaniilSydorenko/haversine-geolocation/issues/177) / [#178](https://github.com/DaniilSydorenko/haversine-geolocation/pull/178). Exact per-run billing cost still UNKNOWN; technical branch lock/device switch unverified.
+2. **Pilot 04: self-correction — NEXT**. Use a meaningful bounded real defect/test failure, at most two evidence-based corrections and exact-head CI or explicit BLOCKED/STOP; no unnecessary second writer or auto-merge.
 3. **Pilot 05: Ladvero limited use** — independently approved frontend task; no cross-domain authority transfer.
 4. **Cross-task evaluation** — compare the first three outcomes by owner interventions, actual billed usage and accepted tests.
 
