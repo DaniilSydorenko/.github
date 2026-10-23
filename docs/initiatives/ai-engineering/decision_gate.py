@@ -24,6 +24,17 @@ OUTCOMES = {
 }
 
 
+def _evidence_ref(repo, value):
+    """Accept same-repo PR or immutable commit URLs as reference *shapes*, not proof."""
+    if not isinstance(value, str):
+        return False
+    prefix = f"https://github.com/{repo}/"
+    if not value.startswith(prefix):
+        return False
+    tail = value[len(prefix):]
+    return re.fullmatch(r"(?:pull/[1-9][0-9]*|commit/[0-9a-f]{40})", tail) is not None
+
+
 def decide(s):
     """Return an advisory verdict. Missing or inconsistent evidence fails closed."""
     def answer(status, reason):
@@ -52,10 +63,13 @@ def decide(s):
         return answer("NEEDS_EVIDENCE", "Unknown issue state")
     if not isinstance(e["related_prs"], list) or not isinstance(e["dependencies"], list):
         return answer("NEEDS_EVIDENCE", "Related PRs/dependencies not reliably enumerated")
+    # A replacement changes the target; claiming the original was also accepted
+    # is contradictory and must not be resolved by if/else precedence.
+    if e["accepted_commit"] is not None and e.get("superseded_by") is not None:
+        return answer("NEEDS_EVIDENCE", "Contradictory accepted and superseded claims")
     if e["accepted_commit"] is not None:
         if (isinstance(e["accepted_commit"], str) and SHA.fullmatch(e["accepted_commit"])
-                and isinstance(e["accepted_proof"], str)
-                and e["accepted_proof"].startswith(f"https://github.com/{repo}/")):
+                and _evidence_ref(repo, e["accepted_proof"])):
             return answer("ALREADY_ACCEPTED", "Outcome confirmed in accepted branch with source-linked proof")
         return answer("NEEDS_EVIDENCE", "Accepted claim lacks an immutable SHA and source proof")
     if e["accepted_proof"] is not None:
@@ -65,8 +79,7 @@ def decide(s):
         if (isinstance(replacement, dict)
                 and isinstance(replacement.get("accepted_sha"), str)
                 and SHA.fullmatch(replacement["accepted_sha"])
-                and isinstance(replacement.get("ref"), str)
-                and replacement["ref"].startswith(f"https://github.com/{repo}/")
+                and _evidence_ref(repo, replacement.get("ref"))
                 and isinstance(replacement.get("reason"), str)
                 and replacement["reason"].strip()):
             return answer("SUPERSEDED", "Original outcome was replaced: " + replacement["reason"].strip())
