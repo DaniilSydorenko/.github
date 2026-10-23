@@ -32,13 +32,30 @@ This **offline pure classifier** checks an *attested, task-local snapshot* and r
 
 **Not-stuck rule:** A blocked decision is an **outcome**, not a reason to re-run the same prompt every hour. Specify the missing evidence, responsible owner and next *external event* that would justify rechecking. Continue only on unrelated owner-approved work. Two identical uninformative retries → BLOCKED under Low-Burn v2. `NO_READY_WORK` for a domain is a valid orchestration conclusion; the script classifies **one task at a time** and does not claim to find an eligible task globally.
 
+## Observation reconciliation — experimental second layer (2026-10-23)
+
+`evidence_reconcile.py` is the **offline consistency check** between a task's asserted evidence and a **separately captured** GitHub metadata observation. The snapshot envelope has two top-level keys: `task` (the existing `decision_gate.py` shape) and `observed` (readbacks from the authorized **owning** Issue and only its **relevant** PRs; never an unconditional seven-repo sweep).
+
+Required `observed` fields:
+
+- `repo` must match `task.repository`, `issue_number` must match the exact `task.issue` URL, `issue_state` must equal the issue-state assertion.
+- `default_sha` must match both task `default_sha` and `checked_sha` at that observation. If the branch advances afterward, the entire check must be repeated.
+- `related_inventory_complete: true` is a **reviewer-attested factual claim**, never guessed from a truncated search page. `related_prs` contains every PR the reviewer determined relevant, with `number`, exact `head_sha`, and `state: open|closed`. Every relevant PR must be classified in the task: missing, merged/closed or changed HEAD ⇒ `NEEDS_EVIDENCE`.
+- `accepted_shas` lists only independently established **accepted default-branch implementation/replacement SHA proofs** (not unmerged PR heads). A claimed `ALREADY_ACCEPTED` or `SUPERSEDED` commit absent from this list is rejected. Merely adding an arbitrary SHA to both JSON copies is **not proof**.
+
+These structural cross-checks reduce accidental **time-of-check/time-of-use** errors, but **do not** prove snapshot origin, atomicity, current time, correct semantic issue↔PR matching, owner authorization, absence of another writer or successful deployed acceptance. Both JSON objects could be fabricated; treat the result's `verification: CONSISTENT_ONLY` literally. `READY` is still a **candidate suggestion**, never an instruction to run an agent. Do not wire either CLI's exit code to `@cursor`, merge, publish, or a scheduled worker.
+
+No new token/service cost, network access, storage, auth or GitHub mutations are introduced. The original `decision_gate.py` CLI is a **baseline-only advisory** without independent observation checks; prefer the reconciler for experiments with source-backed data. Follow the domain's explicit permissions and Low-Burn budget rules.
+
+**Test evidence:** new `test_evidence_reconcile.py` has **15/15 local Python standard-library unittest passes** for stale `main`, changed/closed PR, changed Issue, incomplete/duplicated inventory, accepted-commit mismatch, supersession mismatch and safe `EXISTING_PR`. The initial 22 decision-gate synthetic methods remain unchanged. These results are **offline tests, not live GitHub API proof or CI**.
+
 ## Local verification (zero model tokens / network / side effects)
 
 From `docs/initiatives/ai-engineering/`:
 
 ~~~sh
-python3 -m unittest -v test_decision_gate.py
-python3 decision_gate.py /path/to/temporary-task-evidence.json
+python3 -m unittest discover -v -p 'test_*.py'
+python3 evidence_reconcile.py /path/to/temporary-observed-task-envelope.json
 ~~~
 
 Exit code `0`: advisory `READY` only. Exit code `1`: valid non-ready decision. Exit code `2`: invocation/input file error. **Never use exit code 0 as permission to call `@cursor` or merge.**
