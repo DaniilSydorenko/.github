@@ -16,6 +16,8 @@ This **offline pure classifier** checks an *attested, task-local snapshot* and r
 4. **Offline deterministic verdict:** run the script below. Any omitted field, missing/unknown relation, stale target SHA, incomplete inventory or unverified owner/writer status is **not READY**. An unrelated PR is not a global blocker. A task's `scope: forbidden` is UNSAFE even when other facts look attractive.
 5. **Owner-controlled next step:** the output is advice, **not** a dispatch command. Before an actual agent invocation, re-fetch exact live HEAD, relevant PRs and writer state, and obtain the existing owning-domain approval. Never auto-close an Issue, update a roadmap, merge a PR, publish, buy credits, edit Control Plane telemetry or switch on a worker because the classifier printed `READY`.
 
+**Cursor Pilot 06 review follow-up (2026-10-23):** one read-only Cloud Agent reviewed PR #112 at immutable head `59d1a6cd805596a21598e642321f005695cc668f` and independently ran **37/37 Python stdlib tests** ([Issue #115](https://github.com/DaniilSydorenko/.github/issues/115)). The review found a narrow fail-closed bug: simultaneous `accepted_commit` and `superseded_by` assertions previously selected `ALREADY_ACCEPTED` by precedence. The proposed same-branch correction now rejects both claims together with `NEEDS_EVIDENCE`. Both acceptance and supersession references must have the **same-repo GitHub `/pull/<number>` or immutable `/commit/<40hex>` URL shape**; generic `tree/main` and arbitrary GitHub pages are rejected. This validates URL syntax, **not** actual owner authority or commit ancestry. Five new negative/positive regression methods were added. Current total is **42 synthetic test methods (27 + 15)**; the earlier 37/37 Cloud proof belongs to the **reviewed old SHA**, not this amended HEAD. Rerun tests against the updated exact HEAD before merge, and never claim that a green older check covered these fixes.
+
 ## Verdicts and next actions
 
 | Verdict | Meaning | Safe action |
@@ -95,7 +97,7 @@ Expected result: `EXISTING_PR`, **no new Cursor agent**. To test a truly unrelat
 
 ## Synthetic regression matrix
 
-`test_decision_gate.py` covers 22 test methods inspired by observed patterns, without private metadata or real repository mutation:
+`test_decision_gate.py` covers 27 test methods inspired by observed patterns, without private metadata or real repository mutation:
 
 - Haversine: an **identically specified implemented outcome** is `ALREADY_ACCEPTED` only with checked accepted proof; an owner-approved **2.0.0 → 2.0.1** scope change is `SUPERSEDED` with separately verified accepted replacement; a closed Issue alone ≠ done.
 - Ladvero: existing same-outcome PR and overlapping Gemini files stop duplicate execution; each green individual PR is **not** a sequential merge proof.
@@ -107,7 +109,7 @@ Expected result: `EXISTING_PR`, **no new Cursor agent**. To test a truly unrelat
 
 **Optional supersession evidence field:** `"superseded_by": {"accepted_sha": "<40-character accepted replacement commit>", "ref": "https://github.com/<owner>/<repo>/pull/<number>", "reason": "owner changed scope from X to Y"}`. An explicit source-backed owner decision is mandatory: the classifier checks this field's *shape*, not the legal or technical accuracy of the supplied claim. A mismatched version without approved replacement is `NEEDS_EVIDENCE`, **never** permission to auto-close an issue.
 
-**Test evidence:** source and tests were run locally with Python 3 standard-library `unittest`, **22/22 passing before updated proposal**. This is code-level simulation, **not** proof of live GitHub ingestion, semantic LLM accuracy, atomic branch locks, task auto-selection, real provider costs or a safe always-on dispatcher. Applicable GitHub PR-head CI remains independently UNKNOWN until actually observed.
+**Test evidence:** source and tests were run locally with Python 3 standard-library `unittest`, **22/22 previously passed before Pilot 06 correction**. This is code-level simulation, **not** proof of live GitHub ingestion, semantic LLM accuracy, atomic branch locks, task auto-selection, real provider costs or a safe always-on dispatcher. Applicable GitHub PR-head CI remains independently UNKNOWN until actually observed.
 
 ## Exit criteria before even considering real dispatch integration
 
