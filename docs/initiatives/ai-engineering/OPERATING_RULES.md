@@ -52,7 +52,21 @@ deliverable: PR-with-evidence | BLOCKED-report
 
 **Review:** GitHub diff and immutable exact HEAD first. Prefer deterministic tests and changed-file review over paying another LLM to reiterate completed work.
 
-**Completion report (short):** outcome; changed paths/PR; baseline/head/merge SHA as applicable; exact check statuses + links; blocker/approval; **measured** usage/cost or UNKNOWN. No long transcript, copied roadmap or arbitrary percentages.
+**Completion report (short):** outcome; changed paths/PR; baseline/head/merge SHA as applicable; exact check statuses + links; blocker/approval; **provider-measured** usage/cost or UNKNOWN. No long transcript, copied roadmap or arbitrary percentages.
+
+### Low-Burn Issue authoring — opt-in central standard
+
+The reusable [low-burn issue template](../../../../.github/ISSUE_TEMPLATE/cursor-low-burn.md) is an **optional intake aid**, not an agent instruction channel or a GitHub-enforced constraint. A public personal-account `.github` repository can provide default Issue templates to repositories **without their own templates/configuration**. An issue created via API or a Cursor agent does **not** automatically consume this template; an author/dispatcher must explicitly apply it. Local repository policies and domain-owner approval always win.
+
+- **One Issue = one measurable logical outcome.** State observed failure or desired behavior, one concise success criterion, and the owner. Split independent problems; do not split one coherent fix into artificial micro-Issues.
+- **Bound context at dispatch:** give live default-branch SHA or ask the executor to refresh it, 2–4 *relevant* initial files plus local mandatory instructions, named allowed/forbidden paths, required tests, and relevant existing PR/Issue links. No whole-repository audit or long chat transcripts by default; expand only on a concrete dependency with explanation.
+- **Bound execution:** one writer, no surprise subagents, no unrelated refactors, one implementation plus at most two evidence-based corrections, no automatic retry/launch cascade. A soft model/token target can request early STOP, but **Markdown cannot enforce a token or dollar cap**. Never skip necessary tests or safety review to stay cheap.
+- **Stop before costly uncertainty:** if requirements, evidence, permission, branch ownership, cost visibility, or scope become unclear, report `BLOCKED`/`INCONCLUSIVE` with the *single smallest* next decision. Do not launch another agent to restate the same finding.
+- **Minimal output:** 5–8 useful lines: outcome, PR/head, changed paths, exact CI, approval/blocker, next action and usage. Large logs/trace are linked only when necessary.
+
+**Token accounting:** Cursor Cloud Agents API [`GET /v1/agents/{id}/usage`](https://cursor.com/docs/cloud-agent/api/endpoints) supports measured per-run `inputTokens`, `outputTokens`, `cacheReadTokens`, `cacheWriteTokens`, `totalTokens`. If an **authorized** provider usage response is available, include its numbers, agent/run identifier and source; optionally report verified billed cost from an authorized SDK/dashboard. Otherwise say `tokens: UNKNOWN (provider usage unavailable)` and `charged cost: UNKNOWN` — **never estimate, claim 0, or manufacture counts**. Do not place API keys in Issues, logs or agent instructions. A cached-token count is not the same as billed dollars; a concise summary does not on its own limit tokens spent analyzing code.
+
+GitHub's default template is not inherited where a repository has its own Issue template/config; repo-local `AGENTS.md`/Cursor rules or explicit task instructions are required for reliable agent adoption. That is **domain-owned, opt-in rollout**, not HQ authority over the seven repositories or new GRS enforcement.
 
 ## 4. Cost/quality policy
 
