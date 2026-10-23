@@ -94,6 +94,7 @@ The following is a **decision procedure**, not a new fleet service, central queu
 3. **Dependency and ownership graph:** issue ↔ roadmap item ↔ existing PR/stack ↔ changed paths ↔ owner/data/release gate. Apply the mandatory classification above before running any new agent.
 4. **Reconciliation-first:** already-implemented stale issues become evidence/supersession, overlapping PRs become one domain-owned integration order; do NOT launch a duplicate fix. Haversine #187/#188 and Ladvero #212/#216 are regression case studies.
 5. **Independent progress:** if one domain says OWNER_GATE or WAITING, find an independently authorized READY task elsewhere, or honestly return NO_READY_WORK. Do not bypass a blocker.
+6. **Observation consistency prototype — RESEARCH ONLY (PR #112, 2026-10-23):** offline `evidence_reconcile.py` and 15 additional synthetic checks confirm stale Issue/default-SHA/PR-head and unproven-acceptance cases fail to `NEEDS_EVIDENCE`. A one-time Ladvero #217/#216 stale-vs-fresh metadata exercise returned `NEEDS_EVIDENCE` / `launched:false`. This is **not** trusted automated live evidence capture, semantic matching, owner authorization, technical locking or accepted PR integration; milestone remains PARTIAL.
 
 **Exit:** replay a **bounded set of real repo cases** including stale Issue, same-file overlap, stacked PR, production permission gate, learner-only work and genuinely READY task; each selects the safe action with no duplicate Cursor launch. Record actual outcomes, not guessed scheduling capability.
 
