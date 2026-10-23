@@ -57,6 +57,35 @@ class DecisionGateTests(unittest.TestCase):
     def test_closed_issue_without_accepted_proof_is_not_done(self):
         self.assert_status("NEEDS_EVIDENCE", issue_state="closed")
 
+    def test_contradictory_accepted_and_superseded_fails_closed(self):
+        self.assert_status("NEEDS_EVIDENCE", accepted_commit=SHA_B,
+                           accepted_proof="https://github.com/example/test/pull/190",
+                           superseded_by={"accepted_sha": SHA_A,
+                                          "ref": "https://github.com/example/test/pull/191",
+                                          "reason": "Owner changed the target"})
+
+    def test_invalid_proof_page_is_not_an_accepted_commit(self):
+        self.assert_status("NEEDS_EVIDENCE", accepted_commit=SHA_B,
+                           accepted_proof="https://github.com/example/test/tree/main")
+        self.assert_status("NEEDS_EVIDENCE", accepted_commit=SHA_B,
+                           accepted_proof="https://github.com/example/test/issues/1")
+
+    def test_unrelated_repo_prefix_and_pr_trailing_path_are_invalid(self):
+        self.assert_status("NEEDS_EVIDENCE", accepted_commit=SHA_B,
+                           accepted_proof="https://github.com/example/test-other/pull/190")
+        self.assert_status("NEEDS_EVIDENCE", accepted_commit=SHA_B,
+                           accepted_proof="https://github.com/example/test/pull/190/files")
+
+    def test_immutable_commit_link_can_support_accepted_claim_shape(self):
+        self.assert_status("ALREADY_ACCEPTED", accepted_commit=SHA_B,
+                           accepted_proof="https://github.com/example/test/commit/" + SHA_B)
+
+    def test_supersession_requires_specific_pr_or_commit_ref(self):
+        self.assert_status("NEEDS_EVIDENCE", superseded_by={
+            "accepted_sha": SHA_B,
+            "ref": "https://github.com/example/test/tree/main",
+            "reason": "Approved change"})
+
     def test_accepted_claim_without_proof_is_not_done(self):
         self.assert_status("NEEDS_EVIDENCE", accepted_commit=SHA_B)
 
