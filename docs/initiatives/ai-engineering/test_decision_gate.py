@@ -43,6 +43,17 @@ class DecisionGateTests(unittest.TestCase):
         self.assert_status("ALREADY_ACCEPTED", accepted_commit=SHA_B,
                            accepted_proof="https://github.com/example/test/pull/190")
 
+    def test_old_haversine_200_candidate_replaced_by_201(self):
+        self.assert_status("SUPERSEDED", superseded_by={
+            "accepted_sha": SHA_B,
+            "ref": "https://github.com/example/test/pull/190",
+            "reason": "Owner selected 2.0.1 instead of 2.0.0"})
+
+    def test_unverified_supersession_is_not_accepted(self):
+        self.assert_status("NEEDS_EVIDENCE", superseded_by={
+            "ref": "https://github.com/example/test/pull/190",
+            "reason": "Changed version"})
+
     def test_closed_issue_without_accepted_proof_is_not_done(self):
         self.assert_status("NEEDS_EVIDENCE", issue_state="closed")
 
