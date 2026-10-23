@@ -15,6 +15,7 @@ OUTCOMES = {
     "UNSAFE": "STOP: the requested task/scope is forbidden; return to the owning authority.",
     "NEEDS_EVIDENCE": "Re-read the exact owner issue, default branch and relevant PR/dependency evidence; do not dispatch.",
     "ALREADY_ACCEPTED": "Reconcile the existing owning issue/roadmap with accepted proof; do not implement twice.",
+    "SUPERSEDED": "Reconcile the obsolete task to the accepted replacement in the owning Issue; do not implement the former scope.",
     "EXISTING_PR": "Review/reconcile the existing PR with its owning author; do not create a parallel writer.",
     "WAITING_DEPENDENCY": "Record the precise dependency/collision in its existing issue; choose independent authorized work elsewhere.",
     "OWNER_GATE": "Request the narrow missing owner decision; no agent dispatch or consequential mutation.",
@@ -59,6 +60,17 @@ def decide(s):
         return answer("NEEDS_EVIDENCE", "Accepted claim lacks an immutable SHA and source proof")
     if e["accepted_proof"] is not None:
         return answer("NEEDS_EVIDENCE", "Proof provided without accepted commit")
+    replacement = e.get("superseded_by")
+    if replacement is not None:
+        if (isinstance(replacement, dict)
+                and isinstance(replacement.get("accepted_sha"), str)
+                and SHA.fullmatch(replacement["accepted_sha"])
+                and isinstance(replacement.get("ref"), str)
+                and replacement["ref"].startswith(f"https://github.com/{repo}/")
+                and isinstance(replacement.get("reason"), str)
+                and replacement["reason"].strip()):
+            return answer("SUPERSEDED", "Original outcome was replaced: " + replacement["reason"].strip())
+        return answer("NEEDS_EVIDENCE", "Replacement lacks accepted SHA, source or explicit semantic reason")
     for p in e["related_prs"]:
         if (not isinstance(p, dict) or p.get("relation") not in
                 ("same_outcome", "overlapping_paths", "stack_dependency", "unrelated")
