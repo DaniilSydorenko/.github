@@ -28,6 +28,14 @@
 - **Control Plane recovery — 2026-10-21 verified:** [CP PR #173](https://github.com/DaniilSydorenko/autopilot-control-plane/pull/173) fixed the stale scheduler / disabled worker consistency mismatch; postmerge `main` validation and multiple actual scheduled Reconcile + follow-on Issue Sync runs are SUCCESS on Oct 20–21 (latest accepted CP `main` `48efa4d0`). **Not full fleet GREEN:** accepted `state/latest.json` at 2026-10-21T12:28:56Z reports Manager YELLOW; scheduler and Actions observations STALE, Career PUBLIC telemetry OVERDUE ([#172](https://github.com/DaniilSydorenko/autopilot-control-plane/issues/172)), paused Ladvero worker's historic report STALE, and Career executor proof still open ([#152](https://github.com/DaniilSydorenko/autopilot-control-plane/issues/152), [#160](https://github.com/DaniilSydorenko/autopilot-control-plane/issues/160)). These belong to Control Plane/executor owners; no HQ domain takeover or fabricated worker recovery.
 - **Domain autonomy:** open LADVERO/Career/Handbook application PRs are not HQ governance gates. GitHub Autopilot and Control Plane keep their own scheduling/merge authority; synchronous HQ cannot borrow it.
 
+## HQ issue execution map (GitHub/Cursor handoff, 2026-10-23)
+
+- **[M8 final profile acceptance #107](https://github.com/DaniilSydorenko/.github/issues/107):** owner-gated real mobile QA, repository metadata and website. Existing profile code/desktop/pins already accepted; no unproven redesign.
+- **[R5 branch protection #108](https://github.com/DaniilSydorenko/.github/issues/108):** read-only feasibility/minimal settings; actual enforcement requires owner authorization and provider readback.
+- **[R5 Actions cost #109](https://github.com/DaniilSydorenko/.github/issues/109):** bounded Cursor-ready, HQ-owned measurement and **one proven** non-security-trigger optimization or `NO_READY_WORK`. No claim that run counts equal billed minutes.
+- **M4 security:** existing [PR #82](https://github.com/DaniilSydorenko/.github/pull/82) is the live review artifact, independent approval outstanding; broader M4 publication remains **DEFERRED / KEEP PRIVATE**. No new M4 agent task, no automatic Cursor launch. Completed M0–M3/M5/M9/M10 and GOV do not need replay Issues.
+- [AI Engineering nine-phase initiative](../../docs/initiatives/ai-engineering/ROADMAP.md) is **owner-led and separate**, not an implicit HQ or Autopilot issue backlog. Issues contain task/evidence state; this file alone owns HQ milestone acceptance/percentages.
+
 ## GitHub HQ milestones — canonical acceptance rows
 
 ## M0 — Final Forensic Audit
