@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -17,7 +18,7 @@ from audit_history_paths import AUDITED_DISPOSITIONS, matches, normalize
 def audit(tree: object, manifest: object) -> tuple[int, dict]:
     if not isinstance(tree, dict) or tree.get("truncated") is not False:
         return 1, {"status": "INVALID", "reason": "Git tree missing or truncated"}
-    if not isinstance(tree.get("sha"), str) or len(tree["sha"]) != 40:
+    if not isinstance(tree.get("sha"), str) or re.fullmatch(r"[0-9a-f]{40}", tree["sha"]) is None:
         return 1, {"status": "INVALID", "reason": "Git tree SHA missing or invalid"}
     entries = tree.get("tree")
     if not isinstance(entries, list):
