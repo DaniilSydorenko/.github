@@ -84,6 +84,16 @@ class CurrentTreeTests(unittest.TestCase):
                 self.assertEqual(r.returncode, 1, r.stdout + r.stderr)
                 self.assertEqual(json.loads(r.stdout)["status"], "INVALID")
 
+    def test_invalid_git_tree_entry_sha_never_passes(self):
+        for invalid_sha in (None, "z" * 40, "abcd"):
+            with self.subTest(sha=invalid_sha):
+                tree = {"sha": SHA, "truncated": False, "tree": [
+                    {"path": "src/index.ts", "type": "blob", "sha": invalid_sha},
+                ]}
+                r = self.audit([], tree_override=tree)
+                self.assertEqual(r.returncode, 1, r.stdout + r.stderr)
+                self.assertEqual(json.loads(r.stdout)["status"], "INVALID")
+
     def test_duplicate_git_tree_entries_do_not_report_clean(self):
         r = self.audit(["src/index.ts", "src/index.ts"])
         self.assertEqual(r.returncode, 1, r.stdout + r.stderr)
