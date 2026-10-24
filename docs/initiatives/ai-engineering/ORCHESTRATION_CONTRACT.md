@@ -84,6 +84,21 @@ No new database, scheduler, queue, monitor, or mandatory per-repo manifest is in
 - **Control Plane** remains health/telemetry for scheduled workers; initiative ChatGPT/Cursor flows do not reconfigure it.
 - **Private/customer data:** ingestion or production private sources → `OWNER_GATE` / `UNSAFE`; public-safe coordination text only in this repo.
 
+## Owner safety mode — no unattended execution (2026-10-25)
+
+**Current authorization = MANUAL ONLY.** Owner wants future one-at-a-time continuation, but this draft **does not** enable it. Until the safeguards below are observed and tested, do not turn on Cursor Project subscriptions, schedules, event-based dispatch, unattended retries, cross-Issue chaining, or auto-merge. A prompt, `AGENTS.md`, Markdown budgets, and a shared session ID are **not hard enforcement**.
+
+- **Cost:** verify the actual current individual Cursor account plan and **provider-enforced On-Demand Spending = Disabled** (last owner observation 2026-10-22). Never enable pay-as-you-go, paid top-up, unlimited overages, model upgrades, or billing changes. Provider/account limits are the protection against extra billing; instructions alone are not. Included tokens remain finite. If provider controls, spend attribution, or behavior are UNKNOWN, **STOP; do not launch unattended work**.
+- **One execution:** exactly **one actively running model-consuming engineering execution across all authorized triggers** (including coordinator/delegates, desktop/cloud, retry and subscription wake-up). Before future autonomy, independently demonstrate **atomic, shared, fail-closed concurrency/idempotency control** across trigger sources and prove a second attempted start is rejected. Inability to enforce this is a **hard blocker**; do not claim Cursor Projects naturally supplies a one-agent lock.
+- **Sequence:** use **only** existing owner/domain-approved roadmap tasks and verified Issue/PR links. Next task starts only after the previous one has reached its specified **accepted** state (or is explicitly released/blocked and the owner pre-authorized an independent leaf). PR open, agent finish, green CI, or Issue close alone is not product/release acceptance. No self-generated work backlog, surprise Issues, or unapproved scope expansion.
+- **Finite attempts:** one implementation with at most two distinct evidence-based corrections. A CI or PR subscription is a **potential paid model wake-up**; default auto-fix, recurring subscriptions, and Projects multiagent delegation remain OFF until the owner accepts observed bounds and stop conditions.
+- **Owner stops:** merges/releases/publication, secrets/private data, permissions, subscriptions/worker/scheduler setup, model/billing changes, destructive actions and policy changes remain human gated. Lack of permission/lease/provenance/checks/cost visibility → `OWNER_GATE` / `NEEDS_EVIDENCE` / `STOP`, never optimistic READY.
+- **Evidence required before autonomous promotion:** provider/account screen for spending controls; negative test of second concurrent start; duplicate webhook/retry test; stale SHA and existing-PR reuse; budget exhaustion/denial; agent STOP on ambiguous authorization; measurable token usage; no unapproved merges. Record only sanitized acceptance in the existing owning Issue/PR. Owner must explicitly approve any later enablement.
+
+## Event-driven cross-team handoff (only on a concrete dependency)
+
+When AI Engineering needs an HQ infrastructure change (or HQ needs an initiative-local contract change), use a **single comment on the existing owning Issue/PR** with `OWNER`, `REQUEST`, `IMPACT`, `EVIDENCE` (specific Issue/PR, exact SHA, checks), and `ACCEPTANCE`. Receiver replies with decision and accepted commit/check in **that same thread**. No duplicated roadmap, status polling, new Issue by default, or automatic coordination between chats. Each team keeps exclusive write/merge authority for its own files and PRs; absent a real dependency, **no handoff**.
+
 ## Illustrative acceptance matrix (synthetic decisions)
 
 | Case | Preflight observation | Classification | Safe decision |
