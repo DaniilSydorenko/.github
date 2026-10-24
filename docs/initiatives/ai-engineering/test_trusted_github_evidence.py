@@ -410,6 +410,24 @@ class TrustedGitHubEvidenceTests(unittest.TestCase):
         self.assertEqual(result["status"], "NEEDS_EVIDENCE")
         self.assertIn("verifiable_final_default_branch_sha", result["missing_capabilities"])
 
+    def test_final_sha_verification_disabled_does_not_yield_observed(self):
+        routes = merge_routes(
+            repo_routes(),
+            issue_route(),
+            {("GET", f"/repos/{OWNER}/{NAME}/issues/{ISSUE}/events"): []},
+            commits_route([SHA_A]),
+        )
+        result = collect_task_evidence(
+            REPO,
+            ISSUE,
+            transport=FakeGitHub(routes=routes),
+            verify_default_sha_twice=False,
+        )
+        self.assertEqual(result["status"], "NEEDS_EVIDENCE")
+        self.assertIn(
+            "final_default_sha_verification_disabled", result["missing_capabilities"]
+        )
+
     def test_raw_provider_error_content_never_printed(self):
         sensitive = "LEAK-ME-NOT-private-provider-payload"
         fake = FakeGitHub(
