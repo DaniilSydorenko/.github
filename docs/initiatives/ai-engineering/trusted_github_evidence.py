@@ -433,6 +433,9 @@ def collect_task_evidence(
 
         # Final read happens *after* event, PR and commit collection. An earlier
         # repeat would miss a default-branch move during these calls.
+        # A caller may disable the extra read, but that cannot be full evidence.
+        if not verify_default_sha_twice:
+            missing.append("final_default_sha_verification_disabled")
         if verify_default_sha_twice and default_branch and default_sha:
             ref_final = transport.get_json(
                 f"/repos/{owner}/{name}/git/ref/heads/{default_branch}"
