@@ -31,7 +31,10 @@ def audit(tree: object, manifest: object) -> tuple[int, dict]:
     paths: set[str] = set()
     entry_paths: set[str] = set()
     for i, item in enumerate(entries):
-        if not isinstance(item, dict) or not isinstance(item.get("path"), str) or item.get("type") not in {"blob", "tree", "commit"}:
+        if (not isinstance(item, dict) or not isinstance(item.get("path"), str)
+                or item.get("type") not in {"blob", "tree", "commit"}
+                or not isinstance(item.get("sha"), str)
+                or re.fullmatch(r"[0-9a-f]{40}", item["sha"]) is None):
             return 1, {"status": "INVALID", "reason": f"invalid Git tree entry {i}"}
         entry_path = item["path"]
         # A malformed or duplicated snapshot must never produce a false clean report.
