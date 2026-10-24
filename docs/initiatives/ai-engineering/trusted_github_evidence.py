@@ -95,10 +95,11 @@ class LiveGitHub:
                 body = resp.read().decode("utf-8")
                 return json.loads(body) if body else None
         except urllib.error.HTTPError as exc:
-            detail = exc.read().decode("utf-8", errors="replace")[:500]
-            raise GitHubHTTPError(exc.code, path, detail) from exc
+            # Provider error bodies may include credentials or private data.
+            # Never read or forward them into publicly printable diagnostics.
+            raise GitHubHTTPError(exc.code, path) from exc
         except urllib.error.URLError as exc:
-            raise GitHubHTTPError(0, path, str(exc.reason)) from exc
+            raise GitHubHTTPError(0, path) from exc
 
 
 def client_from_environment() -> Tuple[Optional[Any], Optional[str]]:
@@ -328,6 +329,7 @@ def collect_task_evidence(
             raise GitHubHTTPError(502, _issue_path(owner, name, issue_number), "invalid issue")
         if issue.get("number") != issue_number:
             warnings.append("Issue number mismatch between request and response")
+            missing.append("consistent_issue_identity")
         issue_state = issue.get("state")
         if issue_state not in ("open", "closed"):
             missing.append("issue_state")
@@ -349,19 +351,6 @@ def collect_task_evidence(
         observed["default_branch"] = default_branch
         observed["default_sha"] = default_sha
 
-        if verify_default_sha_twice and default_branch and default_sha:
-            ref2 = transport.get_json(f"/repos/{owner}/{name}/git/ref/heads/{default_branch}")
-            sha2 = None
-            if isinstance(ref2, dict) and isinstance(ref2.get("object"), dict):
-                maybe = ref2["object"].get("sha")
-                if isinstance(maybe, str) and SHA.fullmatch(maybe):
-                    sha2 = maybe
-            if sha2 and sha2 != default_sha:
-                warnings.append("Default branch SHA changed during collection")
-                observed["default_sha"] = sha2
-                observed["default_sha_at_start"] = default_sha
-                default_sha = sha2
-
         events, events_complete = _paginate_events(
             transport, owner, name, issue_number, per_page=100, max_pages=max_event_pages
         )
@@ -374,8 +363,14 @@ def collect_task_evidence(
             for num in explicit_pr_numbers:
                 if num not in linked:
                     linked.append(num)
+        total_discovered = len(linked)
+        inventory_truncated = total_discovered > max_prs
+        if inventory_truncated:
+            warnings.append("Linked PR inventory truncated (bounded max PRs)")
         linked = linked[:max_prs]
         observed["linked_pr_numbers_from_events"] = list(linked)
+        observed["linked_pr_total_discovered"] = total_discovered
+        observed["linked_pr_inventory_truncated"] = inventory_truncated
 
         related_prs: List[dict] = []
         pr_fetch_incomplete = False
@@ -383,6 +378,7 @@ def collect_task_evidence(
             pull = _fetch_pull(transport, owner, name, num)
             if pull.get("number") != num:
                 warnings.append(f"PR response number mismatch for #{num}")
+                missing.append("consistent_linked_pr_identity")
             files, files_complete = _fetch_pull_files(
                 transport, owner, name, num, per_page=100, max_pages=max_file_pages
             )
@@ -395,19 +391,33 @@ def collect_task_evidence(
                 if isinstance(pull_verify.get("head"), dict)
                 else None
             )
-            if (
-                isinstance(record.get("head_sha"), str)
-                and isinstance(vhead, str)
-                and record["head_sha"] != vhead
+            if pull_verify.get("number") != num:
+                warnings.append(f"PR verification number mismatch for #{num}")
+                missing.append("consistent_linked_pr_identity")
+            if not record["head_sha_observed"] or not (
+                isinstance(vhead, str) and SHA.fullmatch(vhead)
             ):
+                warnings.append(f"PR #{num} lacks a verifiable HEAD SHA")
+                missing.append("verifiable_linked_pr_head_sha")
+            if record["head_sha"] != vhead:
                 warnings.append(f"PR #{num} HEAD changed during collection")
+                missing.append("stable_linked_pr_head_sha")
                 record["head_sha_at_start"] = record["head_sha"]
-                record["head_sha"] = vhead
-                record["head_sha_observed"] = SHA.fullmatch(vhead) is not None
-            if pull_verify.get("merged_at") and record.get("state") == "open":
-                warnings.append(f"PR #{num} merged during collection")
+                record["head_sha"] = vhead if isinstance(vhead, str) else None
+                record["head_sha_observed"] = (
+                    isinstance(vhead, str) and SHA.fullmatch(vhead) is not None
+                )
+            if (
+                pull_verify.get("state") != record["state"]
+                or bool(pull_verify.get("merged_at")) != record["merged"]
+            ):
+                if pull_verify.get("merged_at") and record["state"] == "open":
+                    warnings.append(f"PR #{num} merged during collection")
+                else:
+                    warnings.append(f"PR #{num} state changed during collection")
+                missing.append("stable_linked_pr_state")
                 record["state"] = pull_verify.get("state")
-                record["merged"] = True
+                record["merged"] = bool(pull_verify.get("merged_at"))
             related_prs.append(record)
 
         observed["related_prs"] = related_prs
@@ -421,10 +431,30 @@ def collect_task_evidence(
         observed["default_branch_recent_commit_shas"] = commit_shas
         observed["accepted_shas"] = None  # semantic; requires reviewer proof mapping
 
+        # Final read happens *after* event, PR and commit collection. An earlier
+        # repeat would miss a default-branch move during these calls.
+        if verify_default_sha_twice and default_branch and default_sha:
+            ref_final = transport.get_json(
+                f"/repos/{owner}/{name}/git/ref/heads/{default_branch}"
+            )
+            final_sha = None
+            if isinstance(ref_final, dict) and isinstance(ref_final.get("object"), dict):
+                candidate = ref_final["object"].get("sha")
+                if isinstance(candidate, str) and SHA.fullmatch(candidate):
+                    final_sha = candidate
+            if final_sha is None:
+                missing.append("verifiable_final_default_branch_sha")
+                warnings.append("Final default branch SHA unavailable")
+            elif final_sha != default_sha:
+                warnings.append("Default branch SHA changed during collection")
+                missing.append("stable_default_branch_sha")
+                observed["default_sha_at_start"] = default_sha
+                observed["default_sha"] = final_sha
+
         status = "OBSERVED"
         if missing:
             status = "NEEDS_EVIDENCE"
-        elif not events_complete or pr_fetch_incomplete:
+        elif not events_complete or pr_fetch_incomplete or inventory_truncated:
             status = "PARTIAL"
             missing.append("complete_bounded_inventory")
 
@@ -449,7 +479,7 @@ def collect_task_evidence(
             "observed_at": started,
             "observed_facts": observed,
             "reviewer_assertions_required": list(REVIEWER_ASSERTION_FIELDS),
-            "warnings": warnings + [str(exc)],
+            "warnings": warnings + [f"GitHub API read failed ({cap})"],
         }
 
 
