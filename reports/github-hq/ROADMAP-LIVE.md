@@ -34,7 +34,7 @@
 - **[R5 branch protection #108](https://github.com/DaniilSydorenko/.github/issues/108):** read-only feasibility/minimal settings; actual enforcement requires owner authorization and provider readback.
 - **[R5 Actions cost #109](https://github.com/DaniilSydorenko/.github/issues/109):** bounded Cursor-ready, HQ-owned measurement and **one proven** non-security-trigger optimization or `NO_READY_WORK`. No claim that run counts equal billed minutes.
 - **M4 security:** existing [PR #82](https://github.com/DaniilSydorenko/.github/pull/82) is the live review artifact, independent approval outstanding; broader M4 publication remains **DEFERRED / KEEP PRIVATE**. No new M4 agent task, no automatic Cursor launch. Completed M0–M3/M5/M9/M10 and GOV do not need replay Issues.
-- [AI Engineering nine-phase initiative](../../docs/initiatives/ai-engineering/ROADMAP.md) is **owner-led and separate**, not an implicit HQ or Autopilot issue backlog. Issues contain task/evidence state; this file alone owns HQ milestone acceptance/percentages.
+- [AI Engineering](../../docs/initiatives/ai-engineering/ROADMAP.md) stays owner-led and separate. **Low-Burn guidance 7/7 in default branches**: [central #113](https://github.com/DaniilSydorenko/.github/pull/113), [HQ #114](https://github.com/DaniilSydorenko/.github/pull/114), [six domain merges](https://github.com/DaniilSydorenko/.github/pull/113#issuecomment-6368213761). Offline [gate #112](https://github.com/DaniilSydorenko/.github/pull/112) accepted as advisory only. **Real Cursor token/cost proof OPEN [#120](https://github.com/DaniilSydorenko/.github/issues/120)**; no savings or runtime enforcement claimed. HQ owns HQ percentages only.
 
 ## GitHub HQ milestones — canonical acceptance rows
 
