@@ -7,7 +7,7 @@
 
 This document defines **how** ChatGPT-side AI Engineering work is selected, reviewed, and dispatched. It is **not** a second control plane, scheduler, or substitute for domain authorization. Issue #118 authorizes preparation of this draft only.
 
-## Three roles — do not conflate them
+## Four roles — do not conflate them
 
 | Role | Repository / system | What it owns | What this contract does **not** grant |
 | --- | --- | --- | --- |
