@@ -60,6 +60,14 @@ class CurrentTreeTests(unittest.TestCase):
         self.assertEqual(r.returncode, 1)
         self.assertEqual(json.loads(r.stdout)["status"], "INVALID")
 
+    def test_non_hex_git_tree_sha_never_passes(self):
+        invalid = {"sha": "z" * 40, "truncated": False, "tree": [
+            {"path": "src/index.ts", "type": "blob", "sha": SHA},
+        ]}
+        result = self.audit([], tree_override=invalid)
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertEqual(json.loads(result.stdout)["status"], "INVALID")
+
     def test_missing_sha_never_passes(self):
         r = self.audit([], tree_override={"truncated": False, "tree": []})
         self.assertEqual(r.returncode, 1)
