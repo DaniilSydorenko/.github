@@ -102,9 +102,11 @@ def global_run_preflight(api, *, global_account_scope_verified: bool,
                 run = api.get_json(f"/v1/agents/{ident}/runs/{latest}")
                 if run.get("agentId") != ident or run.get("id") != latest:
                     raise CursorReadError("run identity mismatch")
-                if run.get("status") not in TERMINAL:
+                if run.get("status") in ("CREATING", "RUNNING", "WAITING_FOR_BACKGROUND_WORK"):
                     return {"status": "BUSY", "reason": "cursor_run_not_terminal",
                             "can_launch": False, "active_agent": ident}
+                if run.get("status") not in TERMINAL:
+                    raise CursorReadError("unknown run status")
             cursor = page.get("nextCursor")
             if cursor is None:
                 return {"status": "CLEAR", "reason": "no_active_cursor_agents",
