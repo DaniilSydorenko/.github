@@ -123,6 +123,34 @@ def preview_one(bundle: dict[str, Any]) -> dict[str, Any]:
     if outcome not in ("EXISTING_PR", "READY"):
         return _reply("STOP", "unexpected_decision_gate_outcome")
 
+    # The accepted Decision Gate returns EXISTING_PR before evaluating some
+    # independent gates (owner/dependency/writer). Never treat that recommendation
+    # as permission to bypass them in a composed orchestration preview.
+    task_evidence = task.get("evidence", {})
+    if (task_evidence.get("scope") == "owner_gated"
+            or task_evidence.get("owner_gate") is True
+            or task_evidence.get("owner_permission") != "granted"):
+        return _reply("OWNER_GATE", "unresolved_task_owner_gate", issue=issue, sha=sha)
+    if task_evidence.get("owner_gate") is not False:
+        return _reply("STOP", "task_owner_gate_unknown", issue=issue, sha=sha)
+    if task_evidence.get("writer") == "active":
+        return _reply("WAIT", "task_writer_active", issue=issue, sha=sha)
+    if task_evidence.get("writer") != "idle":
+        return _reply("STOP", "task_writer_unknown", issue=issue, sha=sha)
+    if task_evidence.get("external") == "blocked":
+        return _reply("WAIT", "external_dependency_blocked", issue=issue, sha=sha)
+    if task_evidence.get("external") != "clear":
+        return _reply("STOP", "external_evidence_unknown", issue=issue, sha=sha)
+    deps = task_evidence.get("dependencies")
+    if not isinstance(deps, list) or any(
+            not isinstance(x, dict) or x.get("state") not in ("accepted", "pending", "unknown")
+            for x in deps):
+        return _reply("STOP", "dependency_state_unknown", issue=issue, sha=sha)
+    if any(x["state"] == "unknown" for x in deps):
+        return _reply("STOP", "dependency_unverified", issue=issue, sha=sha)
+    if any(x["state"] == "pending" for x in deps):
+        return _reply("WAIT", "dependency_not_yet_accepted", issue=issue, sha=sha)
+
     semantic_result = reconcile_one(semantic)
     decision = semantic_result.get("action")
     if decision == "STOP":
