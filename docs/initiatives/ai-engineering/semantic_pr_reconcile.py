@@ -108,6 +108,9 @@ def reconcile_one(evidence: dict[str, Any]) -> dict[str, Any]:
             return _result("STOP", "pr_owner_or_writer_unknown")
         if p["merged"] and p["state"] != "closed":
             return _result("STOP", "contradictory_pr_state")
+        if p["state"] == "closed" and not p["merged"] and p["relation"] in (
+                "EXACT_SAME_OUTCOME", "PROPOSED_NOT_ACCEPTED", "PARTIAL"):
+            return _result("STOP", "closed_unmerged_relevant_pr_needs_reconciliation", n)
         if p.get("stack_parent") is not None and (
                 type(p["stack_parent"]) is not int or p["stack_parent"] == n):
             return _result("STOP", "invalid_stack_parent")
@@ -142,6 +145,10 @@ def reconcile_one(evidence: dict[str, Any]) -> dict[str, Any]:
         return _result("STOP", "multiple_competing_same_outcome_prs")
     if open_matches:
         p = open_matches[0]
+        for other in items:
+            if other["number"] != p["number"] and other["state"] == "open" and (
+                    set(p["changed_paths"]).intersection(other["changed_paths"])):
+                return _result("WAIT_DEPENDENCY", "existing_pr_has_overlapping_open_writer", p["number"])
         if p["writer_active"]:
             return _result("WAIT_DEPENDENCY", "existing_pr_has_active_writer", p["number"])
         if p["owner_gate"]:
