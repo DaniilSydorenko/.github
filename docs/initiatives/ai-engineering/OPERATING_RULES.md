@@ -30,6 +30,8 @@
 
 **Preflight (without an agent when possible):** ChatGPT/GitHub Connector fetches only needed current metadata, existing code/Issue/PR and evidence. If a read-only answer is fully obtainable through the connector, **do not** launch Cursor merely to read the same files.
 
+**Zero-Model Preflight — mandatory before any proposed paid Cursor run (Stage 2 owner-review proposal):** Perform task discovery, current main/PR-head checks, relevant PR inventory, duplicate and dependency detection, exact-head CI/status lookups and owner-scope checks using deterministic GitHub/API/script reads **before** launching or waking any Cursor model. If no accepted, authorized, non-duplicative work exists, return `NO_READY_WORK` without launching Cursor; if evidence, active-run status or lease is unknown, return `STOP` without speculative retry. A scheduled clock tick, failed provider request, or fresh Issue/PR alone must never trigger model usage. A token/$ target written in a prompt is not enforcement: technical global admission, verified provider billing controls, model/subagent limits and no bypass launch paths must each pass separately, or automatic execution stays off. Prefer a proved existing PR/session continuation over a new branch/run **only after** admission; no automatic merge, release, or domain authority expansion. This initiative-local text is non-enforcing until an actual controller passes adversarial tests and receives separate owner GO.
+
 **Scoped dispatch:** one short GitHub issue/PR comment including:
 ```yaml
 task_id: <owner-chosen-id>
