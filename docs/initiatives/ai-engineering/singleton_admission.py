@@ -118,9 +118,9 @@ def evaluate(snapshot: dict[str, Any]) -> dict[str, Any]:
             return _result("STOP", "unverifiable_pr_head")
         if pr["relation"] == "INSUFFICIENT_EVIDENCE":
             return _result("STOP", "unknown_pr_semantics")
-        if pr.get("owner_gate") not in (True, False):
+        if type(pr.get("owner_gate")) is not bool:
             return _result("STOP", "pr_owner_gate_unknown")
-        if pr.get("writer_active") not in (True, False):
+        if type(pr.get("writer_active")) is not bool:
             return _result("STOP", "writer_identity_unknown")
         if pr.get("writer_active") is True:
             return _result("BUSY", "pr_writer_active")
@@ -136,8 +136,8 @@ def evaluate(snapshot: dict[str, Any]) -> dict[str, Any]:
     # Only eligible, relevant PR work preempts new coding. An owner-gated unrelated
     # PR must not deadlock an independently approved, non-overlapping task.
     eligible = [p for p in prs if p["relation"] in ("PROPOSED_NOT_ACCEPTED", "PARTIAL")
-                and p.get("integration_ready") is True]
-    if any(p.get("integration_ready") not in (True, False) for p in prs):
+                and p.get("integration_ready") is True and p["owner_gate"] is False]
+    if any(type(p.get("integration_ready")) is not bool for p in prs):
         return _result("STOP", "integration_readiness_unknown")
 
     if intent["kind"] == "NEW_CODE":
