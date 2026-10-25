@@ -68,12 +68,10 @@ def evaluate(snapshot: dict[str, Any]) -> dict[str, Any]:
     lease = snapshot.get("lease")
     if not isinstance(lease, dict) or lease.get("verified_atomic") is not True:
         return _result("STOP", "atomic_lease_unverified")
-    if lease.get("owner_request_id") not in (None, request_id):
+    if lease.get("state") != "OWNED":
+        return _result("STOP", "lease_not_acquired")
+    if lease.get("owner_request_id") != request_id:
         return _result("BUSY", "lease_owned_by_another_request")
-    if lease.get("state") not in ("FREE", "OWNED"):
-        return _result("STOP", "lease_state_unknown")
-    if lease.get("state") == "OWNED" and lease.get("owner_request_id") != request_id:
-        return _result("BUSY", "foreign_lease")
     if snapshot.get("provider_run_inventory_complete") is not True:
         return _result("STOP", "provider_run_inventory_incomplete")
     if snapshot.get("ambiguous_previous_launch") is not False:
