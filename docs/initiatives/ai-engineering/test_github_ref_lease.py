@@ -8,7 +8,7 @@ from unittest.mock import patch
 
 from github_ref_lease import (
     Controller, GitHubRefStore, LeaseError, RefConflict, Snapshot,
-    agent_id_for, initial_state, PREFIX,
+    agent_id_for, check_state, fingerprint, initial_state, MAX_CONSUMED_REQUESTS, PREFIX,
 )
 
 
@@ -73,7 +73,8 @@ class LeaseTests(unittest.TestCase):
         s1 = self.store.read()
         s2 = self.store.read()
         owned = {**initial_state(), "revision": 1, "phase": "RESERVED",
-                 "request_id": "issue-pr-284", "agent_id": agent_id_for("issue-pr-284")}
+                 "request_id": "issue-pr-284", "agent_id": agent_id_for("issue-pr-284"),
+                 "consumed_request_hashes": [fingerprint("issue-pr-284")]}
         self.store.advance(s1, owned)
         with self.assertRaises(RefConflict):
             self.store.advance(s2, owned)
@@ -155,6 +156,70 @@ class LeaseTests(unittest.TestCase):
         self.assertEqual(self.store.state["phase"], "IDLE")
         self.assertEqual(self.gate.acquire("other-task-99", PR), "ACQUIRED")
 
+    def test_same_request_stays_consumed_after_verified_release(self):
+        request = "issue-pr-284"
+        self.assertEqual(self.gate.acquire(request, PR), "ACQUIRED")
+        self.gate.transition(request, "RESERVED", "DISPATCHING")
+        self.gate.transition(request, "DISPATCHING", "RUNNING", run_id="run-123")
+        self.gate.transition(request, "RUNNING", "VERIFYING")
+        self.gate.release_verified(request, provider_terminal=True,
+                                   integration_accepted=True, manual_approval=True)
+        self.assertEqual(Controller(self.store).acquire(request, PR), "ALREADY_CONSUMED")
+        self.assertEqual(self.store.state["phase"], "IDLE")
+        self.assertEqual(self.store.state["consumed_request_hashes"], [fingerprint(request)])
+        self.assertNotIn(request, repr(self.store.state["consumed_request_hashes"]))
+
+    def test_cancelled_reservation_consumes_id_but_other_can_run(self):
+        request = "issue-pr-284"
+        self.gate.acquire(request, PR)
+        self.gate.transition(request, "RESERVED", "IDLE")
+        self.assertEqual(self.gate.acquire(request, PR), "ALREADY_CONSUMED")
+        self.assertEqual(self.gate.acquire("fresh-issue-285", PR), "ACQUIRED")
+
+    def test_old_legacy_idle_state_rejected_until_explicit_migration(self):
+        self.store.state = {k: v for k, v in initial_state().items()
+                            if k != "consumed_request_hashes"}
+        with self.assertRaisesRegex(LeaseError, "replay ledger"):
+            self.gate.acquire("issue-pr-284", PR)
+
+    def test_active_request_not_in_history_stops(self):
+        self.gate.acquire("issue-pr-284", PR)
+        self.store.state["consumed_request_hashes"] = []
+        with self.assertRaisesRegex(LeaseError, "active request missing"):
+            self.gate.acquire("different-issue-99", PR)
+
+    def test_corrupt_and_duplicate_history_stops(self):
+        for entries in (["bad"], ["a" * 64, "a" * 64], [True], ["A" * 64]):
+            with self.subTest(entries=entries):
+                self.store.state = {**initial_state(), "consumed_request_hashes": entries}
+                with self.assertRaises(LeaseError):
+                    self.gate.acquire("issue-pr-284", PR)
+
+    def test_full_history_stops_without_mutation(self):
+        initial = {**initial_state(), "consumed_request_hashes": [
+            format(i, "064x") for i in range(MAX_CONSUMED_REQUESTS)
+        ]}
+        check_state(initial)
+        self.store.state = initial
+        before = self.store.read().sha
+        self.assertEqual(self.gate.acquire("issue-pr-284", PR), "HISTORY_FULL")
+        self.assertEqual(before, self.store.read().sha)
+
+    def test_release_preserves_every_prior_fingerprint(self):
+        a, b = "first-issue-284", "second-issue-285"
+        self.gate.acquire(a, PR)
+        self.gate.transition(a, "RESERVED", "IDLE")
+        self.gate.acquire(b, PR)
+        self.gate.transition(b, "RESERVED", "DISPATCHING")
+        self.gate.transition(b, "DISPATCHING", "RUNNING", run_id="run-456")
+        self.gate.transition(b, "RUNNING", "VERIFYING")
+        self.gate.release_verified(b, provider_terminal=True,
+                                   integration_accepted=True, manual_approval=True)
+        self.assertEqual(self.store.state["consumed_request_hashes"],
+                         [fingerprint(a), fingerprint(b)])
+        self.assertEqual(self.gate.acquire(a, PR), "ALREADY_CONSUMED")
+        self.assertEqual(self.gate.acquire(b, PR), "ALREADY_CONSUMED")
+
     def test_illegal_state_transition_rejected(self):
         self.gate.acquire("issue-pr-284", PR)
         with self.assertRaises(LeaseError):
@@ -177,7 +242,8 @@ class GithubAPIAdapterTests(unittest.TestCase):
         api = GitHubRefStore("DaniilSydorenko/.github", "test-token")
         observed = Snapshot("a" * 40, "b" * 40, initial_state())
         state = {**initial_state(), "revision": 1, "phase": "RESERVED",
-                 "request_id": "issue-pr-284", "agent_id": agent_id_for("issue-pr-284")}
+                 "request_id": "issue-pr-284", "agent_id": agent_id_for("issue-pr-284"),
+                 "consumed_request_hashes": [fingerprint("issue-pr-284")]}
         with patch.object(api, "_call", side_effect=[{"sha": "c" * 40}, {}]) as call:
             self.assertEqual(api.advance(observed, state), "c" * 40)
         self.assertEqual(call.call_args_list[0].args[0:2], ("POST", "/git/commits"))
@@ -189,7 +255,8 @@ class GithubAPIAdapterTests(unittest.TestCase):
         api = GitHubRefStore("DaniilSydorenko/.github", "test-token")
         observed = Snapshot("a" * 40, "b" * 40, initial_state())
         state = {**initial_state(), "revision": 1, "phase": "RESERVED",
-                 "request_id": "issue-pr-284", "agent_id": agent_id_for("issue-pr-284")}
+                 "request_id": "issue-pr-284", "agent_id": agent_id_for("issue-pr-284"),
+                 "consumed_request_hashes": [fingerprint("issue-pr-284")]}
         with patch.object(api, "_call", side_effect=[{"sha": "c" * 40}, RefConflict("raced")]) as call:
             with self.assertRaises(RefConflict):
                 api.advance(observed, state)
