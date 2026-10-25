@@ -36,6 +36,10 @@ jobs:
         run: python3 -m unittest -v test_cursor_api_probe test_cursor_readonly
 
   manual-probe:
+    # Configure GitHub Environment cursor-readonly-preflight with main-only
+    # deployment branches, required owner reviewer, and environment-scoped
+    # CURSOR_API_KEY before any manual provider GET. Do NOT use repo secrets.
+    environment: cursor-readonly-preflight
     if: >-
       github.event_name == 'workflow_dispatch' &&
       github.repository == 'DaniilSydorenko/.github' &&
