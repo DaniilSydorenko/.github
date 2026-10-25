@@ -49,7 +49,7 @@ def fixture(include_pr=True):
             "accepted_shas": [],
         },
         "task": {
-            "repository": REPO, "issue": ISSUE,
+            "schema_version": 1, "repository": REPO, "issue": ISSUE,
             "evidence": {
                 "default_sha": A, "checked_sha": A, "inventory_complete": True,
                 "issue_state": "open", "accepted_commit": None, "accepted_proof": None,
