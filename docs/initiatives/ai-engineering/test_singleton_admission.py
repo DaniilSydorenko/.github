@@ -20,7 +20,7 @@ def baseline():
         "launch_routes_exclusive": True,
         "request_id": "req-issue-42",
         "prior_request_ids": [],
-        "lease": {"verified_atomic": True, "state": "FREE", "owner_request_id": None},
+        "lease": {"verified_atomic": True, "state": "OWNED", "owner_request_id": "req-issue-42"},
         "provider_run_inventory_complete": True,
         "ambiguous_previous_launch": False,
         "active_run_ids": [],
@@ -62,6 +62,11 @@ class SingletonAdmissionTests(unittest.TestCase):
         data = baseline()
         data["prior_request_ids"] = [data["request_id"]]
         self.assertEqual(evaluate(data)["reason"], "duplicate_request")
+
+    def test_free_but_not_acquired_does_not_admit(self):
+        data = baseline()
+        data["lease"] = {"verified_atomic": True, "state": "FREE", "owner_request_id": None}
+        self.assertEqual(evaluate(data)["reason"], "lease_not_acquired")
 
     def test_lease_different_owner_busy(self):
         data = baseline()
