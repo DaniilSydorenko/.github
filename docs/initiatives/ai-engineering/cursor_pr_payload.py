@@ -12,7 +12,7 @@ from urllib.parse import urlparse
 from github_ref_lease import agent_id_for
 
 SHA = re.compile(r"[0-9a-f]{40}\Z")
-SLUG = re.compile(r"[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?/[A-Za-z0-9_-][A-Za-z0-9_.-]*\Z")
+SLUG = re.compile(r"[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?/[A-Za-z0-9_.-]+\Z")
 MODEL = re.compile(r"[A-Za-z0-9_.:/+-]{2,80}\Z")
 
 
@@ -29,7 +29,8 @@ def existing_pr_payload(*, request_id: str, repository: str,
     Invalid/replayed request IDs are rejected by the *separate* durable lease.
     """
     agent_id = agent_id_for(request_id)  # Cursor v1 supports idempotent agentId
-    if not isinstance(repository, str) or not SLUG.fullmatch(repository):
+    if (not isinstance(repository, str) or not SLUG.fullmatch(repository)
+            or repository.split("/", 1)[1] in (".", "..")):
         raise PayloadError("invalid repository")
     if type(pr_number) is not int or pr_number <= 0:
         raise PayloadError("invalid PR number")
