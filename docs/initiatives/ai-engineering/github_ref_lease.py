@@ -6,6 +6,7 @@ cannot both fast-forward the same ref. Never automatically expire leases.
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 import uuid
@@ -17,6 +18,8 @@ from urllib.request import Request, urlopen
 PREFIX = "AI_ENG_CURSOR_LEASE_V1\n"
 SHA = re.compile(r"[0-9a-f]{40}\Z")
 REQ = re.compile(r"[A-Za-z0-9_.:-]{8,128}\Z")
+DIGEST = re.compile(r"[0-9a-f]{64}\Z")
+MAX_CONSUMED_REQUESTS = 256  # Never evict history automatically; stop instead.
 PHASES = {"IDLE", "RESERVED", "DISPATCHING", "RUNNING", "VERIFYING", "BLOCKED"}
 
 
@@ -53,17 +56,33 @@ def check_state(s: dict[str, Any]) -> None:
             raise LeaseError("agent identity missing")
     if type(s.get("revision")) is not int or s["revision"] < 0:
         raise LeaseError("bad state revision")
+    fingerprints = s.get("consumed_request_hashes")
+    if (not isinstance(fingerprints, list) or len(fingerprints) > MAX_CONSUMED_REQUESTS
+            or any(not isinstance(x, str) or not DIGEST.fullmatch(x) for x in fingerprints)
+            or len(fingerprints) != len(set(fingerprints))):
+        # Existing pre-ledger refs must be explicitly reconciled/migrated,
+        # never auto-assumed empty; unknown replay history is a hard STOP.
+        raise LeaseError("missing, malformed, or exhausted replay ledger")
+    if s["phase"] != "IDLE" and fingerprint(s["request_id"]) not in fingerprints:
+        raise LeaseError("active request missing from persistent replay ledger")
 
 
 def initial_state() -> dict[str, Any]:
     return {"version": 1, "revision": 0, "phase": "IDLE", "request_id": None,
-            "agent_id": None, "run_id": None, "pr_url": None}
+            "agent_id": None, "run_id": None, "pr_url": None,
+            "consumed_request_hashes": []}
 
 
 def agent_id_for(request_id: str) -> str:
     if not isinstance(request_id, str) or not REQ.fullmatch(request_id):
         raise LeaseError("invalid request identity")
     return "bc-" + str(uuid.uuid5(uuid.NAMESPACE_URL, "ai-eng-cursor-v1:" + request_id))
+
+
+def fingerprint(request_id: str) -> str:
+    if not isinstance(request_id, str) or not REQ.fullmatch(request_id):
+        raise LeaseError("invalid request identity")
+    return hashlib.sha256(("ai-eng-cursor-request-v1:" + request_id).encode()).hexdigest()
 
 
 class Controller:
@@ -82,9 +101,15 @@ class Controller:
         check_state(old.state)
         if old.state["phase"] != "IDLE":
             return "ALREADY_OWNED" if old.state["request_id"] == request_id else "BUSY"
+        used = old.state["consumed_request_hashes"]
+        if fingerprint(request_id) in used:
+            return "ALREADY_CONSUMED"  # Never make even one more Cursor POST.
+        if len(used) >= MAX_CONSUMED_REQUESTS:
+            return "HISTORY_FULL"  # Owner must redesign capacity; never evict.
         nxt = {**old.state, "revision": old.state["revision"] + 1,
                "phase": "RESERVED", "request_id": request_id, "agent_id": agent_id,
-               "pr_url": pr_url, "run_id": None}
+               "pr_url": pr_url, "run_id": None,
+               "consumed_request_hashes": [*used, fingerprint(request_id)]}
         try:
             self.store.advance(old, nxt)
         except RefConflict:
@@ -116,7 +141,8 @@ class Controller:
         if to_phase == "RUNNING":
             nxt["run_id"] = run_id
         if to_phase == "IDLE":
-            nxt = {**initial_state(), "revision": nxt["revision"]}
+            nxt = {**initial_state(), "revision": nxt["revision"],
+                   "consumed_request_hashes": list(old.state["consumed_request_hashes"])}
         self.store.advance(old, nxt)
         return to_phase
 
@@ -129,7 +155,8 @@ class Controller:
         check_state(old.state)
         if old.state["request_id"] != request_id or old.state["phase"] not in ("VERIFYING", "BLOCKED"):
             raise LeaseError("release not in terminal verification phase")
-        nxt = {**initial_state(), "revision": old.state["revision"] + 1}
+        nxt = {**initial_state(), "revision": old.state["revision"] + 1,
+               "consumed_request_hashes": list(old.state["consumed_request_hashes"])}
         self.store.advance(old, nxt)
         return "RELEASED"
 
