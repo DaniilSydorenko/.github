@@ -522,6 +522,7 @@ def build_reconcile_observed(collected: dict) -> dict:
             {
                 "number": pr.get("number"),
                 "head_sha": pr.get("head_sha"),
+                "base_sha": pr.get("base_sha"),
                 "state": "open" if pr.get("state") == "open" and not pr.get("merged") else "closed",
             }
         )
