@@ -208,12 +208,15 @@ def _observed_pr_record(pull: dict, *, files_complete: bool, files: Sequence[str
     head = pull.get("head") if isinstance(pull.get("head"), dict) else {}
     base = pull.get("base") if isinstance(pull.get("base"), dict) else {}
     head_sha = head.get("sha")
+    base_sha = base.get("sha")
     record = {
         "number": pull.get("number"),
         "state": pull.get("state"),
         "merged": bool(pull.get("merged_at")),
         "head_ref": head.get("ref"),
         "base_ref": base.get("ref"),
+        "base_sha": base_sha if isinstance(base_sha, str) else None,
+        "base_sha_observed": isinstance(base_sha, str) and SHA.fullmatch(base_sha) is not None,
         "head_sha": head_sha if isinstance(head_sha, str) else None,
         "head_sha_observed": isinstance(head_sha, str) and SHA.fullmatch(head_sha) is not None,
         "changed_files_observed": list(files),
@@ -406,6 +409,24 @@ def collect_task_evidence(
                 record["head_sha"] = vhead if isinstance(vhead, str) else None
                 record["head_sha_observed"] = (
                     isinstance(vhead, str) and SHA.fullmatch(vhead) is not None
+                )
+            vbase = (
+                pull_verify.get("base", {}).get("sha")
+                if isinstance(pull_verify.get("base"), dict)
+                else None
+            )
+            if not record["base_sha_observed"] or not (
+                isinstance(vbase, str) and SHA.fullmatch(vbase)
+            ):
+                warnings.append(f"PR #{num} lacks a verifiable BASE SHA")
+                missing.append("verifiable_linked_pr_base_sha")
+            if record["base_sha"] != vbase:
+                warnings.append(f"PR #{num} BASE changed during collection")
+                missing.append("stable_linked_pr_base_sha")
+                record["base_sha_at_start"] = record["base_sha"]
+                record["base_sha"] = vbase if isinstance(vbase, str) else None
+                record["base_sha_observed"] = (
+                    isinstance(vbase, str) and SHA.fullmatch(vbase) is not None
                 )
             if (
                 pull_verify.get("state") != record["state"]
