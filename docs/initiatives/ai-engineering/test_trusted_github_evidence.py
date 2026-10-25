@@ -55,7 +55,7 @@ def pull_routes(number, *, head_sha=SHA_B, state="open", merged_at=None, base="m
             "state": state,
             "merged_at": merged_at,
             "head": {"ref": head_ref, "sha": head_sha},
-            "base": {"ref": base},
+            "base": {"ref": base, "sha": SHA_A},
         }
     }
     routes[("GET", f"/repos/{OWNER}/{NAME}/pulls/{number}/files")] = [
@@ -115,6 +115,7 @@ class TrustedGitHubEvidenceTests(unittest.TestCase):
         self.assertEqual(facts["default_sha"], SHA_A)
         self.assertEqual(len(facts["related_prs"]), 1)
         self.assertEqual(facts["related_prs"][0]["head_sha"], SHA_B)
+        self.assertEqual(facts["related_prs"][0]["base_sha"], SHA_A)
         self.assertIn(122, facts["unverified_issue_text_pr_references"])
 
     def test_incomplete_event_pagination_is_partial(self):
@@ -152,6 +153,46 @@ class TrustedGitHubEvidenceTests(unittest.TestCase):
         self.assertFalse(pr["head_sha_observed"])
         self.assertIsNone(pr["head_sha"])
         self.assertEqual(result["status"], "NEEDS_EVIDENCE")
+
+    def test_missing_pr_base_sha_is_untrusted(self):
+        routes = merge_routes(
+            repo_routes(),
+            issue_route(),
+            {("GET", f"/repos/{OWNER}/{NAME}/issues/{ISSUE}/events"): []},
+            pull_routes(50),
+            commits_route([SHA_A]),
+        )
+        routes[("GET", f"/repos/{OWNER}/{NAME}/pulls/50")]["base"]["sha"] = None
+        result = collect_task_evidence(
+            REPO, ISSUE, transport=FakeGitHub(routes=routes), explicit_pr_numbers=[50]
+        )
+        self.assertEqual(result["status"], "NEEDS_EVIDENCE")
+        self.assertIn("verifiable_linked_pr_base_sha", result["missing_capabilities"])
+
+    def test_pr_base_changed_during_collection(self):
+        reads = {"n": 0}
+
+        def pull_handler(params):
+            reads["n"] += 1
+            return {
+                "number": 50, "state": "open", "merged_at": None,
+                "head": {"ref": "feature", "sha": SHA_B},
+                "base": {"ref": "main", "sha": SHA_A if reads["n"] == 1 else SHA_FAKE},
+            }
+
+        routes = merge_routes(
+            repo_routes(), issue_route(),
+            {("GET", f"/repos/{OWNER}/{NAME}/issues/{ISSUE}/events"): []},
+            {("GET", f"/repos/{OWNER}/{NAME}/pulls/50"): pull_handler},
+            {("GET", f"/repos/{OWNER}/{NAME}/pulls/50/files"): [{"filename": "app.py"}]},
+            commits_route([SHA_A]),
+        )
+        result = collect_task_evidence(
+            REPO, ISSUE, transport=FakeGitHub(routes=routes), explicit_pr_numbers=[50]
+        )
+        self.assertEqual(result["status"], "NEEDS_EVIDENCE")
+        self.assertIn("stable_linked_pr_base_sha", result["missing_capabilities"])
+        self.assertEqual(result["observed_facts"]["related_prs"][0]["base_sha"], SHA_FAKE)
 
     def test_default_sha_changed_mid_collection(self):
         calls = {"n": 0}
