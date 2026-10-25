@@ -88,7 +88,7 @@ def evaluate(snapshot: dict[str, Any]) -> dict[str, Any]:
         return _result("OWNER_GATE", "scope_not_owner_authorized")
     if snapshot.get("owner_sensitive") is not False:
         return _result("OWNER_GATE", "sensitive_change_requires_owner")
-    if snapshot.get("attempt_number") not in (0, 1, 2):
+    if type(snapshot.get("attempt_number")) is not int or snapshot["attempt_number"] not in (0, 1, 2):
         return _result("STOP", "retry_limit_or_attempt_unknown")
     if snapshot.get("semantic_reconciliation_accepted") is not True:
         return _result("STOP", "issue_pr_semantics_not_accepted")
@@ -120,6 +120,8 @@ def evaluate(snapshot: dict[str, Any]) -> dict[str, Any]:
             return _result("STOP", "unverifiable_pr_head")
         if pr["relation"] == "INSUFFICIENT_EVIDENCE":
             return _result("STOP", "unknown_pr_semantics")
+        if pr.get("owner_gate") not in (True, False):
+            return _result("STOP", "pr_owner_gate_unknown")
         if pr.get("writer_active") not in (True, False):
             return _result("STOP", "writer_identity_unknown")
         if pr.get("writer_active") is True:
