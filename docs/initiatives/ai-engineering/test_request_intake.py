@@ -102,7 +102,7 @@ class IntakeTests(unittest.TestCase):
         self.assertEqual(process_event(e, fake())["status"], "STOP")
 
     def test_invalid_repo_slug_and_private_scope(self):
-        for repo in ("attacker/repo", "../secret", "DaniilSydorenko/nonallowlisted"):
+        for repo in ("attacker/repo", "../secret", "DaniilSydorenko/nonallowlisted", "DaniilSydorenko/listing-kit"):
             with self.subTest(repo=repo):
                 e = event()
                 payload = json.loads(e["comment"]["body"][len(MARKER):])
