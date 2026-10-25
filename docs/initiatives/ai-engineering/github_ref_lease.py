@@ -220,10 +220,19 @@ class GitHubRefStore:
 
     def advance(self, observed: Snapshot, state: dict[str, Any]) -> str:
         check_state(state)
+        check_state(observed.state)
         if not SHA.fullmatch(observed.sha) or not SHA.fullmatch(observed.tree):
             raise LeaseError("invalid previous commit")
         if state["revision"] != observed.state["revision"] + 1:
             raise LeaseError("non-monotonic revision")
+        prior = observed.state["consumed_request_hashes"]
+        current = state["consumed_request_hashes"]
+        if current[:len(prior)] != prior or len(current) not in (len(prior), len(prior) + 1):
+            raise LeaseError("persistent replay ledger rollback or invalid append")
+        if len(current) == len(prior) + 1:
+            if (observed.state["phase"] != "IDLE" or state["phase"] != "RESERVED"
+                    or current[-1] != fingerprint(state["request_id"])):
+                raise LeaseError("request history append without new owned admission")
         message = PREFIX + json.dumps(state, sort_keys=True, separators=(",", ":"))
         new_commit = self._call("POST", "/git/commits", {
             "message": message, "tree": observed.tree, "parents": [observed.sha]
