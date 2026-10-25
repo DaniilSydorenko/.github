@@ -8,16 +8,39 @@ must derive them independently from protected GitHub/provider controls.
 from __future__ import annotations
 
 import json
+import os
 from typing import Any
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 from cursor_pr_payload import existing_pr_payload
 from cursor_readonly import global_run_preflight
-from github_ref_lease import Controller, LeaseError, agent_id_for
+from github_ref_lease import Controller, GitHubRefStore, LeaseError, agent_id_for
+from lease_ref_protection import REPO as LEASE_REPO, REF as LEASE_REF, public_readonly_probe
 from preview_one import preview_one
 
 PILOT_ACTIVATION_ENABLED = False
+
+
+def _trusted_lease_ref_audit(controller: Controller) -> bool:
+    """Never accept permit flags as proof of immutable, exclusive ref custody.
+
+    Only the actual authenticated GH ref store may supply evidence. Owner
+    must provision an explicitly approved single GitHub App as writer; unknown
+    effective protections or API permissions => False. This is one necessary
+    condition, NOT total proof of account exclusivity or financial safety.
+    """
+    store = controller.store
+    if (not isinstance(store, GitHubRefStore)
+            or store.api != "https://api.github.com/repos/" + LEASE_REPO
+            or store.ref != LEASE_REF):
+        return False
+    expected_writer_app = os.getenv("AI_ENG_APPROVED_WRITER_APP")
+    result = public_readonly_probe(
+        lambda path: store._call("GET", path),
+        approved_writer_app=expected_writer_app,
+    )
+    return result.get("status") == "VERIFIED"
 
 
 class LaunchUncertain(RuntimeError):
@@ -135,6 +158,11 @@ def launch_single_approved_pr(*, request_id: str, bundle: dict[str, Any],
     except (ValueError, LeaseError):
         return _result("STOP", "cursor_payload_invalid")
 
+    # A currently unprotected / unverified lease ref must stop BEFORE Cursor.
+    # Do not trust any caller-supplied lease protection or "approved" boolean.
+    if not _trusted_lease_ref_audit(controller):
+        return _result("STOP", "lease_ref_exclusive_protection_unverified")
+
     # Account-global GET must be authorized and complete; no model inference.
     inv = global_run_preflight(
         cursor_reader, global_account_scope_verified=permit["verified_account_scope"]
@@ -157,9 +185,9 @@ def launch_single_approved_pr(*, request_id: str, bundle: dict[str, Any],
         inv_again = global_run_preflight(
             cursor_reader, global_account_scope_verified=permit["verified_account_scope"]
         )
-        if inv_again.get("status") != "CLEAR":
+        if inv_again.get("status") != "CLEAR" or not _trusted_lease_ref_audit(controller):
             controller.transition(request_id, "RESERVED", "IDLE")
-            return _result("STOP", "provider_changed_after_lease")
+            return _result("STOP", "provider_or_ref_changed_after_lease")
         controller.transition(request_id, "RESERVED", "DISPATCHING")
     except LeaseError:
         # If release/transition outcome is unknown, the lease remains held.
