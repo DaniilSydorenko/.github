@@ -99,6 +99,16 @@ class SingletonAdmissionTests(unittest.TestCase):
         data["attempt_number"] = 3
         self.assertEqual(evaluate(data)["reason"], "retry_limit_or_attempt_unknown")
 
+    def test_boolean_retry_counter_rejected(self):
+        data = baseline()
+        data["attempt_number"] = True
+        self.assertEqual(evaluate(data)["reason"], "retry_limit_or_attempt_unknown")
+
+    def test_unknown_pr_owner_gate_rejected(self):
+        data = baseline()
+        data["open_prs"][0].pop("owner_gate")
+        self.assertEqual(evaluate(data)["reason"], "pr_owner_gate_unknown")
+
     def test_stale_default_sha(self):
         data = baseline()
         data["observed_main_sha"] = B
