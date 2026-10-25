@@ -111,11 +111,12 @@ def main() -> int:
         print("PASS: no history-audited sensitive paths are declared")
         return 0
 
-    result = git(repo, "log", "--all", "--name-only", "--pretty=format:")
+    result = git(repo, "log", "--all", "--name-only", "-z", "--pretty=format:")
     if result.returncode != 0:
         return fail(f"git log failed: {result.stderr.strip()}")
 
-    historical_paths = {normalize(line) for line in result.stdout.splitlines() if normalize(line)}
+    # NUL-delimited output avoids Git's C-quoted filenames (tabs/newlines/non-ASCII).
+    historical_paths = {normalize(path) for path in result.stdout.split("\0") if path}
     findings: dict[str, list[str]] = {}
 
     for sensitive in sensitive_paths:
