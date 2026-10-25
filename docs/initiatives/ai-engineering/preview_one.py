@@ -98,8 +98,11 @@ def preview_one(bundle: dict[str, Any]) -> dict[str, Any]:
                 or p.get("base_sha") != observed_pr.get("base_sha")
                 or p.get("observed_base_sha") != from_collector.get("base_sha")):
             return _reply("STOP", "changed_pr_base_sha")
-        if (sorted(p.get("changed_paths", [])) != sorted(from_collector.get(
-                "changed_files_observed", []))
+        proposed_paths = p.get("changed_paths")
+        observed_paths = from_collector.get("changed_files_observed")
+        if (not isinstance(proposed_paths, list) or not isinstance(observed_paths, list)
+                or any(not isinstance(x, str) for x in proposed_paths + observed_paths)
+                or sorted(proposed_paths) != sorted(observed_paths)
                 or from_collector.get("changed_files_pagination_complete") is not True):
             return _reply("STOP", "changed_pr_paths_or_incomplete_files")
 
