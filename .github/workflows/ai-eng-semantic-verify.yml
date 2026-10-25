@@ -1,0 +1,32 @@
+name: AI Engineering Semantic PR Reconciliation
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - 'docs/initiatives/ai-engineering/semantic_pr_reconcile.py'
+      - 'docs/initiatives/ai-engineering/test_semantic_pr_reconcile.py'
+      - '.github/workflows/ai-eng-semantic-verify.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ai-eng-semantic-check-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: docs/initiatives/ai-engineering
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - name: Run semantic and accepted decision/evidence regressions
+        run: python3 -m unittest -v test_semantic_pr_reconcile test_decision_gate test_evidence_reconcile test_trusted_github_evidence
