@@ -143,6 +143,14 @@ class PreviewTests(unittest.TestCase):
             "changed_files_pagination_complete"] = False
         self.check(d, "STOP")
 
+    def test_malformed_pr_file_list_must_stop_without_throwing(self):
+        d = fixture()
+        d["semantic"]["prs"][0]["changed_paths"] = None
+        self.check(d, "STOP")
+        d = fixture()
+        d["collector"]["observed_facts"]["related_prs"][0]["changed_files_observed"] = [None]
+        self.check(d, "STOP")
+
     def test_stale_pr_head_reject(self):
         d = fixture()
         d["collector"]["observed_facts"]["related_prs"][0]["head_sha"] = C
