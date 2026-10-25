@@ -1,0 +1,37 @@
+name: AI Engineering Singleton Gate Tests
+
+# Tests only. This workflow has no Cursor/GitHub write permission, tokens,
+# dispatch operation, service, job queue, or scheduler.
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - 'docs/initiatives/ai-engineering/github_ref_lease.py'
+      - 'docs/initiatives/ai-engineering/test_github_ref_lease.py'
+      - 'docs/initiatives/ai-engineering/singleton_admission.py'
+      - 'docs/initiatives/ai-engineering/test_singleton_admission.py'
+      - '.github/workflows/ai-eng-singleton-verify.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ai-eng-singleton-tests-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  offline-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: docs/initiatives/ai-engineering
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Run deterministic fail-closed tests only
+        run: python3 -m unittest -v test_singleton_admission test_github_ref_lease
