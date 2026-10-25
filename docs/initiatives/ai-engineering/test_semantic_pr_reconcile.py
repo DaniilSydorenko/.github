@@ -143,6 +143,21 @@ class SemanticReconcileTests(unittest.TestCase):
     def test_multiple_competing_existing_prs_stop(self):
         self.assertEqual(self.verdict(evidence([pr(212), pr(216)]))[0], "STOP")
 
+    def test_closed_unmerged_same_outcome_is_not_new_work_permission(self):
+        p = pr(190, "PROPOSED_NOT_ACCEPTED")
+        p.update(state="closed", merged=False)
+        self.assertEqual(self.verdict(evidence([p]))[0], "STOP")
+
+    def test_overlapping_unrelated_pr_blocks_reuse(self):
+        p = pr(212, "PARTIAL")
+        other = pr(216, "UNRELATED", path="src/feature.ts")
+        self.assertEqual(self.verdict(evidence([p, other]))[0], "WAIT_DEPENDENCY")
+
+    def test_existing_pr_with_independent_unrelated_pr_still_reused(self):
+        p = pr(212, "PARTIAL")
+        other = pr(216, "UNRELATED", path="docs/unrelated.md")
+        self.assertEqual(self.verdict(evidence([p, other]))[0], "REUSE_EXISTING_PR")
+
     def test_haversine_owner_verified_accepted_outcome(self):
         p = pr(190, "EXACT_SAME_OUTCOME")
         p.update(state="closed", merged=True, accepted_commit=C,
