@@ -36,10 +36,13 @@ def _trusted_lease_ref_audit(controller: Controller) -> bool:
             or store.ref != LEASE_REF):
         return False
     expected_writer_app = os.getenv("AI_ENG_APPROVED_WRITER_APP")
-    result = public_readonly_probe(
-        lambda path: store._call("GET", path),
-        approved_writer_app=expected_writer_app,
-    )
+    try:
+        result = public_readonly_probe(
+            lambda path: store._call("GET", path),
+            approved_writer_app=expected_writer_app,
+        )
+    except (LeaseError, ValueError, TypeError):
+        return False
     return result.get("status") == "VERIFIED"
 
 
