@@ -108,8 +108,9 @@ class ReadOnlyGitHub:
 def main() -> int:
     report = public_readonly_probe(
         ReadOnlyGitHub(os.getenv("GITHUB_TOKEN")).get,
-        # No writer has been owner-approved/provisioned yet; env is not proof.
-        approved_writer_app=None,
+        # Owner-controlled GH Actions variable is a candidate writer identity,
+        # never on its own proof of provider/account authorization.
+        approved_writer_app=os.getenv("AI_ENG_APPROVED_WRITER_APP") or None,
     )
     print(json.dumps(report, sort_keys=True))
     # Probe BLOCKED is an expected finding, not CI success.
