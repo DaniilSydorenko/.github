@@ -19,7 +19,7 @@ MARKER = "AI_ENG_DISPATCH_REQUEST_V1\n"
 CANONICAL_HQ = "DaniilSydorenko/.github"
 CONTROL_ISSUE = 120
 OWNER_LOGIN = "DaniilSydorenko"
-ALLOWED = {CANONICAL_HQ, "DaniilSydorenko/listing-kit"}
+ALLOWED = {CANONICAL_HQ}  # PUBLIC IssueOps: NEVER expose private domain PR/SHA
 ID = re.compile(r"[A-Za-z0-9_.:-]{8,128}\Z")
 
 
