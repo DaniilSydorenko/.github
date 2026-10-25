@@ -1,0 +1,59 @@
+name: AI Engineering Cursor API Read-Only Probe
+
+# No cron, no API POST, no model inference and no repository write.
+# Manual account GET only after owner configures a restricted Cursor API key.
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - 'docs/initiatives/ai-engineering/cursor_api_probe.py'
+      - 'docs/initiatives/ai-engineering/test_cursor_api_probe.py'
+      - '.github/workflows/ai-eng-cursor-api-probe.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ai-eng-cursor-api-probe-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  offline-tests:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: docs/initiatives/ai-engineering
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - name: Verify GET-only probe without API calls
+        run: python3 -m unittest -v test_cursor_api_probe test_cursor_readonly
+
+  manual-probe:
+    if: >-
+      github.event_name == 'workflow_dispatch' &&
+      github.repository == 'DaniilSydorenko/.github' &&
+      github.actor == 'DaniilSydorenko' &&
+      github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: docs/initiatives/ai-engineering
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: main
+          persist-credentials: false
+      - name: Get sanitized account-visible Cursor agents, no inference
+        env:
+          CURSOR_API_KEY: ${{ secrets.CURSOR_API_KEY }}
+        run: python3 cursor_api_probe.py
