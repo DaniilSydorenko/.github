@@ -12,7 +12,7 @@ from urllib.parse import urlparse
 from github_ref_lease import agent_id_for
 
 SHA = re.compile(r"[0-9a-f]{40}\Z")
-SLUG = re.compile(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+\Z")
+SLUG = re.compile(r"[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?/[A-Za-z0-9_-][A-Za-z0-9_.-]*\Z")
 MODEL = re.compile(r"[A-Za-z0-9_.:/+-]{2,80}\Z")
 
 
