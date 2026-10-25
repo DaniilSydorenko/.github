@@ -1,0 +1,65 @@
+name: AI Engineering Read-Only Request Intake
+
+# Owner-issued Issue comment is DATA, never a shell command or Cursor trigger.
+# Production Cursor execution is NOT connected to this workflow.
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - 'docs/initiatives/ai-engineering/request_intake.py'
+      - 'docs/initiatives/ai-engineering/test_request_intake.py'
+      - '.github/workflows/ai-eng-request-intake.yml'
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read
+  issues: read
+  pull-requests: read
+
+concurrency:
+  group: ai-eng-readonly-intake-${{ github.event.issue.number || github.event.pull_request.number || github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  offline-tests:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - name: Run strict no-network intake tests
+        working-directory: docs/initiatives/ai-engineering
+        run: python3 -m unittest -v test_request_intake
+
+  owner-readonly-intake:
+    if: >-
+      github.event_name == 'issue_comment' &&
+      github.event.action == 'created' &&
+      github.repository == 'DaniilSydorenko/.github' &&
+      github.actor == 'DaniilSydorenko' &&
+      github.event.issue.number == 120 &&
+      !github.event.issue.pull_request &&
+      github.event.comment.user.login == 'DaniilSydorenko' &&
+      github.event.comment.author_association == 'OWNER' &&
+      startsWith(github.event.comment.body, 'AI_ENG_DISPATCH_REQUEST_V1')
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    permissions:
+      contents: read
+      issues: read
+      pull-requests: read
+    steps:
+      # GitHub issue_comment uses the repository's protected default branch,
+      # never checkout attacker-supplied PR code on a credentialed runner.
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - name: Validate owner request against live GitHub metadata
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python3 docs/initiatives/ai-engineering/request_intake.py "$GITHUB_EVENT_PATH"
