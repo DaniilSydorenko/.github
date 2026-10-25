@@ -6,6 +6,10 @@ on:
     paths:
       - 'docs/initiatives/ai-engineering/semantic_pr_reconcile.py'
       - 'docs/initiatives/ai-engineering/test_semantic_pr_reconcile.py'
+      - 'docs/initiatives/ai-engineering/preview_one.py'
+      - 'docs/initiatives/ai-engineering/test_preview_one.py'
+      - 'docs/initiatives/ai-engineering/trusted_github_evidence.py'
+      - 'docs/initiatives/ai-engineering/test_trusted_github_evidence.py'
       - '.github/workflows/ai-eng-semantic-verify.yml'
 
 permissions:
@@ -29,4 +33,4 @@ jobs:
         with:
           persist-credentials: false
       - name: Run semantic and accepted decision/evidence regressions
-        run: python3 -m unittest -v test_semantic_pr_reconcile test_decision_gate test_evidence_reconcile test_trusted_github_evidence
+        run: python3 -m unittest -v test_semantic_pr_reconcile test_decision_gate test_evidence_reconcile test_trusted_github_evidence test_preview_one
