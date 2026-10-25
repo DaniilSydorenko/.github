@@ -14,6 +14,8 @@ on:
       - 'docs/initiatives/ai-engineering/test_cursor_readonly.py'
       - 'docs/initiatives/ai-engineering/cursor_pr_payload.py'
       - 'docs/initiatives/ai-engineering/test_cursor_pr_payload.py'
+      - 'docs/initiatives/ai-engineering/managed_cursor_launch.py'
+      - 'docs/initiatives/ai-engineering/test_managed_cursor_launch.py'
       - '.github/workflows/ai-eng-singleton-verify.yml'
   workflow_dispatch:
 
@@ -38,4 +40,4 @@ jobs:
         with:
           persist-credentials: false
       - name: Run deterministic fail-closed tests only
-        run: python3 -m unittest -v test_singleton_admission test_github_ref_lease test_cursor_readonly test_cursor_pr_payload
+        run: python3 -m unittest discover -v -p 'test_*.py'
