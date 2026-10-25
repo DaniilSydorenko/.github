@@ -16,6 +16,8 @@ on:
       - 'docs/initiatives/ai-engineering/test_cursor_pr_payload.py'
       - 'docs/initiatives/ai-engineering/managed_cursor_launch.py'
       - 'docs/initiatives/ai-engineering/test_managed_cursor_launch.py'
+      - 'docs/initiatives/ai-engineering/lease_ref_protection.py'
+      - 'docs/initiatives/ai-engineering/test_lease_ref_protection.py'
       - '.github/workflows/ai-eng-singleton-verify.yml'
   workflow_dispatch:
 
