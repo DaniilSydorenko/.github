@@ -251,6 +251,38 @@ class GithubAPIAdapterTests(unittest.TestCase):
         self.assertEqual(call.call_args_list[1].args[0:2], ("PATCH", "/git/refs/heads/ai-eng-cursor-lease-v1"))
         self.assertIs(call.call_args_list[1].args[2]["force"], False)
 
+    def test_adapter_refuses_wiping_replay_history(self):
+        api = GitHubRefStore("DaniilSydorenko/.github", "test-token")
+        old = {**initial_state(), "revision": 4,
+               "consumed_request_hashes": [fingerprint("earlier-issue-121")]}
+        observed = Snapshot("a" * 40, "b" * 40, old)
+        wiped = {**initial_state(), "revision": 5}
+        with patch.object(api, "_call") as client, self.assertRaisesRegex(
+                LeaseError, "replay ledger rollback"):
+            api.advance(observed, wiped)
+        client.assert_not_called()
+
+    def test_adapter_refuses_spurious_replay_history_append(self):
+        api = GitHubRefStore("DaniilSydorenko/.github", "test-token")
+        observed = Snapshot("a" * 40, "b" * 40, initial_state())
+        illegal = {**initial_state(), "revision": 1,
+                   "consumed_request_hashes": [fingerprint("earlier-issue-121")]}
+        with patch.object(api, "_call") as client, self.assertRaisesRegex(
+                LeaseError, "without new owned admission"):
+            api.advance(observed, illegal)
+        client.assert_not_called()
+
+    def test_adapter_refuses_prior_legacy_state_without_ledger(self):
+        api = GitHubRefStore("DaniilSydorenko/.github", "test-token")
+        legacy = {k: v for k, v in initial_state().items()
+                  if k != "consumed_request_hashes"}
+        observed = Snapshot("a" * 40, "b" * 40, legacy)
+        target = {**initial_state(), "revision": 1}
+        with patch.object(api, "_call") as client, self.assertRaisesRegex(
+                LeaseError, "replay ledger"):
+            api.advance(observed, target)
+        client.assert_not_called()
+
     def test_adapter_conflict_does_not_retry(self):
         api = GitHubRefStore("DaniilSydorenko/.github", "test-token")
         observed = Snapshot("a" * 40, "b" * 40, initial_state())
