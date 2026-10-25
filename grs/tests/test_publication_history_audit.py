@@ -190,6 +190,23 @@ class HistoryPathAuditTests(unittest.TestCase):
         self.assertEqual(result.returncode, 1)
         self.assertIn("history must be an object", result.stdout)
 
+    def test_detects_git_quoted_sensitive_paths(self) -> None:
+        """Git's default --name-only C-quotes tabs, newlines, and Unicode."""
+        repo = self.make_repo()
+        paths = ("private/tab\tfile.txt", "private/newline\nfile.txt", "private/café.txt")
+        for name in paths:
+            self.commit_file(repo, name, "fixture")
+
+        manifest = self.write_manifest(
+            repo, [{"path": "private/", "disposition": "externalize"}]
+        )
+        result = self.audit(repo, manifest)
+        self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+        self.assertIn("HISTORY_MATCH: private/", result.stdout)
+        for name in paths:
+            self.assertIn(name, result.stdout)
+        self.assertNotIn("PASS:", result.stdout)
+
     def test_exact_file_surface_matches_history(self) -> None:
         repo = self.make_repo()
         self.commit_file(repo, "docs/PUBLIC_ACTIVATION.md", "internal keys")
