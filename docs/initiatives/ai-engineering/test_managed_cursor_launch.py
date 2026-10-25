@@ -94,10 +94,14 @@ class ManagedLaunchTests(TestCase):
         self.assertEqual(self.store.state["phase"], "IDLE")
 
     def test_real_ref_guard_rejects_synthetic_untrusted_store(self):
-        from managed_cursor_launch import _trusted_lease_ref_audit
-        with patch("managed_cursor_launch._trusted_lease_ref_audit",
-                   side_effect=_trusted_lease_ref_audit):
+        # Temporarily remove setUp's positive test-double to inspect the
+        # actual production function, then restore the mocked environment.
+        self.ref_audit.stop()
+        try:
+            from managed_cursor_launch import _trusted_lease_ref_audit
             self.assertFalse(_trusted_lease_ref_audit(self.controller))
+        finally:
+            self.protection = self.ref_audit.start()
 
     def test_protection_removed_after_acquisition_prevents_post(self):
         # The gate is checked before inventory AND again while lease is held.
