@@ -114,6 +114,36 @@ class SingletonAdmissionTests(unittest.TestCase):
         data["open_prs"][0].pop("owner_gate")
         self.assertEqual(evaluate(data)["reason"], "pr_owner_gate_unknown")
 
+    def test_integer_pr_owner_gate_rejected(self):
+        for value in (0, 1):
+            with self.subTest(value=value):
+                data = baseline()
+                data["open_prs"][0]["owner_gate"] = value
+                self.assertEqual(evaluate(data)["reason"], "pr_owner_gate_unknown")
+
+    def test_integer_writer_active_rejected(self):
+        for value in (0, 1):
+            with self.subTest(value=value):
+                data = baseline()
+                data["open_prs"][0]["writer_active"] = value
+                self.assertEqual(evaluate(data)["reason"], "writer_identity_unknown")
+
+    def test_integer_integration_ready_rejected(self):
+        for value in (0, 1):
+            with self.subTest(value=value):
+                data = baseline()
+                data["open_prs"][0]["integration_ready"] = value
+                self.assertEqual(evaluate(data)["reason"], "integration_readiness_unknown")
+
+    def test_owner_gated_pr_does_not_preempt_independent_new_code(self):
+        data = baseline()
+        data["open_prs"][0]["owner_gate"] = True
+        data["intent"] = {"kind": "NEW_CODE", "issue_approved": True,
+                          "dependency_evidence_complete": True,
+                          "no_overlap_verified": True,
+                          "independent_leaf_proven": True}
+        self.assertEqual(evaluate(data)["decision"], "READY_FOR_OWNER_DISPATCH")
+
     def test_stale_default_sha(self):
         data = baseline()
         data["observed_main_sha"] = B
