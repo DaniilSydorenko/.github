@@ -59,6 +59,10 @@ class PayloadTests(unittest.TestCase):
             with self.subTest(repo=repo), self.assertRaises(PayloadError):
                 sample(repository=repo)
 
+    def test_legitimate_dotgithub_repository_allowed(self):
+        p = sample(repository="DaniilSydorenko/.github")["payload"]
+        self.assertEqual(p["repos"][0]["url"], "https://github.com/DaniilSydorenko/.github")
+
     def test_no_invalid_pr_number(self):
         for n in (0, -1, True, "284"):
             with self.subTest(n=n), self.assertRaises(PayloadError):
