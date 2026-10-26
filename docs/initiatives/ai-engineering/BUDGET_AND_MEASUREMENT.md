@@ -1,6 +1,6 @@
 # AI Engineering Ecosystem — Budget & Measurement
 
-**Status:** initial **measurement protocol**, not account billing configuration or an executable spending limiter.  
+**Status:** evidence protocol only — not verified live billing configuration or an executable spending limiter. Last owner account observation: 2026-10-22; recheck before any new provider launch.  
 **Scope:** owner-approved personal AI engineering pilots; public-safe only.  
 **Related:** [Roadmap](ROADMAP.md) · [Operating Rules](OPERATING_RULES.md)
 
