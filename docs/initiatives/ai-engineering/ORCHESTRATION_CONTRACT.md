@@ -1,11 +1,23 @@
 # AI Engineering — One-Repository Orchestration Contract
 
 **Status:** OWNER-REVIEW DRAFT / NON-ENFORCING / NOT WIRED TO AUTOMATION  
-**As of:** 2026-10-24 · **Baseline `main`:** `d340d9fe3beaccd02e54065f0108c3e3d73e520e`  
+**As of:** 2026-10-26 · **Status:** coordination guidance, not a standing executable authorization. Baseline SHAs and prior pilot assessments below are historical evidence.  
 **Owner:** Daniil · **Scope:** initiative coordination guidance in `DaniilSydorenko/.github` only  
 **Related:** [Operating Rules](OPERATING_RULES.md) · [Roadmap](ROADMAP.md) · [Decision Gate](DECISION_GATE.md) · [HQ/Autopilot Boundaries](../../../reports/github-hq/HQ-AUTOPILOT-BOUNDARIES.md) · [AGENTS.md](../../../AGENTS.md)
 
 This document defines **how** ChatGPT-side AI Engineering work is selected, reviewed, and dispatched. It is **not** a second control plane, scheduler, or substitute for domain authorization. Issue #118 authorizes preparation of this draft only.
+
+## 2026-10-26 actual integration vs. proposed authority
+
+The historical pilot status and baseline SHA below are not live runtime facts. Current accepted HQ software includes #133 (protected-lease *inspection*), #134 (one next-Issue *proposal*) and #135 (provider-terminal/CI/acceptance *classification*). Neither a new scheduler, trusted private-domain intake nor any real sequential Cursor execution has been activated.
+
+- A valid merge requires independent GitHub remote readback; accepted product outcome separately requires issue criteria, device/deploy evidence and owner approval as applicable.
+- `READY_FOR_OWNER_DISPATCH`, `ACCEPTED_OBSERVED` and `INTEGRATED_CODE` are advisory classifications; none authorizes another Cursor POST, automatic merge or lease release.
+- Effective lease protection still reported false on last live read; accepted kill switch is still OFF.
+- Prior completed/superseded Issues must be closed only with explicit matching evidence; security HOLD, product-QA and billing Issues must remain open. Do not mass-close backlog by age.
+- The public HQ Issue #120 is not an authorized channel for private Ladvero PR/Issue/SHA metadata. Keep all private-domain event reports and eventual decision state private.
+- Owner approval for one cleanup pass is not standing authorization for a new unattended chain. Any standing consent requires a bounded signed/verified domain contract and spending controls.
+
 
 ## Four roles — do not conflate them
 

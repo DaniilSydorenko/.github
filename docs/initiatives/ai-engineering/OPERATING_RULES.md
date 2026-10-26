@@ -1,8 +1,20 @@
 # AI Engineering Ecosystem — Operating Rules (Low-Burn v2)
 
 **Scope:** owner-initiated ChatGPT ↔ GitHub ↔ Cursor Cloud experiments and later explicitly adopted adapters only.  
-**Status:** initiative-local **execution contract**; **NOT** new central GRS enforcement, Autopilot policy, delegated merge power or permission to modify another repository.  
+**Status:** initiative-local **execution contract**; **NOT** new central GRS enforcement, a real-time global lock until verified, Autopilot policy, delegated merge power or permission to modify another repository.  
 **Owner:** Daniil. See [Roadmap](ROADMAP.md) and [Budget & Measurement](BUDGET_AND_MEASUREMENT.md).
+
+## 2026-10-26 enforceable boundaries (addendum)
+
+Accepted pure admission/verification code is necessary, not sufficient. Do not interpret a PR merge, CI-green check, Cursor FINISHED, Issue closure, scheduler tick or a JSON `owner_approved` boolean as authorization.
+
+1. **Singleton:** one real managed model invocation globally, with GitHub server-enforced protected lease and verified exclusive writer. Unknown/bypassable ref or external launch routes => STOP; no expiring ambiguous lease.
+2. **Low Burn:** ordinary GitHub metadata and exact-head checks must use deterministic GET/CI before any model. No hourly Cursor wake, parallel swarm, default subagents or blind correction retry. One initial run plus at most two separately admitted evidence-based corrections.
+3. **Authorization:** exact Issue/repo/PR/SHA/path scope and domain owner gates require authenticated proof. No automatic UI/security/AI/deploy/release merge or cross-Issue chain is granted by this document or one-time backlog cleanup request.
+4. **Privacy:** private Ladvero evidence stays in its private repository. Public HQ stores generic code/public-safe statements only; Control Plane supervises its fleet, it is not the paid Cursor dispatcher.
+5. **Budget:** $1/$3/$5 envelopes are estimates, not hard provider limits. The last observed provider On-Demand Disabled state is dated 2026-10-22, NOT a current account attestation. Absent cost or provider scope => UNKNOWN / STOP.
+6. **Accepted modules:** HQ #133 lease guard, #134 next-Issue preview and #135 outcome verifier are pure software gates. `PILOT_ACTIVATION_ENABLED = False` remains in force until separately owner-approved live admission.
+
 
 ## 1. Precedence and authority
 

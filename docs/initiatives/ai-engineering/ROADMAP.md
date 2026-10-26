@@ -1,10 +1,23 @@
 # AI Engineering Ecosystem — Nine-Phase Roadmap v2
 
 **Status:** OWNER RESEARCH INITIATIVE / NON-ENFORCING / PILOTS 01–03 ACCEPTED / EXECUTION READINESS UNPROVEN  
-**As of:** 2026-10-24  
+**As of:** 2026-10-26 (live GitHub closeout; product readiness remains domain-owned)  
 **Owner:** Daniil (personal engineering initiative; not GitHub HQ or a scheduled Autopilot worker)  
 **Canonical strategy for this initiative only:** this file. Product, GitHub HQ, Control Plane, and worker roadmaps keep their own authorities.  
 **Related:** [Operating Rules](OPERATING_RULES.md) · [Budget & Measurement](BUDGET_AND_MEASUREMENT.md)
+
+## 2026-10-26 accepted implementation and activation reality
+
+The owner-requested closeout independently verified these squash merges on public HQ `main`:
+
+- [#133](https://github.com/DaniilSydorenko/.github/pull/133), merge `1423ec59`: fail-closed live lease-ref protection audit before any managed Cursor POST. This does NOT configure effective GitHub protection.
+- [#134](https://github.com/DaniilSydorenko/.github/pull/134), merge `7c2e3305`: bounded one-step next-Issue preview, stable request ID and existing-PR-first classification. This does NOT grant next-Issue launch.
+- [#135](https://github.com/DaniilSydorenko/.github/pull/135), merge `435675d4`: pure terminal-run/PR verification, exact-head CI/Secret Scan checks, bounded correction proposals, owner/deploy/device gates. This does NOT make a model call or free the lease.
+
+**Still blocked:** Last live GitHub read showed `ai-eng-cursor-lease-v1` `protected:false`. The accepted managed launch still contains `PILOT_ACTIVATION_ENABLED = False`. No authenticated continuous runtime, trusted private-domain event-to-execution adapter, effective exclusive writer, verified per-run billing or owner standing authorization exists. The public HQ repository must never store private domain Issue/PR/branch/SHA evidence.
+
+**Next valid order:** protected lease + exclusive writer; account-scoped provider GET and billing safety; one separately approved bounded real Cursor pilot; independent terminal/exact-head checks and owner acceptance; durable release/recovery; only then a separately authorized one-at-a-time chain. [Owner gate #120](https://github.com/DaniilSydorenko/.github/issues/120) stays OPEN.
+
 
 ## Mission and target experience
 
