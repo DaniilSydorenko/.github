@@ -142,40 +142,58 @@ def verify_execution(snapshot: dict[str, Any]) -> dict[str, Any]:
 
     if pr.get("number") != number or pr.get("url") != task["pr_url"]:
         return _out("STOP", "pr_identity_mismatch")
-    if pr.get("state") == "open":
-        if (pr.get("merged") is not False
-                or not _sha(pr.get("head_sha"))
-                or pr.get("head_sha") != pr.get("observed_head_sha")
-                or not _sha(pr.get("base_sha"))
-                or pr.get("base_sha") != pr.get("observed_base_sha")
-                or pr.get("changed_paths_complete") is not True
-                or not _paths(pr.get("changed_paths"))):
-            return _out("STOP", "open_pr_head_base_or_files_unverified")
-        if not set(pr["changed_paths"]).issubset(set(task["allowed_paths"])):
-            return _out("STOP", "changed_paths_outside_authorized_scope")
+    if pr.get("state") == "missing":
+        # A completed provider run might publish its PR asynchronously.
+        # At most three cheap observations; never wake a model to poll.
+        ticks = pr.get("observations_after_terminal")
+        if (pr.get("lookup_complete") is True and type(ticks) is int
+                and 0 <= ticks < 3):
+            return _out("WAIT_PR", "provider_finished_pr_not_yet_visible")
+        return _out("STOP", "pr_missing_or_wait_budget_exhausted")
 
-        if not isinstance(checks, list) or len(checks) > 40:
-            return _out("STOP", "checks_inventory_unbounded")
-        indexed = {}
-        for check in checks:
-            if (not isinstance(check, dict) or not isinstance(check.get("name"), str)
-                    or not check["name"] or check["name"] in indexed
-                    or check.get("head_sha") != pr["head_sha"]
-                    or check.get("conclusion") not in CHECK_CONCLUSIONS | CHECK_PENDING
-                    or check.get("observed") is not True):
-                return _out("STOP", "unknown_or_stale_exact_head_check")
-            indexed[check["name"]] = check
-        if any(name not in indexed for name in task["required_checks"]):
+    if pr.get("state") not in ("open", "closed"):
+        return _out("STOP", "pr_state_unknown")
+    if (not _sha(pr.get("head_sha"))
+            or pr.get("head_sha") != pr.get("observed_head_sha")
+            or not _sha(pr.get("base_sha"))
+            or pr.get("base_sha") != pr.get("observed_base_sha")
+            or pr.get("changed_paths_complete") is not True
+            or not _paths(pr.get("changed_paths"))):
+        return _out("STOP", "pr_head_base_or_files_unverified")
+    if not set(pr["changed_paths"]).issubset(set(task["allowed_paths"])):
+        return _out("STOP", "changed_paths_outside_authorized_scope")
+
+    # Exact-head checks MUST be verified even after a PR is merged. A merge
+    # event, successful provider run or closed Issue cannot replace CI proof.
+    if not isinstance(checks, list) or len(checks) > 40:
+        return _out("STOP", "checks_inventory_unbounded")
+    indexed = {}
+    for check in checks:
+        if (not isinstance(check, dict) or not isinstance(check.get("name"), str)
+                or not check["name"] or check["name"] in indexed
+                or check.get("head_sha") != pr["head_sha"]
+                or check.get("conclusion") not in CHECK_CONCLUSIONS | CHECK_PENDING
+                or check.get("observed") is not True):
+            return _out("STOP", "unknown_or_stale_exact_head_check")
+        indexed[check["name"]] = check
+    missing = any(name not in indexed for name in task["required_checks"])
+    statuses = [indexed[name]["conclusion"] for name in task["required_checks"]
+                if name in indexed]
+    pending = any(x in CHECK_PENDING for x in statuses)
+    failed = any(x != "success" for x in statuses)
+
+    if pr["state"] == "open":
+        if pr.get("merged") is not False:
+            return _out("STOP", "contradictory_open_merged_state")
+        if missing:
             return _out("WAIT_CI", "required_exact_head_checks_missing")
-        statuses = [indexed[name]["conclusion"] for name in task["required_checks"]]
-        if any(x in CHECK_PENDING for x in statuses):
+        if pending:
             return _out("WAIT_CI", "required_checks_pending")
-        if any(x != "success" for x in statuses):
+        if failed:
             if remaining <= 0:
                 return _out("STOP", "correction_budget_exhausted",
                             corrections_remaining=0)
-            # A correction is only a candidate for separate owner/financial
-            # admission; never call Cursor or assume an included/free run.
+            # Correction candidate only, independently owner/budget gated.
             if attempts.get("failure_evidence_verified") is not True:
                 return _out("STOP", "failed_checks_without_bounded_diagnostic",
                             corrections_remaining=remaining)
@@ -190,11 +208,13 @@ def verify_execution(snapshot: dict[str, Any]) -> dict[str, Any]:
         return _out("OWNER_GATE", "merge_and_domain_acceptance_still_required",
                     corrections_remaining=remaining)
 
-    if pr.get("state") != "closed" or pr.get("merged") is not True:
+    # Closed/merged PR: a pending/failed/missing check is a hard STOP, not
+    # evidence that production acceptance or new model work is safe.
+    if pr.get("merged") is not True:
         return _out("STOP", "closed_unmerged_or_unknown_pr")
-    if (not _sha(pr.get("head_sha"))
-            or pr.get("head_sha") != pr.get("observed_head_sha")
-            or not _sha(pr.get("merge_sha"))
+    if missing or pending or failed:
+        return _out("STOP", "merged_pr_required_checks_not_proven")
+    if (not _sha(pr.get("merge_sha"))
             or pr.get("merged_into_default_proven") is not True
             or acceptance.get("issue_criteria") != "accepted"
             or acceptance.get("owner_merge") != "approved"):
