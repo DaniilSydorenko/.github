@@ -7,6 +7,18 @@
 
 This document defines **how** ChatGPT-side AI Engineering work is selected, reviewed, and dispatched. It is **not** a second control plane, scheduler, or substitute for domain authorization. Issue #118 authorizes preparation of this draft only.
 
+## 2026-10-26 actual integration vs. proposed authority
+
+The historical pilot status and baseline SHA below are not live runtime facts. Current accepted HQ software includes #133 (protected-lease *inspection*), #134 (one next-Issue *proposal*) and #135 (provider-terminal/CI/acceptance *classification*). Neither a new scheduler, trusted private-domain intake nor any real sequential Cursor execution has been activated.
+
+- A valid merge requires independent GitHub remote readback; accepted product outcome separately requires issue criteria, device/deploy evidence and owner approval as applicable.
+- `READY_FOR_OWNER_DISPATCH`, `ACCEPTED_OBSERVED` and `INTEGRATED_CODE` are advisory classifications; none authorizes another Cursor POST, automatic merge or lease release.
+- Effective lease protection still reported false on last live read; accepted kill switch is still OFF.
+- Prior completed/superseded Issues must be closed only with explicit matching evidence; security HOLD, product-QA and billing Issues must remain open. Do not mass-close backlog by age.
+- The public HQ Issue #120 is not an authorized channel for private Ladvero PR/Issue/SHA metadata. Keep all private-domain event reports and eventual decision state private.
+- Owner approval for one cleanup pass is not standing authorization for a new unattended chain. Any standing consent requires a bounded signed/verified domain contract and spending controls.
+
+
 ## Four roles — do not conflate them
 
 | Role | Repository / system | What it owns | What this contract does **not** grant |
