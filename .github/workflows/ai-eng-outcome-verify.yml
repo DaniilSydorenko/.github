@@ -1,0 +1,33 @@
+name: AI Engineering Terminal Outcome Verification
+
+# Offline-only verification: no Cursor credentials, GH writes or model calls.
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - 'docs/initiatives/ai-engineering/execution_outcome.py'
+      - 'docs/initiatives/ai-engineering/test_execution_outcome.py'
+      - '.github/workflows/ai-eng-outcome-verify.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ai-eng-outcome-check-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  offline-verification:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: docs/initiatives/ai-engineering
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - name: Verify every existing AI Engineering regression without model calls
+        run: python3 -m unittest discover -v -p 'test_*.py'
