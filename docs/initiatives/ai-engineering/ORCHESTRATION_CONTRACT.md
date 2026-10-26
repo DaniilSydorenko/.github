@@ -1,7 +1,7 @@
 # AI Engineering — One-Repository Orchestration Contract
 
 **Status:** OWNER-REVIEW DRAFT / NON-ENFORCING / NOT WIRED TO AUTOMATION  
-**As of:** 2026-10-24 · **Baseline `main`:** `d340d9fe3beaccd02e54065f0108c3e3d73e520e`  
+**As of:** 2026-10-26 · **Status:** coordination guidance, not a standing executable authorization. Baseline SHAs and prior pilot assessments below are historical evidence.  
 **Owner:** Daniil · **Scope:** initiative coordination guidance in `DaniilSydorenko/.github` only  
 **Related:** [Operating Rules](OPERATING_RULES.md) · [Roadmap](ROADMAP.md) · [Decision Gate](DECISION_GATE.md) · [HQ/Autopilot Boundaries](../../../reports/github-hq/HQ-AUTOPILOT-BOUNDARIES.md) · [AGENTS.md](../../../AGENTS.md)
 
