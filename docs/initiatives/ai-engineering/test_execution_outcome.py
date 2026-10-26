@@ -237,6 +237,53 @@ class OutcomeTests(unittest.TestCase):
         s["pr"]["state"] = "closed"
         self.verdict(s, "STOP")
 
+    def test_missing_pr_waits_only_three_zero_model_observations(self):
+        for tick in (0, 1, 2):
+            with self.subTest(tick=tick):
+                x = fixture()
+                x["pr"] = {"number": 19, "url": URL, "state": "missing",
+                           "lookup_complete": True,
+                           "observations_after_terminal": tick}
+                self.verdict(x, "WAIT_PR")
+
+    def test_missing_pr_after_budget_stops_not_model_wakeup(self):
+        x = fixture()
+        x["pr"] = {"number": 19, "url": URL, "state": "missing",
+                   "lookup_complete": True, "observations_after_terminal": 3}
+        self.verdict(x, "STOP")
+
+    def test_missing_pr_unverified_lookup_stops(self):
+        x = fixture()
+        x["pr"] = {"number": 19, "url": URL, "state": "missing",
+                   "lookup_complete": False, "observations_after_terminal": 1}
+        self.verdict(x, "STOP")
+
+    def test_missing_pr_boolean_tick_not_accepted(self):
+        x = fixture()
+        x["pr"] = {"number": 19, "url": URL, "state": "missing",
+                   "lookup_complete": True, "observations_after_terminal": True}
+        self.verdict(x, "STOP")
+
+    def test_merged_pr_with_failed_required_ci_is_not_accepted(self):
+        x = accepted(fixture())
+        x["checks"][0]["conclusion"] = "failure"
+        self.verdict(x, "STOP")
+
+    def test_merged_pr_with_missing_secret_scan_is_not_accepted(self):
+        x = accepted(fixture())
+        x["checks"].pop()
+        self.verdict(x, "STOP")
+
+    def test_merged_pr_out_of_scope_file_is_not_accepted(self):
+        x = accepted(fixture())
+        x["pr"]["changed_paths"] = ["src/file.ts", "unapproved/config.py"]
+        self.verdict(x, "STOP")
+
+    def test_merged_pr_unverified_base_is_not_accepted(self):
+        x = accepted(fixture())
+        x["pr"]["observed_base_sha"] = C
+        self.verdict(x, "STOP")
+
     def test_merged_requires_owner_approval(self):
         s = accepted(fixture())
         s["acceptance"]["owner_merge"] = "unknown"
