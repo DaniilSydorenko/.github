@@ -3,18 +3,13 @@
 Date: 2026-10-11
 Status: ACTIVE
 
-## One program, two control views
+## Canonical HQ scope and legacy scheduled worker
 
-There is one GitHub program, but there are two intentionally separate roadmaps:
+- `reports/github-hq/ROADMAP-LIVE.md` is the **current HQ-owned** infrastructure status and milestone authority.
+- `reports/github-autopilot/ROADMAP-2026-10-11.md` is a **historical scheduled-worker** roadmap. Its original HQ worker slot was disabled/reassigned under the independent Control Plane authority. Do not treat that file as the current executor state, re-enable the former worker or silently mutate its historical plan.
+- Actual scheduler state and telemetry belong to `DaniilSydorenko/autopilot-control-plane`. Neither the legacy roadmap nor a green shared Help Signal proves an autonomous GitHub HQ worker is running.
 
-- `reports/github-hq/ROADMAP-LIVE.md` — owned by the synchronous [CAREER][GITHUB] HQ chat.
-- `reports/github-autopilot/ROADMAP-2026-10-11.md` — owned by GitHub Autopilot.
-
-Neither worker edits the other's roadmap.
-
-The HQ roadmap is the owner-facing source for full-program status, percentages, newly discovered gaps, owner gates and cross-repository coordination.
-
-The Autopilot roadmap is the execution worker's own operating plan.
+GitHub HQ is synchronous; it cannot continue executing after the chat turn except through a separately approved real scheduler or provider integration.
 
 ## [CAREER][GITHUB] HQ owns
 
@@ -48,6 +43,14 @@ The Autopilot roadmap is the execution worker's own operating plan.
 - Haversine domain/API evolution when it exceeds repository maintenance/release engineering.
 
 GitHub HQ may audit these repositories for readiness and may perform explicitly authorized maintenance/release-engineering work, but must not silently take over domain ownership.
+
+## Shared repository, AI autonomy and Finish First (owner reconfirmed 2026-10-26)
+
+**Physical co-location is not shared execution ownership.** GitHub HQ owns shared GRS/governance, `reports/github-hq/**`, reusable GitHub workflows and account/ruleset infrastructure. AI Driven Ecosystem owns `docs/initiatives/ai-engineering/**` and the *functional execution logic* of `.github/workflows/ai-eng-*`: Cursor dispatch, leases, provider tokens/budgets, retries, outcome reconciliation and next-Issue transitions. HQ may review only shared workflow triggers, permissions, secrets, concurrency and branch-safety implications. Control Plane alone owns scheduled fleet state and worker enablement; domain owners alone own product merge/release.
+
+**Two distinct GitHub protections:** HQ `main` [#108](https://github.com/DaniilSydorenko/.github/issues/108) must be protected against unsafe writes. AI singleton state `ai-eng-cursor-lease-v1` [#120](https://github.com/DaniilSydorenko/.github/issues/120) requires its OWN server-enforced protection while permitting exactly one authorized fast-forward/CAS writer; a blanket `main` PR-only rule can deadlock this lease. Unprotected refs, unverified Cursor provider inventory/BYOK and spend, bypass routes or missing owner GO mean **NO paid Cursor dispatch**. Green offline CI and Control Plane Manager GREEN are not runtime singleton/budget evidence.
+
+**One completed pilot before unattended continuation:** only the AI Engineering owner may authorize and prove one Issue/PR → one Cursor agent → bounded correction/STOP → exact-head CI → domain/owner-permitted merge → remote accepted `main` → durable lease release. Only then evaluate next-Issue automation under the tested low-burn budget. HQ must not create a parallel dispatcher, take over AI PR #133–#135, launch an agent to demonstrate progress or interpret documentation cleanup as approval for admin settings, security-sensitive merges, publication or paid models.
 
 ## OWNER HARD RULE — HQ infrastructure only (2026-10-15)
 

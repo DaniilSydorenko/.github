@@ -149,6 +149,25 @@ class EngineeringRoundProtocolTests(unittest.TestCase):
         self.assertIn("all open PRs on the HQ target repository", self.content)
         self.assertIn("Never enumerate, score or manage unrelated domain PR queues", self.content)
 
+    def test_hq_scope_and_unattended_launch_stop_are_documented(self):
+        root = ROOT
+        agents = (root / "AGENTS.md").read_text(encoding="utf-8")
+        boundaries = (root / "reports/github-hq/HQ-AUTOPILOT-BOUNDARIES.md").read_text(encoding="utf-8")
+        grs = (root / "grs/OPERATING-MODEL.md").read_text(encoding="utf-8")
+        roadmap = (root / "reports/github-hq/ROADMAP-LIVE.md").read_text(encoding="utf-8")
+
+        self.assertIn("NO unattended Cursor activation from HQ", agents)
+        self.assertIn("Finish First", agents)
+        self.assertIn("Physical co-location is not shared execution ownership", boundaries)
+        self.assertIn("NO paid Cursor dispatch", boundaries)
+        self.assertIn("Option B", grs)
+        self.assertIn("may adopt", grs)
+        self.assertIn("PR #136", grs)
+        self.assertIn("Stable [Haversine v2.0.1]", roadmap)
+        self.assertIn("Ladvero scheduled worker **DISABLED**", roadmap)
+        self.assertIn("deferred by owner", roadmap)
+        self.assertIn("7/9 = 77.8%", roadmap)
+
     def test_pilot_does_not_claim_acceptance(self):
         self.assertIn("Pilot acceptance checklist", self.content)
         self.assertIn("**not** a second task-status store", self.content)
