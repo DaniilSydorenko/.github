@@ -229,6 +229,16 @@ class RoadmapAcceptanceScoreTests(unittest.TestCase):
         self.assertIn(required_path, pull)
         self.assertIn(required_path, push)
 
+    def test_agents_contract_changes_trigger_grs_ci(self):
+        # GRS tests read AGENTS.md; an AGENTS-only PR cannot skip these
+        # owner/singleton boundary regressions through the workflow path filter.
+        workflow = (ROOT / ".github/workflows/grs-control-plane.yml").read_text(
+            encoding="utf-8"
+        )
+        pull, push = workflow.split("  push:", 1)
+        for event in (pull, push):
+            self.assertIn('      - "AGENTS.md"', event)
+
     def test_hq_authority_and_round_protocol_changes_trigger_grs_ci(self):
         # Both files are tested here, so either edited alone must start GRS CI
         # on pull requests and main. Do not silently skip required validation.
