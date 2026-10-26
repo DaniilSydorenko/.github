@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - "governance/**"
+      - "AGENTS.md"
       - "grs/**"
       - "workflow-templates/**"
       - "reports/github-hq/ROADMAP-LIVE.md"
@@ -16,6 +17,7 @@ on:
     branches: [main]
     paths:
       - "governance/**"
+      - "AGENTS.md"
       - "grs/**"
       - "workflow-templates/**"
       - "reports/github-hq/ROADMAP-LIVE.md"
