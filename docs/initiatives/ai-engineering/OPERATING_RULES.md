@@ -1,7 +1,7 @@
 # AI Engineering Ecosystem — Operating Rules (Low-Burn v2)
 
 **Scope:** owner-initiated ChatGPT ↔ GitHub ↔ Cursor Cloud experiments and later explicitly adopted adapters only.  
-**Status:** initiative-local **execution contract**; **NOT** new central GRS enforcement, Autopilot policy, delegated merge power or permission to modify another repository.  
+**Status:** initiative-local **execution contract**; **NOT** new central GRS enforcement, a real-time global lock until verified, Autopilot policy, delegated merge power or permission to modify another repository.  
 **Owner:** Daniil. See [Roadmap](ROADMAP.md) and [Budget & Measurement](BUDGET_AND_MEASUREMENT.md).
 
 ## 1. Precedence and authority
