@@ -16,6 +16,8 @@ on:
       - 'docs/initiatives/ai-engineering/test_cursor_pr_payload.py'
       - 'docs/initiatives/ai-engineering/managed_cursor_launch.py'
       - 'docs/initiatives/ai-engineering/test_managed_cursor_launch.py'
+      - 'docs/initiatives/ai-engineering/lease_ref_protection.py'
+      - 'docs/initiatives/ai-engineering/test_lease_ref_protection.py'
       - '.github/workflows/ai-eng-singleton-verify.yml'
   workflow_dispatch:
 
@@ -41,3 +43,28 @@ jobs:
           persist-credentials: false
       - name: Run deterministic fail-closed tests only
         run: python3 -m unittest discover -v -p 'test_*.py'
+
+  manual-lease-audit:
+    # Owner-triggered observational check only, never launch Cursor/modify refs.
+    if: >-
+      github.event_name == 'workflow_dispatch' &&
+      github.repository == 'DaniilSydorenko/.github' &&
+      github.actor == 'DaniilSydorenko' &&
+      github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: docs/initiatives/ai-engineering
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: main
+          persist-credentials: false
+      - name: Audit live singleton lease ref (expected STOP until protected)
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          AI_ENG_APPROVED_WRITER_APP: ${{ vars.AI_ENG_APPROVED_WRITER_APP }}
+        run: python3 lease_ref_protection.py

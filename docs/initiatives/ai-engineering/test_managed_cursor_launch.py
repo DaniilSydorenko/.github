@@ -61,6 +61,12 @@ class ManagedLaunchTests(TestCase):
         self.controller = Controller(self.store)
         self.reader = ReaderStub()
         self.create = CursorStub()
+        # Synthetic test only: accepted ref protections are mocked. Production
+        # _trusted_lease_ref_audit rejects a MemoryGitRef and must fetch live GH.
+        self.ref_audit = patch("managed_cursor_launch._trusted_lease_ref_audit",
+                               return_value=True)
+        self.protection = self.ref_audit.start()
+        self.addCleanup(self.ref_audit.stop)
 
     def dispatch(self, **kwargs):
         values = dict(request_id=REQ, bundle=fixture(), permit=permit(),
@@ -76,6 +82,35 @@ class ManagedLaunchTests(TestCase):
         self.assertEqual(self.reader.calls, 0)
         self.assertEqual(self.create.created, [])
         self.assertEqual(self.store.state["phase"], "IDLE")
+
+    def test_missing_real_ref_protection_stops_even_if_activation_true(self):
+        self.protection.return_value = False
+        with patch("managed_cursor_launch.PILOT_ACTIVATION_ENABLED", True):
+            result = self.dispatch()
+        self.assertEqual(result["state"], "STOP")
+        self.assertEqual(result["reason"], "lease_ref_exclusive_protection_unverified")
+        self.assertEqual(self.reader.calls, 0)
+        self.assertEqual(self.create.created, [])
+        self.assertEqual(self.store.state["phase"], "IDLE")
+
+    def test_real_ref_guard_rejects_synthetic_untrusted_store(self):
+        # Temporarily remove setUp's positive test-double to inspect the
+        # actual production function, then restore the mocked environment.
+        self.ref_audit.stop()
+        try:
+            from managed_cursor_launch import _trusted_lease_ref_audit
+            self.assertFalse(_trusted_lease_ref_audit(self.controller))
+        finally:
+            self.protection = self.ref_audit.start()
+
+    def test_protection_removed_after_acquisition_prevents_post(self):
+        # The gate is checked before inventory AND again while lease is held.
+        self.protection.side_effect = [True, False]
+        with patch("managed_cursor_launch.PILOT_ACTIVATION_ENABLED", True):
+            result = self.dispatch()
+        self.assertEqual(result["state"], "STOP")
+        self.assertEqual(self.store.state["phase"], "IDLE")
+        self.assertEqual(len(self.create.created), 0)
 
     def test_one_approved_pr_acquires_lock_before_one_post(self):
         with patch("managed_cursor_launch.PILOT_ACTIVATION_ENABLED", True):
