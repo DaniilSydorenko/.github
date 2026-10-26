@@ -16,13 +16,14 @@ GRS is the central GitHub governance layer for the portfolio. It is deliberately
 - `grs/publication/audit_history_paths.py` — read-only history path audit.
 - `.github/workflows/grs-control-plane.yml` — regression and policy validation.
 - `.github/workflows/reusable-autopilot-health.yml` — fail-closed Actions health signal.
+- [PR #136](https://github.com/DaniilSydorenko/.github/pull/136) accepted 2026-10-26: latest completed default-branch run **per active workflow**; reject incomplete GitHub API inventory instead of false GREEN; skip irrelevant PR-origin signals. Real HQ Help Signal post-merge smoke PASS is not proof of seven-repo rollout.
 - `reports/github-hq/HQ-AUTOPILOT-BOUNDARIES.md` — synchronous HQ / scheduled Autopilot ownership boundary.
 
 ## Repository classes
 
-Each governed repository declares exactly one class in `.github/repository.json`.
+A repository **may adopt** `.github/repository.json` declaring exactly one class. The owner's approved **Option B** ([Issue #56](https://github.com/DaniilSydorenko/.github/issues/56)) does **not** require local manifests across seven repositories. At the accepted discovery snapshot, Haversine had the only active local manifest; other repositories remain discoverable by registry pointers, without fabricated GRS compliance or new enforcement.
 
-The class selects default deterministic controls. Repository-local configuration must not silently weaken non-overridable safety controls merely to obtain a green result.
+Where adopted, the class selects existing deterministic controls. Local configuration must not weaken binding safety rules for a green result. Missing optional manifests and unobserved runtime evidence are `UNKNOWN`, not automatic noncompliance.
 
 Machine-readable class profiles are intentionally limited to low-false-positive checks such as README/status, licensing where deterministic, collaboration surfaces and secret-hygiene workflow presence.
 
