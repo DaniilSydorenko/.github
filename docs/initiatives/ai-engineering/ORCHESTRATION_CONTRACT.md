@@ -7,6 +7,22 @@
 
 This document defines **how** ChatGPT-side AI Engineering work is selected, reviewed, and dispatched. It is **not** a second control plane, scheduler, or substitute for domain authorization. Issue #118 authorizes preparation of this draft only.
 
+## 2026-10-26 exclusive-writer deployment constraint
+
+Accepted #133 is fail-closed and requires an App-only protected lease writer.
+Current HQ is owned by a personal GitHub account (`owner.type=User`). GitHub
+documents branch push restrictions only for organizational ownership, so
+adding ordinary protection here is not accepted proof of exclusive writer.
+Last live evidence: `ai-eng-cursor-lease-v1` `protected:false`, protection
+endpoint inaccessible to current integration and no effective rulesets.
+
+GitHub HQ [Issue #108](https://github.com/DaniilSydorenko/.github/issues/108)
+owns the minimal supported enforcement decision and real admin/API evidence.
+Do not weaken `_trusted_lease_ref_audit`, fake `restrictions.apps`, or
+declare a Cursor pilot ready based on docs/green offline tests. Authenticated
+writer exclusivity, provider/billing/account scope and owner authorization
+remain separate hard gates.
+
 ## 2026-10-26 actual integration vs. proposed authority
 
 The historical pilot status and baseline SHA below are not live runtime facts. Current accepted HQ software includes #133 (protected-lease *inspection*), #134 (one next-Issue *proposal*) and #135 (provider-terminal/CI/acceptance *classification*). Neither a new scheduler, trusted private-domain intake nor any real sequential Cursor execution has been activated.
