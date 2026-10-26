@@ -49,6 +49,14 @@ The Autopilot roadmap is the execution worker's own operating plan.
 
 GitHub HQ may audit these repositories for readiness and may perform explicitly authorized maintenance/release-engineering work, but must not silently take over domain ownership.
 
+## Shared repository, AI autonomy and Finish First (owner reconfirmed 2026-10-26)
+
+**Physical co-location is not shared execution ownership.** GitHub HQ owns shared GRS/governance, `reports/github-hq/**`, reusable GitHub workflows and account/ruleset infrastructure. AI Driven Ecosystem owns `docs/initiatives/ai-engineering/**` and the *functional execution logic* of `.github/workflows/ai-eng-*`: Cursor dispatch, leases, provider tokens/budgets, retries, outcome reconciliation and next-Issue transitions. HQ may review only shared workflow triggers, permissions, secrets, concurrency and branch-safety implications. Control Plane alone owns scheduled fleet state and worker enablement; domain owners alone own product merge/release.
+
+**Two distinct GitHub protections:** HQ `main` [#108](https://github.com/DaniilSydorenko/.github/issues/108) must be protected against unsafe writes. AI singleton state `ai-eng-cursor-lease-v1` [#120](https://github.com/DaniilSydorenko/.github/issues/120) requires its OWN server-enforced protection while permitting exactly one authorized fast-forward/CAS writer; a blanket `main` PR-only rule can deadlock this lease. Unprotected refs, unverified Cursor provider inventory/BYOK and spend, bypass routes or missing owner GO mean **NO paid Cursor dispatch**. Green offline CI and Control Plane Manager GREEN are not runtime singleton/budget evidence.
+
+**One completed pilot before unattended continuation:** only the AI Engineering owner may authorize and prove one Issue/PR → one Cursor agent → bounded correction/STOP → exact-head CI → domain/owner-permitted merge → remote accepted `main` → durable lease release. Only then evaluate next-Issue automation under the tested low-burn budget. HQ must not create a parallel dispatcher, take over AI PR #133–#135, launch an agent to demonstrate progress or interpret documentation cleanup as approval for admin settings, security-sensitive merges, publication or paid models.
+
 ## OWNER HARD RULE — HQ infrastructure only (2026-10-15)
 
 **HQ-only infrastructure mission:** build and maintain a powerful, fast, lightweight, safe GitHub foundation. HQ is **not** the manager of other repositories' implementation work. Its deliverables are its own shared workflows, policy, relevant CI, registry/discovery, account/repository GitHub configuration where authorized, and bounded publication/security controls.
