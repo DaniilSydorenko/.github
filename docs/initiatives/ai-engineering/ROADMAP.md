@@ -6,6 +6,29 @@
 **Canonical strategy for this initiative only:** this file. Product, GitHub HQ, Control Plane, and worker roadmaps keep their own authorities.  
 **Related:** [Operating Rules](OPERATING_RULES.md) · [Budget & Measurement](BUDGET_AND_MEASUREMENT.md)
 
+## 2026-10-26 blocker correction: personal GitHub owner vs exclusive App writer
+
+**New live fact:** `DaniilSydorenko/.github` is public but its GitHub owner
+type is `User`, not `Organization`. The dedicated lease branch last reported
+`protected:false`, and the protection GET was inaccessible to the current
+connector (`403 Resource not accessible by integration`). No rulesets were
+visible. Accepted PR #133 requires a protected ref with exactly one trusted
+GitHub App writer and no human/team push rights. A regular personal-repo
+branch protection rule is **not equivalent** to that exclusivity.
+
+GitHub explicitly documents `Restrict who can push to matching branches` for
+organization-owned repositories, not personal repositories:
+https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/managing-a-branch-protection-rule
+
+**Therefore:** DO NOT instruct the owner merely to turn on a personal branch
+protection rule and expect the current exact-app-writer gate to pass. GitHub HQ
+owns an [explicit decision #108](https://github.com/DaniilSydorenko/.github/issues/108):
+select a minimally invasive truly exclusive lease-writer authority, possibly
+an organization-owned repository with app-only push restrictions, or another
+equally enforceable CAS mechanism. Do not create/migrate any resource without
+owner approval. Keep Cursor launch and unattended chaining disabled until
+negative bypass and positive atomic-CAS tests prove real enforcement.
+
 ## 2026-10-26 accepted implementation and activation reality
 
 The owner-requested closeout independently verified these squash merges on public HQ `main`:
