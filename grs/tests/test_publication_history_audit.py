@@ -36,7 +36,10 @@ class HistoryPathAuditTests(unittest.TestCase):
 
     def write_manifest(self, repo: Path, surfaces: list[dict]) -> Path:
         path = repo / "manifest.json"
-        path.write_text(json.dumps({"sensitive_surfaces": surfaces}), encoding="utf-8")
+        path.write_text(json.dumps({
+            "history": {"audit_required": True},
+            "sensitive_surfaces": surfaces
+        }), encoding="utf-8")
         return path
 
     def audit(self, repo: Path, manifest: Path) -> subprocess.CompletedProcess[str]:
@@ -176,7 +179,34 @@ class HistoryPathAuditTests(unittest.TestCase):
         }), encoding="utf-8")
         result = self.audit(repo, manifest)
         self.assertEqual(result.returncode, 1)
-        self.assertIn("history.audit_required is false", result.stdout)
+        self.assertIn("history.audit_required must be true", result.stdout)
+
+    def test_missing_history_requirement_cannot_claim_clean(self) -> None:
+        repo = self.make_repo()
+        self.commit_file(repo, "src/index.ts", "export {}")
+        manifest = repo / "manifest.json"
+        manifest.write_text(json.dumps({
+            "sensitive_surfaces": [{"path": "private/", "disposition": "externalize"}]
+        }), encoding="utf-8")
+        result = self.audit(repo, manifest)
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertIn("history must be an object", result.stdout)
+        self.assertNotIn("PASS:", result.stdout)
+
+    def test_malformed_history_requirement_cannot_claim_clean(self) -> None:
+        repo = self.make_repo()
+        self.commit_file(repo, "src/index.ts", "export {}")
+        manifest = repo / "manifest.json"
+        for value in (None, 0, 1, "true", [], {}):
+            with self.subTest(value=value):
+                manifest.write_text(json.dumps({
+                    "history": {"audit_required": value},
+                    "sensitive_surfaces": [{"path": "private/", "disposition": "externalize"}]
+                }), encoding="utf-8")
+                result = self.audit(repo, manifest)
+                self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+                self.assertIn("history.audit_required must be true", result.stdout)
+                self.assertNotIn("PASS:", result.stdout)
 
     def test_reject_malformed_history_without_crashing(self) -> None:
         repo = self.make_repo()
