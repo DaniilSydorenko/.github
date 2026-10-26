@@ -3,18 +3,13 @@
 Date: 2026-10-11
 Status: ACTIVE
 
-## One program, two control views
+## Canonical HQ scope and legacy scheduled worker
 
-There is one GitHub program, but there are two intentionally separate roadmaps:
+- `reports/github-hq/ROADMAP-LIVE.md` is the **current HQ-owned** infrastructure status and milestone authority.
+- `reports/github-autopilot/ROADMAP-2026-10-11.md` is a **historical scheduled-worker** roadmap. Its original HQ worker slot was disabled/reassigned under the independent Control Plane authority. Do not treat that file as the current executor state, re-enable the former worker or silently mutate its historical plan.
+- Actual scheduler state and telemetry belong to `DaniilSydorenko/autopilot-control-plane`. Neither the legacy roadmap nor a green shared Help Signal proves an autonomous GitHub HQ worker is running.
 
-- `reports/github-hq/ROADMAP-LIVE.md` — owned by the synchronous [CAREER][GITHUB] HQ chat.
-- `reports/github-autopilot/ROADMAP-2026-10-11.md` — owned by GitHub Autopilot.
-
-Neither worker edits the other's roadmap.
-
-The HQ roadmap is the owner-facing source for full-program status, percentages, newly discovered gaps, owner gates and cross-repository coordination.
-
-The Autopilot roadmap is the execution worker's own operating plan.
+GitHub HQ is synchronous; it cannot continue executing after the chat turn except through a separately approved real scheduler or provider integration.
 
 ## [CAREER][GITHUB] HQ owns
 
