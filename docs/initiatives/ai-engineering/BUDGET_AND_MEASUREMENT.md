@@ -4,6 +4,17 @@
 **Scope:** owner-approved personal AI engineering pilots; public-safe only.  
 **Related:** [Roadmap](ROADMAP.md) · [Operating Rules](OPERATING_RULES.md)
 
+## 2026-10-26 integration/billing evidence reconciliation
+
+Merging HQ #133, #134 and #135 proves code integration and offline checks only. It is **not** a Cursor Cloud Agent pilot and proves neither paid/charged cost nor provider-wide singleton coverage.
+
+Owner's most recent documented Cursor account setting was On-Demand Spending Disabled on 2026-10-22. No fresh account-level verification or per-run charged-cost attribution was obtained during this closeout. Provider usage/cost is `UNKNOWN`, never automatically `$0`.
+
+Before any real managed Cursor launch, separately verify: account-scoped GET; all active runs; effective protected GitHub lease and exclusive writer; selected model/allowlist; current on-demand/BYOK boundaries; stable one-shot request identity; and owner acceptance for that precise task. Afterwards correlate provider run, tokens, actual charged/included usage and terminal proof. Do not enable recurring paid model runs or top-ups merely to obtain metrics.
+
+[Provider and Low-Burn owner gate #120](https://github.com/DaniilSydorenko/.github/issues/120) remains OPEN until these runtime facts are demonstrated.
+
+
 ## What actually consumes what
 
 | Activity | Cursor model usage | Other potential cost |
