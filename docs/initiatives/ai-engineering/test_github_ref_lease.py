@@ -126,6 +126,21 @@ class LeaseTests(unittest.TestCase):
         with self.assertRaises(LeaseError):
             self.gate.transition("issue-pr-284", "DISPATCHING", "RUNNING", run_id="run-123")
 
+    def test_idle_residual_target_is_not_clean(self):
+        state = initial_state()
+        state["pr_url"] = "https://github.com/example/repo/issues/42"
+        with self.assertRaises(LeaseError):
+            check_state(state)
+
+    def test_issues_url_without_issue_origin_is_rejected(self):
+        issue = "https://github.com/example/repo/issues/42"
+        rid = "issue-origin-tamper-test"
+        self.gate.acquire(rid, issue)
+        state = dict(self.store.state)
+        state["source_issue_url"] = None
+        with self.assertRaises(LeaseError):
+            check_state(state)
+
     def test_new_issue_lease_preserves_origin_through_generated_pr(self):
         issue = "https://github.com/example/repo/issues/42"
         pr = "https://github.com/example/repo/pull/314"
