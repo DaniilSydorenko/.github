@@ -84,8 +84,8 @@ class LeaseTests(unittest.TestCase):
             with self.subTest(value=value), self.assertRaises(LeaseError):
                 self.gate.acquire(value, PR)
 
-    def test_acquire_only_scoped_pr(self):
-        for value in ("https://evil.example/pr/12", "https://github.com/x/y/issues/12",
+    def test_acquire_only_scoped_pr_or_issue(self):
+        for value in ("https://evil.example/pr/12", "https://github.com/x/y/issues/12?@cursor",
                       "https://github.com/x/y/pull/12?@cursor", "http://github.com/x/y/pull/12"):
             with self.subTest(value=value), self.assertRaises(LeaseError):
                 self.gate.acquire("issue-pr-284", value)
