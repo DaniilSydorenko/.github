@@ -280,6 +280,26 @@ class GitHubRefStore:
             if (observed.state["phase"] != "IDLE" or state["phase"] != "RESERVED"
                     or current[-1] != fingerprint(state["request_id"])):
                 raise LeaseError("request history append without new owned admission")
+        # One immutable Issue-origin identifier; never rewrite it while active.
+        source = observed.state.get("source_issue_url")
+        updated_source = state.get("source_issue_url")
+        if observed.state["phase"] != "IDLE" and updated_source != source:
+            raise LeaseError("immutable issue origin changed")
+        if observed.state["phase"] == "IDLE" and updated_source is not None:
+            if (state["phase"] != "RESERVED" or
+                    state.get("pr_url") != updated_source):
+                raise LeaseError("issue origin cannot be forged")
+        if (observed.state.get("pr_url") != state.get("pr_url")
+                and observed.state["phase"] != "IDLE"):
+            if (source is None or observed.state["phase"] != "VERIFYING"
+                    or state["phase"] != "VERIFYING"
+                    or observed.state["pr_url"] != source
+                    or not isinstance(state.get("pr_url"), str)
+                    or not re.fullmatch(
+                        r"https://github\.com/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+/pull/[1-9][0-9]*",
+                        state["pr_url"])
+                    or state["pr_url"].split("/")[3:5] != source.split("/")[3:5]):
+                raise LeaseError("unverified or repeated issue-to-PR binding")
         message = PREFIX + json.dumps(state, sort_keys=True, separators=(",", ":"))
         new_commit = self._call("POST", "/git/commits", {
             "message": message, "tree": observed.tree, "parents": [observed.sha]
