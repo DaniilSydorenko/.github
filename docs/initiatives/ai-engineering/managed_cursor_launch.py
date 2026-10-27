@@ -13,11 +13,12 @@ from typing import Any
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
-from cursor_pr_payload import existing_pr_payload
+from cursor_pr_payload import existing_pr_payload, single_issue_payload
 from cursor_readonly import global_run_preflight
 from github_ref_lease import Controller, GitHubRefStore, LeaseError, agent_id_for
 from lease_ref_protection import REPO as LEASE_REPO, REF as LEASE_REF, public_readonly_probe
 from preview_one import preview_one
+from sequential_handoff import preview_next_after_merge
 
 PILOT_ACTIVATION_ENABLED = False
 
@@ -62,14 +63,27 @@ class CursorCreateHTTP:
         if (not isinstance(payload, dict) or set(payload) != {
             "agentId", "prompt", "model", "repos", "workOnCurrentBranch",
             "autoCreatePR", "mode",
-        } or payload.get("workOnCurrentBranch") is not True
-                or payload.get("autoCreatePR") is not False or payload.get("mode") != "agent"
+        } or payload.get("mode") != "agent"
                 or not isinstance(payload.get("repos"), list)
                 or len(payload["repos"]) != 1
-                or set(payload["repos"][0]) != {"url", "prUrl"}
+                or not isinstance(payload["repos"][0], dict)
                 or not isinstance(payload.get("prompt"), dict)
-                or set(payload["prompt"]) != {"text"}):
+                or set(payload["prompt"]) != {"text"}
+                or not isinstance(payload["prompt"]["text"], str)
+                or not payload["prompt"]["text"]):
             raise LaunchUncertain("Invalid restricted Cursor create payload")
+        entry = payload["repos"][0]
+        prior_pr = (set(entry) == {"url", "prUrl"}
+                    and payload.get("workOnCurrentBranch") is True
+                    and payload.get("autoCreatePR") is False)
+        new_issue = (set(entry) == {"url", "startingRef"}
+                     and payload.get("workOnCurrentBranch") is False
+                     and payload.get("autoCreatePR") is True
+                     and isinstance(entry.get("startingRef"), str)
+                     and len(entry["startingRef"]) == 40
+                     and all(c in "0123456789abcdef" for c in entry["startingRef"]))
+        if not (prior_pr or new_issue):
+            raise LaunchUncertain("Invalid restricted Cursor create mode")
         req = Request(
             "https://api.cursor.com/v1/agents",
             method="POST",
@@ -106,6 +120,59 @@ class CursorCreateHTTP:
 def _result(state: str, reason: str, **fields: Any) -> dict[str, Any]:
     return {"state": state, "reason": reason, "launched": state == "STARTED",
             "automatic_merge": False, **fields}
+
+
+def _start_one_locked(*, request_id: str, target_url: str,
+                      proposal: dict[str, Any], permit: dict[str, Any],
+                      controller: Controller, cursor_reader: Any,
+                      cursor_create: Any, success_reason: str) -> dict[str, Any]:
+    """One shared protected admission/POST transaction for PR and Issue origins."""
+    if not _trusted_lease_ref_audit(controller):
+        return _result("STOP", "lease_ref_exclusive_protection_unverified")
+    inv = global_run_preflight(
+        cursor_reader, global_account_scope_verified=permit["verified_account_scope"]
+    )
+    if inv.get("status") != "CLEAR":
+        return _result("BUSY" if inv.get("status") == "BUSY" else "STOP",
+                       "cursor_global_inventory_not_clear")
+    try:
+        acquired = controller.acquire(request_id, target_url)
+    except LeaseError:
+        return _result("STOP", "global_lease_unavailable")
+    if acquired != "ACQUIRED":
+        return _result("BUSY", "lease_" + acquired.lower())
+    try:
+        inv_again = global_run_preflight(
+            cursor_reader, global_account_scope_verified=permit["verified_account_scope"]
+        )
+        if inv_again.get("status") != "CLEAR" or not _trusted_lease_ref_audit(controller):
+            controller.transition(request_id, "RESERVED", "IDLE")
+            return _result("STOP", "provider_or_ref_changed_after_lease")
+        controller.transition(request_id, "RESERVED", "DISPATCHING")
+    except LeaseError:
+        return _result("STOP_LOCK_HELD", "lease_transition_unknown")
+    # Never retry an ambiguous create, even if transport claims idempotence.
+    try:
+        created = cursor_create.create(proposal["payload"])
+    except Exception:
+        return _result("STOP_LOCK_HELD", "cursor_create_result_unknown",
+                       agent_id=agent_id_for(request_id))
+    try:
+        if (not isinstance(created, dict)
+                or created.get("agent_id") != agent_id_for(request_id)
+                or not isinstance(created.get("run_id"), str)
+                or not created["run_id"].startswith("run-")):
+            return _result("STOP_LOCK_HELD", "cursor_returned_unknown_identity")
+        controller.transition(
+            request_id, "DISPATCHING", "RUNNING", run_id=created["run_id"]
+        )
+    except LeaseError:
+        return _result("STOP_LOCK_HELD", "agent_started_but_lease_write_unknown",
+                       agent_id=agent_id_for(request_id))
+    return _result("STARTED", success_reason,
+                   agent_id=created["agent_id"], run_id=created["run_id"],
+                   work_url=target_url,
+                   pr_url=target_url if "/pull/" in target_url else None)
 
 
 def launch_single_approved_pr(*, request_id: str, bundle: dict[str, Any],
@@ -161,60 +228,85 @@ def launch_single_approved_pr(*, request_id: str, bundle: dict[str, Any],
     except (ValueError, LeaseError):
         return _result("STOP", "cursor_payload_invalid")
 
-    # A currently unprotected / unverified lease ref must stop BEFORE Cursor.
-    # Do not trust any caller-supplied lease protection or "approved" boolean.
-    if not _trusted_lease_ref_audit(controller):
-        return _result("STOP", "lease_ref_exclusive_protection_unverified")
-
-    # Account-global GET must be authorized and complete; no model inference.
-    inv = global_run_preflight(
-        cursor_reader, global_account_scope_verified=permit["verified_account_scope"]
+    return _start_one_locked(
+        request_id=request_id,
+        target_url=proposal["payload"]["repos"][0]["prUrl"],
+        proposal=proposal, permit=permit, controller=controller,
+        cursor_reader=cursor_reader, cursor_create=cursor_create,
+        success_reason="single_existing_pr_run_created",
     )
-    if inv.get("status") != "CLEAR":
-        return _result("BUSY" if inv.get("status") == "BUSY" else "STOP",
-                       "cursor_global_inventory_not_clear")
 
-    pr_url = proposal["payload"]["repos"][0]["prUrl"]
-    try:
-        acquired = controller.acquire(request_id, pr_url)
-    except LeaseError:
-        return _result("STOP", "global_lease_unavailable")
-    if acquired != "ACQUIRED":
-        return _result("BUSY", "lease_" + acquired.lower())
 
-    # From here a crashed job may leave RESERVED/DISPATCHING, intentionally
-    # blocking all subsequent managed requests until trusted recovery.
+def launch_single_approved_issue(*, request_id: str, bundle: dict[str, Any],
+                                 permit: dict[str, Any], controller: Controller,
+                                 cursor_reader: Any, cursor_create: Any) -> dict[str, Any]:
+    """One next-Issue run, using the SAME global lease and Cursor gateway.
+
+    Requires BOTH accepted one-Issue preview and a separately attested accepted
+    previous-merge handoff. Not a continuous-loop trigger or standing grant.
+    Positive permit booleans must come from a future authenticated protected
+    owner/domain runner, never raw Issue/user-controlled JSON. Code kill switch
+    stays OFF in production.
+    """
+    if PILOT_ACTIVATION_ENABLED is not True:
+        return _result("DISABLED", "owner_activation_not_enabled")
+    if not isinstance(bundle, dict) or not isinstance(permit, dict):
+        return _result("STOP", "issue_bundle_or_permit_missing")
+    required = (
+        "verified_owner_approval", "verified_exact_scope",
+        "verified_cursor_billing", "verified_external_billing_excluded",
+        "verified_account_scope", "verified_launch_route_exclusivity",
+        "verified_model_allowlist", "verified_subagents_disabled",
+        "verified_owner_security_gates",
+    )
+    if any(permit.get(k) is not True for k in required):
+        return _result("STOP", "trusted_owner_finance_or_scope_proof_missing")
+    if (permit.get("request_id") != request_id
+            or not isinstance(permit.get("model_allowlist"), frozenset)):
+        return _result("STOP", "unverified_request_or_model_inventory")
+    preview = preview_one(bundle.get("preview"))
+    handoff = preview_next_after_merge(bundle.get("handoff"))
+    if (preview.get("decision") != "READY_FOR_OWNER_DISPATCH"
+            or preview.get("execution_authorized") is not False
+            or handoff.get("action") != "READY_FOR_OWNER_DISPATCH"
+            or handoff.get("cursor_launch_authorized") is not False):
+        return _result("STOP", "next_issue_preview_or_handoff_unverified")
+    data = bundle["preview"]["semantic"]
+    repo = data["repository"]
+    issue_number = data["issue_number"]
+    main_sha = data["default_sha"]
+    proposed_paths = data.get("proposed_paths")
+    queue = bundle["handoff"].get("queue")
+    next_tasks = ([t for t in queue if isinstance(t, dict)
+                   and t.get("number") == issue_number]
+                  if isinstance(queue, list) else [])
+    if (len(next_tasks) != 1
+            or not isinstance(proposed_paths, list)
+            or not isinstance(next_tasks[0].get("allowed_paths"), list)
+            or sorted(proposed_paths) != sorted(next_tasks[0]["allowed_paths"])):
+        return _result("STOP", "next_issue_file_scope_not_verified")
+    if (bundle["handoff"].get("repository") != repo
+            or handoff.get("next_issue_number") != issue_number
+            or handoff.get("proposed_request_id") != request_id
+            or bundle["handoff"].get("main", {}).get("before_sha") != main_sha
+            or permit.get("repository") != repo
+            or permit.get("issue_number") != issue_number
+            or permit.get("head_sha") != main_sha
+            or permit.get("proposed_request_id") != request_id):
+        return _result("STOP", "next_issue_facts_do_not_match")
     try:
-        inv_again = global_run_preflight(
-            cursor_reader, global_account_scope_verified=permit["verified_account_scope"]
+        proposal = single_issue_payload(
+            request_id=request_id, repository=repo, issue_number=issue_number,
+            exact_default_sha=main_sha, allowed_paths=proposed_paths,
+            model_id=permit.get("model_id"),
+            model_allowlist=permit["model_allowlist"],
         )
-        if inv_again.get("status") != "CLEAR" or not _trusted_lease_ref_audit(controller):
-            controller.transition(request_id, "RESERVED", "IDLE")
-            return _result("STOP", "provider_or_ref_changed_after_lease")
-        controller.transition(request_id, "RESERVED", "DISPATCHING")
-    except LeaseError:
-        # If release/transition outcome is unknown, the lease remains held.
-        return _result("STOP_LOCK_HELD", "lease_transition_unknown")
-
-    # Only after durable DISPATCHING do we POST. No retry/steer/second agent.
-    try:
-        created = cursor_create.create(proposal["payload"])
-    except Exception:
-        return _result("STOP_LOCK_HELD", "cursor_create_result_unknown",
-                       agent_id=agent_id_for(request_id))
-
-    try:
-        if (not isinstance(created, dict)
-                or created.get("agent_id") != agent_id_for(request_id)
-                or not isinstance(created.get("run_id"), str)
-                or not created["run_id"].startswith("run-")):
-            return _result("STOP_LOCK_HELD", "cursor_returned_unknown_identity")
-        controller.transition(
-            request_id, "DISPATCHING", "RUNNING", run_id=created["run_id"]
-        )
-    except LeaseError:
-        return _result("STOP_LOCK_HELD", "agent_started_but_lease_write_unknown",
-                       agent_id=agent_id_for(request_id))
-    return _result("STARTED", "single_existing_pr_run_created",
-                   agent_id=created["agent_id"], run_id=created["run_id"],
-                   pr_url=pr_url)
+    except (ValueError, LeaseError):
+        return _result("STOP", "new_issue_payload_invalid")
+    url = f"https://github.com/{repo}/issues/{issue_number}"
+    return _start_one_locked(
+        request_id=request_id, target_url=url,
+        proposal=proposal, permit=permit, controller=controller,
+        cursor_reader=cursor_reader, cursor_create=cursor_create,
+        success_reason="single_new_issue_run_created",
+    )

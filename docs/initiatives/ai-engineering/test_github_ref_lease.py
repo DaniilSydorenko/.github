@@ -84,8 +84,8 @@ class LeaseTests(unittest.TestCase):
             with self.subTest(value=value), self.assertRaises(LeaseError):
                 self.gate.acquire(value, PR)
 
-    def test_acquire_only_scoped_pr(self):
-        for value in ("https://evil.example/pr/12", "https://github.com/x/y/issues/12",
+    def test_acquire_only_scoped_pr_or_issue(self):
+        for value in ("https://evil.example/pr/12", "https://github.com/x/y/issues/12?@cursor",
                       "https://github.com/x/y/pull/12?@cursor", "http://github.com/x/y/pull/12"):
             with self.subTest(value=value), self.assertRaises(LeaseError):
                 self.gate.acquire("issue-pr-284", value)
@@ -125,6 +125,69 @@ class LeaseTests(unittest.TestCase):
         self.gate.acquire("issue-pr-284", PR)
         with self.assertRaises(LeaseError):
             self.gate.transition("issue-pr-284", "DISPATCHING", "RUNNING", run_id="run-123")
+
+    def test_idle_residual_target_is_not_clean(self):
+        state = initial_state()
+        state["pr_url"] = "https://github.com/example/repo/issues/42"
+        with self.assertRaises(LeaseError):
+            check_state(state)
+
+    def test_issues_url_without_issue_origin_is_rejected(self):
+        issue = "https://github.com/example/repo/issues/42"
+        rid = "issue-origin-tamper-test"
+        self.gate.acquire(rid, issue)
+        state = dict(self.store.state)
+        state["source_issue_url"] = None
+        with self.assertRaises(LeaseError):
+            check_state(state)
+
+    def test_new_issue_lease_preserves_origin_through_generated_pr(self):
+        issue = "https://github.com/example/repo/issues/42"
+        pr = "https://github.com/example/repo/pull/314"
+        rid = "new-issue-proof-42"
+        self.assertEqual(self.gate.acquire(rid, issue), "ACQUIRED")
+        self.assertEqual(self.store.state["source_issue_url"], issue)
+        self.assertEqual(self.store.state["pr_url"], issue)
+        self.gate.transition(rid, "RESERVED", "DISPATCHING")
+        self.gate.transition(rid, "DISPATCHING", "RUNNING",
+                                   run_id="run-00000000-0000-0000-0000-000000000001")
+        with self.assertRaises(LeaseError):
+            self.gate.bind_generated_pr(rid, expected_issue_url=issue,
+                                              generated_pr_url=pr)
+        self.gate.transition(rid, "RUNNING", "VERIFYING")
+        self.assertEqual(self.gate.bind_generated_pr(
+            rid, expected_issue_url=issue, generated_pr_url=pr), "BOUND_PR")
+        self.assertEqual(self.store.state["pr_url"], pr)
+        self.assertEqual(self.store.state["source_issue_url"], issue)
+        with self.assertRaises(LeaseError):
+            self.gate.bind_generated_pr(
+                rid, expected_issue_url=issue,
+                generated_pr_url="https://github.com/example/repo/pull/315")
+
+    def test_issue_lease_rejects_cross_repository_generated_pr(self):
+        issue = "https://github.com/example/repo/issues/42"
+        rid = "new-issue-other-repo"
+        self.gate.acquire(rid, issue)
+        self.gate.transition(rid, "RESERVED", "DISPATCHING")
+        self.gate.transition(rid, "DISPATCHING", "RUNNING",
+                                   run_id="run-00000000-0000-0000-0000-000000000001")
+        self.gate.transition(rid, "RUNNING", "VERIFYING")
+        with self.assertRaises(LeaseError):
+            self.gate.bind_generated_pr(
+                rid, expected_issue_url=issue,
+                generated_pr_url="https://github.com/other/repo/pull/314")
+
+    def test_pr_lease_never_accepts_issue_pr_rebinding(self):
+        rid = "existing-pr-only"
+        self.gate.acquire(rid, "https://github.com/example/repo/pull/22")
+        self.gate.transition(rid, "RESERVED", "DISPATCHING")
+        self.gate.transition(rid, "DISPATCHING", "RUNNING",
+                                   run_id="run-00000000-0000-0000-0000-000000000001")
+        self.gate.transition(rid, "RUNNING", "VERIFYING")
+        with self.assertRaises(LeaseError):
+            self.gate.bind_generated_pr(
+                rid, expected_issue_url="https://github.com/example/repo/issues/42",
+                generated_pr_url="https://github.com/example/repo/pull/314")
 
     def test_no_direct_release_from_running(self):
         self.gate.acquire("issue-pr-284", PR)
@@ -243,6 +306,7 @@ class GithubAPIAdapterTests(unittest.TestCase):
         observed = Snapshot("a" * 40, "b" * 40, initial_state())
         state = {**initial_state(), "revision": 1, "phase": "RESERVED",
                  "request_id": "issue-pr-284", "agent_id": agent_id_for("issue-pr-284"),
+                 "pr_url": PR,
                  "consumed_request_hashes": [fingerprint("issue-pr-284")]}
         with patch.object(api, "_call", side_effect=[{"sha": "c" * 40}, {}]) as call:
             self.assertEqual(api.advance(observed, state), "c" * 40)
@@ -288,6 +352,7 @@ class GithubAPIAdapterTests(unittest.TestCase):
         observed = Snapshot("a" * 40, "b" * 40, initial_state())
         state = {**initial_state(), "revision": 1, "phase": "RESERVED",
                  "request_id": "issue-pr-284", "agent_id": agent_id_for("issue-pr-284"),
+                 "pr_url": PR,
                  "consumed_request_hashes": [fingerprint("issue-pr-284")]}
         with patch.object(api, "_call", side_effect=[{"sha": "c" * 40}, RefConflict("raced")]) as call:
             with self.assertRaises(RefConflict):
