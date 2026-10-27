@@ -171,7 +171,8 @@ def _start_one_locked(*, request_id: str, target_url: str,
                        agent_id=agent_id_for(request_id))
     return _result("STARTED", success_reason,
                    agent_id=created["agent_id"], run_id=created["run_id"],
-                   work_url=target_url)
+                   work_url=target_url,
+                   pr_url=target_url if "/pull/" in target_url else None)
 
 
 def launch_single_approved_pr(*, request_id: str, bundle: dict[str, Any],
@@ -274,6 +275,16 @@ def launch_single_approved_issue(*, request_id: str, bundle: dict[str, Any],
     repo = data["repository"]
     issue_number = data["issue_number"]
     main_sha = data["default_sha"]
+    proposed_paths = data.get("proposed_paths")
+    queue = bundle["handoff"].get("queue")
+    next_tasks = ([t for t in queue if isinstance(t, dict)
+                   and t.get("number") == issue_number]
+                  if isinstance(queue, list) else [])
+    if (len(next_tasks) != 1
+            or not isinstance(proposed_paths, list)
+            or not isinstance(next_tasks[0].get("allowed_paths"), list)
+            or sorted(proposed_paths) != sorted(next_tasks[0]["allowed_paths"])):
+        return _result("STOP", "next_issue_file_scope_not_verified")
     if (bundle["handoff"].get("repository") != repo
             or handoff.get("next_issue_number") != issue_number
             or handoff.get("proposed_request_id") != request_id
@@ -286,7 +297,8 @@ def launch_single_approved_issue(*, request_id: str, bundle: dict[str, Any],
     try:
         proposal = single_issue_payload(
             request_id=request_id, repository=repo, issue_number=issue_number,
-            exact_default_sha=main_sha, model_id=permit.get("model_id"),
+            exact_default_sha=main_sha, allowed_paths=proposed_paths,
+            model_id=permit.get("model_id"),
             model_allowlist=permit["model_allowlist"],
         )
     except (ValueError, LeaseError):
