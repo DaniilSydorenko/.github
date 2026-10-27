@@ -47,13 +47,25 @@ def check_state(s: dict[str, Any]) -> None:
     if not isinstance(s, dict) or s.get("version") != 1 or s.get("phase") not in PHASES:
         raise LeaseError("invalid lease state")
     if s["phase"] == "IDLE":
-        if s.get("request_id") is not None or s.get("agent_id") is not None:
+        if (s.get("request_id") is not None or s.get("agent_id") is not None
+                or s.get("source_issue_url") is not None):
             raise LeaseError("idle state still has an owner")
     else:
         if not isinstance(s.get("request_id"), str) or not REQ.fullmatch(s["request_id"]):
             raise LeaseError("lease owner missing")
         if not isinstance(s.get("agent_id"), str) or not s["agent_id"].startswith("bc-"):
             raise LeaseError("agent identity missing")
+        source = s.get("source_issue_url")
+        target = s.get("pr_url")
+        if source is not None:
+            if (not isinstance(source, str) or not re.fullmatch(
+                    r"https://github\.com/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+/issues/[1-9][0-9]*", source)
+                    or not isinstance(target, str)
+                    or not re.fullmatch(
+                        r"https://github\.com/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+/(?:pull|issues)/[1-9][0-9]*",
+                        target)
+                    or target.split("/")[3:5] != source.split("/")[3:5]):
+                raise LeaseError("issue-origin lease target mismatch")
     if type(s.get("revision")) is not int or s["revision"] < 0:
         raise LeaseError("bad state revision")
     fingerprints = s.get("consumed_request_hashes")
@@ -92,11 +104,17 @@ class Controller:
         self.store = store
 
     def acquire(self, request_id: str, pr_url: str) -> str:
+        """Reserve exactly one scoped work item: existing PR or new Issue.
+
+        For an Issue origin, pr_url is initially the issue URL; when the
+        provider and GitHub independently prove the generated PR, it is bound
+        via bind_generated_pr, preserving immutable source_issue_url.
+        """
         agent_id = agent_id_for(request_id)
         if not isinstance(pr_url, str) or not re.fullmatch(
-            r"https://github\.com/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+/pull/[1-9][0-9]*", pr_url
+            r"https://github\.com/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+/(?:pull|issues)/[1-9][0-9]*", pr_url
         ):
-            raise LeaseError("invalid PR URL")
+            raise LeaseError("invalid scoped work URL")
         old = self.store.read()
         check_state(old.state)
         if old.state["phase"] != "IDLE":
@@ -109,6 +127,7 @@ class Controller:
         nxt = {**old.state, "revision": old.state["revision"] + 1,
                "phase": "RESERVED", "request_id": request_id, "agent_id": agent_id,
                "pr_url": pr_url, "run_id": None,
+               "source_issue_url": pr_url if "/issues/" in pr_url else None,
                "consumed_request_hashes": [*used, fingerprint(request_id)]}
         try:
             self.store.advance(old, nxt)
@@ -145,6 +164,34 @@ class Controller:
                    "consumed_request_hashes": list(old.state["consumed_request_hashes"])}
         self.store.advance(old, nxt)
         return to_phase
+
+    def bind_generated_pr(self, request_id: str, *, expected_issue_url: str,
+                          generated_pr_url: str) -> str:
+        """Bind a single generated PR once in VERIFYING.
+
+        Caller MUST independently verify provider run git PR association and
+        GitHub Issue/PR identity from authenticated fresh reads. This pure CAS
+        method cannot authenticate those external facts by itself. It cannot
+        grant next-Issue dispatch, lease release, billing or owner acceptance.
+        """
+        if not isinstance(generated_pr_url, str) or not re.fullmatch(
+                r"https://github\.com/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+/pull/[1-9][0-9]*",
+                generated_pr_url):
+            raise LeaseError("invalid generated PR URL")
+        old = self.store.read()
+        check_state(old.state)
+        source = old.state.get("source_issue_url")
+        if (old.state["phase"] != "VERIFYING"
+                or old.state.get("request_id") != request_id
+                or source != expected_issue_url
+                or old.state.get("pr_url") != source
+                or not isinstance(source, str)
+                or generated_pr_url.split("/")[3:5] != source.split("/")[3:5]):
+            raise LeaseError("generated PR not owned by verifying issue lease")
+        nxt = {**old.state, "revision": old.state["revision"] + 1,
+               "pr_url": generated_pr_url}
+        self.store.advance(old, nxt)
+        return "BOUND_PR"
 
     def release_verified(self, request_id: str, *, provider_terminal: bool,
                          integration_accepted: bool, manual_approval: bool) -> str:
