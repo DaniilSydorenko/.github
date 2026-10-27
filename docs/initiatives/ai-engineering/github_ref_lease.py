@@ -48,7 +48,8 @@ def check_state(s: dict[str, Any]) -> None:
         raise LeaseError("invalid lease state")
     if s["phase"] == "IDLE":
         if (s.get("request_id") is not None or s.get("agent_id") is not None
-                or s.get("source_issue_url") is not None):
+                or s.get("source_issue_url") is not None
+                or s.get("pr_url") is not None or s.get("run_id") is not None):
             raise LeaseError("idle state still has an owner")
     else:
         if not isinstance(s.get("request_id"), str) or not REQ.fullmatch(s["request_id"]):
@@ -57,6 +58,10 @@ def check_state(s: dict[str, Any]) -> None:
             raise LeaseError("agent identity missing")
         source = s.get("source_issue_url")
         target = s.get("pr_url")
+        if source is None:
+            if (not isinstance(target, str) or not re.fullmatch(
+                    r"https://github\.com/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+/pull/[1-9][0-9]*", target)):
+                raise LeaseError("existing PR lease work URL malformed")
         if source is not None:
             if (not isinstance(source, str) or not re.fullmatch(
                     r"https://github\.com/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+/issues/[1-9][0-9]*", source)
