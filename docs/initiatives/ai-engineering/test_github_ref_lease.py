@@ -126,6 +126,54 @@ class LeaseTests(unittest.TestCase):
         with self.assertRaises(LeaseError):
             self.gate.transition("issue-pr-284", "DISPATCHING", "RUNNING", run_id="run-123")
 
+    def test_new_issue_lease_preserves_origin_through_generated_pr(self):
+        issue = "https://github.com/example/repo/issues/42"
+        pr = "https://github.com/example/repo/pull/314"
+        rid = "new-issue-proof-42"
+        self.assertEqual(self.controller.acquire(rid, issue), "ACQUIRED")
+        self.assertEqual(self.store.state["source_issue_url"], issue)
+        self.assertEqual(self.store.state["pr_url"], issue)
+        self.controller.transition(rid, "RESERVED", "DISPATCHING")
+        self.controller.transition(rid, "DISPATCHING", "RUNNING",
+                                   run_id="run-00000000-0000-0000-0000-000000000001")
+        with self.assertRaises(LeaseError):
+            self.controller.bind_generated_pr(rid, expected_issue_url=issue,
+                                              generated_pr_url=pr)
+        self.controller.transition(rid, "RUNNING", "VERIFYING")
+        self.assertEqual(self.controller.bind_generated_pr(
+            rid, expected_issue_url=issue, generated_pr_url=pr), "BOUND_PR")
+        self.assertEqual(self.store.state["pr_url"], pr)
+        self.assertEqual(self.store.state["source_issue_url"], issue)
+        with self.assertRaises(LeaseError):
+            self.controller.bind_generated_pr(
+                rid, expected_issue_url=issue,
+                generated_pr_url="https://github.com/example/repo/pull/315")
+
+    def test_issue_lease_rejects_cross_repository_generated_pr(self):
+        issue = "https://github.com/example/repo/issues/42"
+        rid = "new-issue-other-repo"
+        self.controller.acquire(rid, issue)
+        self.controller.transition(rid, "RESERVED", "DISPATCHING")
+        self.controller.transition(rid, "DISPATCHING", "RUNNING",
+                                   run_id="run-00000000-0000-0000-0000-000000000001")
+        self.controller.transition(rid, "RUNNING", "VERIFYING")
+        with self.assertRaises(LeaseError):
+            self.controller.bind_generated_pr(
+                rid, expected_issue_url=issue,
+                generated_pr_url="https://github.com/other/repo/pull/314")
+
+    def test_pr_lease_never_accepts_issue_pr_rebinding(self):
+        rid = "existing-pr-only"
+        self.controller.acquire(rid, "https://github.com/example/repo/pull/22")
+        self.controller.transition(rid, "RESERVED", "DISPATCHING")
+        self.controller.transition(rid, "DISPATCHING", "RUNNING",
+                                   run_id="run-00000000-0000-0000-0000-000000000001")
+        self.controller.transition(rid, "RUNNING", "VERIFYING")
+        with self.assertRaises(LeaseError):
+            self.controller.bind_generated_pr(
+                rid, expected_issue_url="https://github.com/example/repo/issues/42",
+                generated_pr_url="https://github.com/example/repo/pull/314")
+
     def test_no_direct_release_from_running(self):
         self.gate.acquire("issue-pr-284", PR)
         self.gate.transition("issue-pr-284", "RESERVED", "DISPATCHING")
