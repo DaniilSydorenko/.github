@@ -236,7 +236,7 @@ class OneIssueTests(TestCase):
         self.assertIs(p["launch_allowed"], False)
         self.assertEqual(p["payload"]["agentId"], self.cursor_create.created[0]["agentId"]
                          if self.cursor_create.created else p["payload"]["agentId"])
-        self.assertIn("no subagents", p["payload"]["prompt"]["text"])
+        self.assertIn("No subagents", p["payload"]["prompt"]["text"])
 
     def test_issue_payload_rejects_malformed_source(self):
         kw = dict(request_id=request_id(), repository="example/test",
