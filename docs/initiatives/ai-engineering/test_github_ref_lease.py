@@ -306,6 +306,7 @@ class GithubAPIAdapterTests(unittest.TestCase):
         observed = Snapshot("a" * 40, "b" * 40, initial_state())
         state = {**initial_state(), "revision": 1, "phase": "RESERVED",
                  "request_id": "issue-pr-284", "agent_id": agent_id_for("issue-pr-284"),
+                 "pr_url": PR,
                  "consumed_request_hashes": [fingerprint("issue-pr-284")]}
         with patch.object(api, "_call", side_effect=[{"sha": "c" * 40}, {}]) as call:
             self.assertEqual(api.advance(observed, state), "c" * 40)
@@ -351,6 +352,7 @@ class GithubAPIAdapterTests(unittest.TestCase):
         observed = Snapshot("a" * 40, "b" * 40, initial_state())
         state = {**initial_state(), "revision": 1, "phase": "RESERVED",
                  "request_id": "issue-pr-284", "agent_id": agent_id_for("issue-pr-284"),
+                 "pr_url": PR,
                  "consumed_request_hashes": [fingerprint("issue-pr-284")]}
         with patch.object(api, "_call", side_effect=[{"sha": "c" * 40}, RefConflict("raced")]) as call:
             with self.assertRaises(RefConflict):
