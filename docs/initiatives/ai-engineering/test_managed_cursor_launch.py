@@ -117,6 +117,7 @@ class ManagedLaunchTests(TestCase):
             result = self.dispatch()
         self.assertEqual(result["state"], "STARTED")
         self.assertTrue(result["launched"])
+        self.assertEqual(result["pr_url"], "https://github.com/example/test/pull/212")
         self.assertFalse(result["automatic_merge"])
         self.assertEqual(self.store.state["phase"], "RUNNING")
         self.assertEqual(self.store.state["run_id"], RUN)
