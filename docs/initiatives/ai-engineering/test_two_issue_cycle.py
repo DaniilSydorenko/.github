@@ -190,7 +190,12 @@ class TwoIssueCycleTests(TestCase):
                    return_value=True):
             first = self.dispatch(snapshot())
             checked = self.finalize(42, 312, first, accepted=False)
-            self.assertEqual(checked["status"], "OWNER_GATE")
+            # The production terminal verifier deliberately returns STOP
+            # for an already-merged PR whose owner acceptance is unproven.
+            # Do not weaken that fail-closed guard to make this test green.
+            self.assertEqual(checked["status"], "STOP")
+            self.assertEqual(checked["reason"],
+                             "merged_pr_without_authenticated_acceptance")
             self.assertEqual(self.store.state["phase"], "VERIFYING")
             # A fresh, separately approved second issue cannot steal the slot.
             next_task = next_issue_after_accepted_42()
