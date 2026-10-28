@@ -20,6 +20,8 @@ on:
       - 'docs/initiatives/ai-engineering/test_two_issue_cycle.py'
       - 'docs/initiatives/ai-engineering/lease_ref_protection.py'
       - 'docs/initiatives/ai-engineering/test_lease_ref_protection.py'
+      - 'docs/initiatives/ai-engineering/lease_ruleset_candidate.py'
+      - 'docs/initiatives/ai-engineering/test_lease_ruleset_candidate.py'
       - '.github/workflows/ai-eng-singleton-verify.yml'
   workflow_dispatch:
 
@@ -65,6 +67,12 @@ jobs:
         with:
           ref: main
           persist-credentials: false
+      - name: Observe two-ruleset personal-repo candidate (not launch authority)
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          AI_ENG_APPROVED_WRITER_APP_ID: ${{ vars.AI_ENG_APPROVED_WRITER_APP_ID }}
+        run: python3 lease_ruleset_candidate.py
       - name: Audit live singleton lease ref (expected STOP until protected)
         env:
           GITHUB_TOKEN: ${{ github.token }}
