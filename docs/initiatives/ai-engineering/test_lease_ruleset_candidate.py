@@ -126,7 +126,7 @@ class CandidateTests(unittest.TestCase):
 
     def test_restricted_transport_is_get_only(self):
         api = probe.ReadOnly("token")
-        with patch("lease_ruleset_candidate.urlopen") as transport, \\
+        with patch("lease_ruleset_candidate.urlopen") as transport, \
              patch("lease_ruleset_candidate.json.load", return_value=BRANCH):
             self.assertEqual(api.get(f"/branches/{probe.REF}"), BRANCH)
             self.assertEqual(transport.call_args.args[0].get_method(), "GET")
