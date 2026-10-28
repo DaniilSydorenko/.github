@@ -1,10 +1,50 @@
 # AI Engineering Ecosystem — Nine-Phase Roadmap v2
 
 **Status:** OWNER RESEARCH INITIATIVE / NON-ENFORCING / PILOTS 01–03 ACCEPTED / EXECUTION READINESS UNPROVEN  
-**As of:** 2026-10-26 (live GitHub closeout; product readiness remains domain-owned)  
+**As of:** 2026-10-28 (activation-critical-path reconciliation; product readiness remains domain-owned)  
 **Owner:** Daniil (personal engineering initiative; not GitHub HQ or a scheduled Autopilot worker)  
 **Canonical strategy for this initiative only:** this file. Product, GitHub HQ, Control Plane, and worker roadmaps keep their own authorities.  
 **Related:** [Operating Rules](OPERATING_RULES.md) · [Budget & Measurement](BUDGET_AND_MEASUREMENT.md)
+
+## 2026-10-28 — Activation-critical path (owner request + LADVERO audit)
+
+**Current decision: CONDITIONAL NO-GO for unattended execution.** Keep the existing nine phases as a research/evidence history; **do not make all nine phases prerequisites for one bounded live pilot**. Prioritize these three operating levels and their verifiable exit gates instead. This is an initiative-only live delta, **not** a new scheduler, second orchestration service, control-plane takeover, product roadmap or blanket domain authorization.
+
+### Level 1 — Owner-mediated execution: VERIFIED, already usable
+
+- Existing real GitHub → Cursor Cloud transport and owner-reviewed Issue → scoped work → PR → exact-head CI → authorized merge have been demonstrated. LADVERO also operates its own private read-only post-CI integration observer; it **does not dispatch Cursor or accept private product work for HQ**.
+- Preserve existing-PR-first, one branch writer, diff/CI/Secret Scan and domain-specific deployment/device/AI/security gates. Issue comments invoking Cursor are **dispatch requests**, not evidence that the provider created an agent. Inspect the bot/provider session before claiming STARTED.
+- No new Ladvero-local controller, new central tracking DB, general-purpose agent queue or periodic paid model wake-up.
+
+### Level 2 — One **bounded managed** live pilot: BLOCKED on explicit preflight
+
+| Gate | Evidence / current state | Exit for a single run |
+| --- | --- | --- |
+| Global singleton state | Central `ai-eng-cursor-lease-v1` exists and reads `IDLE`, but `protected:false`; rulesets read as empty on 2026-10-28 | Provider-enforced exactly one authorized App writer; no force/reset/deletion path; verify real positive fast-forward CAS and negative unauthorized/forced mutation attempts |
+| Personal-repo ruleset feasibility | [PR #143](https://github.com/DaniilSydorenko/.github/pull/143) is a **read-only candidate probe**, not protection or dispatch. Classic push restrictions cannot simply be assumed available for personal account ownership | Owner UI/admin inspection; evaluate **two separate** exact-ref rulesets (App-only update + independent no-force/no-delete without any bypass), including effective bypass semantics. If unsatisfiable, STOP and choose another owner-approved enforceable authority |
+| Actual launch gate | `managed_cursor_launch.py` explicitly sets `PILOT_ACTIVATION_ENABLED=False`; accepted [#141](https://github.com/DaniilSydorenko/.github/pull/141) adds one new-Issue path and [#142](https://github.com/DaniilSydorenko/.github/pull/142) proves a synthetic two-Issue no-overlap/replay test | Keep switch OFF until a separately reviewed connector/runtime integration proves authenticated account inventory, policy, protection, request scope and exactly one Cursor POST |
+| Financial controls | 2026-10-28 owner UI review is available privately; subscription-inclusive usage vs charged costs are distinct. No verified per-run billing attribution or Cloud-Agent-specific hard cap | Refresh provider/account visibility immediately before launch; verify On-Demand setting and included-plan semantics, max models/subagent restrictions, and one-run usage if exposed; UNKNOWN is not zero cost or unlimited included quota. Issue [#120](https://github.com/DaniilSydorenko/.github/issues/120) remains owner-gated |
+| Trusted task authority | One safe code path is not an authorized generic domain backlog. Private product evidence must stay private | Fresh exact issue/repo/SHA/allowed-path scope, no duplicate active writer/PR, independent domain owner approval; public central IssueOps must not ingest private Ladvero data |
+
+**Single live pilot contract:** after all five gates are independently evidenced and the owner explicitly authorizes **one specific low-risk task**, run one agent only, stop after its terminal result, verify the actual provider run/associated PR and exact-head repository CI, and report costs/UNKNOWN. **No automatic merge, lease release, second Issue or deploy.** Unknown provider response or ambiguous lease stays BLOCKED; no blind retries. A separate security-reviewed change would be required to update the accepted launch guard to trust rulesets; `CANDIDATE` from #143 can never override its current classic-protection STOP.
+
+### Level 3 — Sequential continuous cycle: NOT AUTHORIZED
+
+- Preconditions: Level 2 genuinely passes in live provider traffic, owner observes one safe outcome, and the lease remains exclusive across failure/retry. Offline two-Issue [#142](https://github.com/DaniilSydorenko/.github/pull/142) is useful **synthetic test evidence**, not live validation.
+- Build or adopt the **smallest** trusted event-to-existing-controller bridge *only where the current GitHub/Cursor infrastructure cannot do the transition*, with durable event idempotency, replay-protected request IDs, terminal verification and no surprise model wakeups. **Do not deploy a second scheduler/worker/controller merely for periodic polling.**
+- Pre-approve an explicit, finite and low-risk Issue set **per owning domain**, with path/CI/budget limits and revocation/STOP controls. Only accepted merges with required domain-level approval may release a lease; frontend user-device acceptance and backend/security gates cannot be inferred from code-green.
+- Prove **two actual sequential provider tasks**, including an intentional duplicate event and a simulated failure/recovery path; observe **zero concurrent agents, zero unauthorized merge, no scope spill, exact-head checks, traceable provider usage and durable replay prevention**.
+- STOP on missing cost visibility, unprotected writer, changed SHA, unknown auth, unverified domain acceptance, more than two evidence-backed corrections, stale PR/Issue, failed check or human hold. One domain's blocker should not block an independently and explicitly authorized domain task, but must not be circumvented.
+
+### Next execution order (overrides older experimental ordering below)
+
+1. **Owner/provider read-only discovery:** check exact branch-ruleset controls and single App bypass options for `ai-eng-cursor-lease-v1`. Do not save or activate speculative rules; do not apply `main` protection as a substitute. Track the separate HQ `main` owner decision in [#108](https://github.com/DaniilSydorenko/.github/issues/108).
+2. **Review #143 and its exact-head CI;** candidate semantics are conditional on GitHub's actual rule enforcement and app identity. Keep this PR unmerged until domain/security review. No ruleset or admin write here.
+3. **Provider evidence:** refresh account-level Cloud Agent GET inventory and spending restrictions through owner-authorized channels, without exposing account data/keys in public HQ; record a sanitized verdict in existing [#120](https://github.com/DaniilSydorenko/.github/issues/120).
+4. **Only after real protection:** design the smallest **disabled-by-default** live preflight/execution adapter and separate GO decision. Do not activate automatically by merging documentation/tests.
+5. **One live task → verify → stop;** after explicit owner acceptance, consider Level 3 event handoff using the already-accepted code, not a second orchestration stack.
+
+**Out-of-scope evidence:** LADVERO frontend work and its Issue/PR numbers are owned by the private LADVERO repository. Product tasks, private QA and agent-session details are not replicated in public HQ.
 
 ## 2026-10-26 blocker correction: personal GitHub owner vs exclusive App writer
 
@@ -196,6 +236,8 @@ The following is a **decision procedure**, not a new fleet service, central queu
 **Exit:** independently justified owner product decision, not an automatic Phase 8 deliverable.
 
 ## Next ordered experiments and decision gates (not standing automations)
+
+> **2026-10-28 precedence:** the activation-critical path above supersedes this older research-pilot ordering for operational decisions. The historical list below remains for provenance, not authority to dispatch.
 
 1. **First: task-readiness pilot** — classify existing same-file, stacked, stale-version and owner-gated cases from the above seven-repo examples; publish only links to owning issues/PRs, no new tracking database. Validate that selection rejects duplicate work.
 2. **Pilot 04 self-correction** — once an owner authorizes a bounded relevant failure task, prove finite repair/STOP with exact-head checks and no unsafe retries.
