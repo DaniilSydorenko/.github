@@ -18,7 +18,7 @@ from urllib.request import Request, urlopen
 
 from lease_ref_protection import API, REF, REPO
 
-SHA = re.compile(r"[0-9a-f]{40}\\Z")
+SHA = re.compile(r"[0-9a-f]{40}\Z")
 EXPECTED_REF = "refs/heads/" + REF
 
 
