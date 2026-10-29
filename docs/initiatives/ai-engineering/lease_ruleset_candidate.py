@@ -100,6 +100,49 @@ def audit(branch: object, rulesets: object, *, approved_app_id: object) -> dict:
     return result("CANDIDATE", "ruleset_shape_passed_live_bypass_and_cas_proofs_still_required")
 
 
+def audit_prepared(branch: object, rulesets: object) -> dict:
+    """Report saved DISABLED scaffolding; this can never verify a live writer.
+
+    The named two-rule configuration must match the exact existing ref, with
+    no bypass actor and no unknown extra rule. PREPARED is not an authorization,
+    proof of enforcement, or evidence that the controller owns any GitHub App.
+    """
+    if (not isinstance(branch, dict) or branch.get("name") != REF
+            or branch.get("protected") is not False):
+        return result("STOP", "not_an_unprotected_preparation_snapshot")
+    if not isinstance(rulesets, list) or len(rulesets) != 2:
+        return result("STOP", "disabled_ruleset_inventory_incomplete")
+    by_name = {}
+    for item in rulesets:
+        if (not isinstance(item, dict) or not isinstance(item.get("id"), int)
+                or type(item["id"]) is not int or item["id"] <= 0
+                or item.get("name") in by_name
+                or item.get("enforcement") != "disabled"
+                or item.get("target") != "branch"
+                or item.get("source_type") != "Repository"
+                or item.get("source") != REPO
+                or item.get("conditions") != {
+                    "ref_name": {"include": [EXPECTED_REF], "exclude": []}}
+                or item.get("bypass_actors") != []):
+            return result("STOP", "disabled_ruleset_shape_not_exact")
+        by_name[item["name"]] = item
+    if set(by_name) != {"ai-eng-lease-writer", "ai-eng-lease-immutable"}:
+        return result("STOP", "disabled_ruleset_names_not_exact")
+    if by_name["ai-eng-lease-writer"]["id"] == by_name["ai-eng-lease-immutable"]["id"]:
+        return result("STOP", "disabled_rulesets_not_independent")
+    for name, expected in (
+        ("ai-eng-lease-writer", {"update"}),
+        ("ai-eng-lease-immutable", {"deletion", "non_fast_forward"}),
+    ):
+        raw = by_name[name].get("rules")
+        if (not isinstance(raw, list) or len(raw) != len(expected)
+                or any(not isinstance(rule, dict) or set(rule) != {"type"}
+                       for rule in raw)
+                or {rule["type"] for rule in raw} != expected):
+            return result("STOP", "disabled_ruleset_types_not_exact")
+    return result("PREPARED", "two_disabled_rulesets_saved_no_app_or_enforcement")
+
+
 class ReadOnly:
     def __init__(self, token: str):
         self.token = token
@@ -121,7 +164,7 @@ class ReadOnly:
 def public_readonly_probe(reader: ReadOnly, approved_app_id: object) -> dict:
     try:
         branch = reader.get(f"/branches/{REF}")
-        if not isinstance(branch, dict) or branch.get("protected") is not True:
+        if not isinstance(branch, dict) or branch.get("protected") not in (True, False):
             return result("STOP", "unprotected_or_unknown_lease_branch")
         listing = reader.get("/rulesets?includes_parents=false&per_page=100")
         if not isinstance(listing, list) or len(listing) >= 100:
@@ -130,6 +173,8 @@ def public_readonly_probe(reader: ReadOnly, approved_app_id: object) -> dict:
                or x["id"] <= 0 for x in listing):
             return result("STOP", "ruleset_identity_unverified")
         details = [reader.get(f"/rulesets/{x['id']}") for x in listing]
+        if branch["protected"] is False:
+            return audit_prepared(branch, details)
         return audit(branch, details, approved_app_id=approved_app_id)
     except (HTTPError, URLError, TimeoutError, OSError, ValueError,
             TypeError, KeyError):
