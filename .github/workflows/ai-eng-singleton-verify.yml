@@ -1,7 +1,7 @@
 name: AI Engineering Singleton Gate Tests
 
-# Tests only. This workflow has no Cursor/GitHub write permission, tokens,
-# dispatch operation, service, job queue, or scheduler.
+# Tests + manually gated read-only owner probes only.
+# No lease mutation, Cursor POST, dispatch, service, job queue or scheduler.
 on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
@@ -22,6 +22,8 @@ on:
       - 'docs/initiatives/ai-engineering/test_lease_ref_protection.py'
       - 'docs/initiatives/ai-engineering/lease_ruleset_candidate.py'
       - 'docs/initiatives/ai-engineering/test_lease_ruleset_candidate.py'
+      - 'docs/initiatives/ai-engineering/app_writer_provenance.py'
+      - 'docs/initiatives/ai-engineering/test_app_writer_provenance.py'
       - '.github/workflows/ai-eng-singleton-verify.yml'
   workflow_dispatch:
 
@@ -78,3 +80,43 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
           AI_ENG_APPROVED_WRITER_APP: ${{ vars.AI_ENG_APPROVED_WRITER_APP }}
         run: python3 lease_ref_protection.py
+
+  owner-app-credential-probe:
+    # Strictly MANUAL + default-branch + owner + owner-controlled opt-in.
+    # Read-only GitHub installation token, revoked after job; no lease mutation.
+    # Do not set opt-in until environment protection & dedicated App are reviewed.
+    if: >-
+      github.event_name == 'workflow_dispatch' &&
+      github.repository == 'DaniilSydorenko/.github' &&
+      github.actor == 'DaniilSydorenko' &&
+      github.ref == 'refs/heads/main' &&
+      vars.AI_ENG_WRITER_PROBE_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    environment: ai-eng-lease-owner
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: docs/initiatives/ai-engineering
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: main
+          persist-credentials: false
+      - name: Mint single-repository read-scoped installation token
+        id: app
+        uses: actions/create-github-app-token@v3
+        with:
+          client-id: ${{ vars.AI_ENG_WRITER_APP_CLIENT_ID }}
+          private-key: ${{ secrets.AI_ENG_WRITER_APP_PRIVATE_KEY }}
+          repositories: .github
+          permission-contents: read
+      - name: Observe credential identity and effective repository token scope
+        env:
+          AI_ENG_APP_PROBE_TOKEN: ${{ steps.app.outputs.token }}
+          AI_ENG_WRITER_APP_ID: ${{ vars.AI_ENG_WRITER_APP_ID }}
+          AI_ENG_WRITER_APP_SLUG: ${{ vars.AI_ENG_WRITER_APP_SLUG }}
+          AI_ENG_MINTED_APP_SLUG: ${{ steps.app.outputs.app-slug }}
+          AI_ENG_MINTED_INSTALLATION_ID: ${{ steps.app.outputs.installation-id }}
+        run: python3 app_writer_provenance.py
