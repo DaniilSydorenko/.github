@@ -157,6 +157,65 @@ class CandidateTests(unittest.TestCase):
         self.assertEqual(value["status"], "CANDIDATE")
         self.assertEqual(reader.paths[-2:], ["/rulesets/1", "/rulesets/2"])
 
+    def prepared(self):
+        base = {**probe.BASE} if hasattr(probe, "BASE") else {
+            "target": "branch", "source_type": "Repository", "source": probe.REPO,
+            "conditions": {"ref_name": {"include": [probe.EXPECTED_REF], "exclude": []}},
+        }
+        return [
+            {**base, "name": "ai-eng-lease-writer", "id": 26090757,
+             "enforcement": "disabled", "rules": [{"type": "update"}],
+             "bypass_actors": []},
+            {**base, "name": "ai-eng-lease-immutable", "id": 26170483,
+             "enforcement": "disabled",
+             "rules": [{"type": "deletion"}, {"type": "non_fast_forward"}],
+             "bypass_actors": []},
+        ]
+
+    def test_real_disabled_shape_is_only_prepared_never_launch(self):
+        value = probe.audit_prepared({**BRANCH, "protected": False}, self.prepared())
+        self.assertEqual(value["status"], "PREPARED")
+        self.assertFalse(value["cursor_launch_authorized"])
+        self.assertFalse(value["github_mutated"])
+
+    def test_prepared_rejects_wrong_target_rule_or_bypass(self):
+        base = self.prepared()
+        changes = [
+            [{**base[0], "conditions": {
+                "ref_name": {"include": ["refs/heads/main"], "exclude": []}}}, base[1]],
+            [{**base[0], "rules": [{"type": "update"}, {"type": "deletion"}]}, base[1]],
+            [{**base[0], "bypass_actors": [
+                {"actor_type": "Integration", "actor_id": 123}]}, base[1]],
+            [{**base[0], "enforcement": "active"}, base[1]],
+            [base[0], {**base[1], "id": base[0]["id"]}],
+            [base[0], {**base[1], "rules": [{"type": "deletion"}]}],
+        ]
+        for items in changes:
+            with self.subTest(items=items):
+                self.assertEqual(probe.audit_prepared(
+                    {**BRANCH, "protected": False}, items)["status"], "STOP")
+
+    def test_prepared_rejects_wrong_inventory_and_protected_branch(self):
+        self.assertEqual(probe.audit_prepared(
+            {**BRANCH, "protected": True}, self.prepared())["status"], "STOP")
+        self.assertEqual(probe.audit_prepared(
+            {**BRANCH, "protected": False}, self.prepared()[:1])["status"], "STOP")
+
+    def test_prepared_probe_reads_exact_live_details(self):
+        prepared = self.prepared()
+        class Reader:
+            def get(self, path):
+                return {
+                    f"/branches/{probe.REF}": {**BRANCH, "protected": False},
+                    "/rulesets?includes_parents=false&per_page=100":
+                        [{"id": 26090757}, {"id": 26170483}],
+                    "/rulesets/26090757": prepared[0],
+                    "/rulesets/26170483": prepared[1],
+                }[path]
+        value = probe.public_readonly_probe(Reader(), None)
+        self.assertEqual(value["status"], "PREPARED")
+        self.assertFalse(value["cursor_launch_authorized"])
+
     def test_cli_missing_token_never_approves(self):
         with patch.dict("os.environ", {}, clear=True), redirect_stdout(io.StringIO()) as output:
             self.assertEqual(probe.main(), 2)
