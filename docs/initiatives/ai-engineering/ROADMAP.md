@@ -1,10 +1,33 @@
 # AI Engineering Ecosystem — Nine-Phase Roadmap v2
 
 **Status:** OWNER RESEARCH INITIATIVE / NON-ENFORCING / PILOTS 01–03 ACCEPTED / EXECUTION READINESS UNPROVEN  
-**As of:** 2026-10-28 (activation-critical-path reconciliation; product readiness remains domain-owned)  
+**As of:** 2026-10-30 (saved lease ruleset readback; launch still blocked)  
 **Owner:** Daniil (personal engineering initiative; not GitHub HQ or a scheduled Autopilot worker)  
 **Canonical strategy for this initiative only:** this file. Product, GitHub HQ, Control Plane, and worker roadmaps keep their own authorities.  
 **Related:** [Operating Rules](OPERATING_RULES.md) · [Budget & Measurement](BUDGET_AND_MEASUREMENT.md)
+
+## 2026-10-30 — Two lease rulesets saved; writer identity remains the P0 gate
+
+**Verified directly via GitHub ruleset detail GETs (2026-10-30, repo owner personal User):**
+
+| Rule | Ruleset ID | Exact target | Rules | Bypass | Enforcement |
+| --- | ---: | --- | --- | --- | --- |
+| `ai-eng-lease-writer` | [26090757](https://github.com/DaniilSydorenko/.github/rules/26090757) | `refs/heads/ai-eng-cursor-lease-v1` | `update` only | `[]` | `disabled` |
+| `ai-eng-lease-immutable` | [26170483](https://github.com/DaniilSydorenko/.github/rules/26170483) | Same exact ref | `deletion` + `non_fast_forward` | `[]` | `disabled` |
+
+**Status: CONFIG_PREPARED, NOT ENFORCED.** The branch remains unprotected; the launch kill switch stays false. This is real saved GitHub configuration, not a live atomic-exclusion test. The existing [#143](https://github.com/DaniilSydorenko/.github/pull/143) candidate probe now separately reports a non-authorizing `PREPARED` state for this exact disabled setup and retains `CANDIDATE` only for active matching rules plus an owner-attested App ID. Neither grants a Cursor launch.
+
+### Writer identity decision — require custody evidence, not a recognizable brand
+
+The owner-visible bypass picker offers installed apps including **Cursor** and **ChatGPT Codex Connector**. **Do not grant either app bypass just because it is listed.** A third-party agent App may write through many independent agent sessions, and a user-facing connector is not an unattended job identity. Neither has been proven to be the uniquely controlled CAS lease writer. This is a provenance/security decision, not a preference for one LLM vendor.
+
+**Preferred smallest enforceable option for review, not approved provisioning:** a dedicated narrowly scoped GitHub App (or an existing App only if independent evidence proves *equivalent exclusive ownership*) authorized to mutate only the singleton ref through one trusted controller transaction. GitHub App installation permissions are generally repository-level, not ref-level: the effective rulesets, workflow/secret custody and the actual runner must jointly constrain the writer. Owner must review App creation/installation, `Contents: write` scope, exact repository selection, installation-token custody/expiry, authorized trusted workflow and environment secrets, and any route that could issue a second token or launch Cursor outside the controller. **Do not create or install an App automatically.**
+
+**Why not simply bypass with `GITHUB_TOKEN`?** A workflow token is issued per GitHub Actions job and is not in itself an *exclusive* controller identity; write permission can be granted to other workflows in the same repo by workflow configuration. Do not assume that GitHub Actions infrastructure, an App name in a menu, or read-only connector availability proves a singleton writer. Official provider details: [GitHub Actions token](https://docs.github.com/en/actions/concepts/security/github_token), [App installation tokens in workflows](https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/making-authenticated-api-requests-with-a-github-app-in-a-github-actions-workflow), [Ruleset bypass](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/creating-rulesets-for-a-repository).
+
+**Next non-paid engineering task:** verify the operator-controlled writer/App token path as a *read-only design* against existing `GitHubRefStore` and `managed_cursor_launch`, document minimum App credentials and negative tests, and produce the exact owner UI decision. Only after owner approval, safely activate the isolated rulesets, then perform real positive fast-forward and negative unauthorized force/reset/delete tests. Even effective rulesets must NOT be treated as a proven global Cursor-account singleton until agent inventory and all launch paths have independent guarantees.
+
+**No immediate owner action needed:** both rulesets stay `Disabled`. Do not select Cursor/Codex bypass, turn on provider spending, enable launch kill switch, or merge #143 solely on this configuration readback.
 
 ## 2026-10-28 — Activation-critical path (owner request + LADVERO audit)
 
