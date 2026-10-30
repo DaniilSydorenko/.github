@@ -6,6 +6,12 @@
 **Canonical strategy for this initiative only:** this file. Product, GitHub HQ, Control Plane, and worker roadmaps keep their own authorities.  
 **Related:** [Operating Rules](OPERATING_RULES.md) · [Budget & Measurement](BUDGET_AND_MEASUREMENT.md)
 
+## 2026-10-30 — Dedicated App owner-only read-only preflight implemented (no live authority)
+
+Same [PR #143](https://github.com/DaniilSydorenko/.github/pull/143) now includes `app_writer_provenance.py`, strict negative tests and an **opt-in, owner-only, default-branch `workflow_dispatch`** job within existing `ai-eng-singleton-verify.yml`. The job is **off by default**. When separately owner-configured with a protected `ai-eng-lease-owner` environment and a dedicated GitHub App, it would mint a temporary one-repository `contents:read` installation token through the official GitHub action, GET-check App ID/slug/owner/permissions and exact repo scope, then auto-revoke the token. All outcome fields explicitly deny lease writes and Cursor launches.
+
+This does **not** yet prove token custody, protected `main`, an effective App bypass, or real atomic-CAS. Before adding an App private key to Actions, HQ **must first close the trusted-default-branch/security decision [#108](https://github.com/DaniilSydorenko/.github/issues/108)**. The detailed [owner setup handoff](APP_WRITER_OWNER_SETUP.md) spells out permissions, environment secret, non-secret variables and stop/rollback. Do not hand credentials to the ChatGPT conversation or put private data in public GitHub. No second scheduler, no Cursor POST, no extra worker.
+
 ## 2026-10-30 — Two lease rulesets saved; writer identity remains the P0 gate
 
 **Verified directly via GitHub ruleset detail GETs (2026-10-30, repo owner personal User):**
