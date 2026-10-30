@@ -160,7 +160,7 @@ class AppWriterTests(unittest.TestCase):
         self.assertIn("github.ref == 'refs/heads/main'", job)
         self.assertIn("vars.AI_ENG_WRITER_PROBE_ENABLED == 'true'", job)
         self.assertIn("environment: ai-eng-lease-owner", job)
-        self.assertIn("permissions:\\n      contents: read", job)
+        self.assertIn("permissions:\n      contents: read", job)
         self.assertIn("permission-contents: read", job)
         self.assertIn("persist-credentials: false", job)
         self.assertNotIn("api.cursor.com", job)
