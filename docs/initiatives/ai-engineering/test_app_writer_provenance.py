@@ -150,6 +150,22 @@ class AppWriterTests(unittest.TestCase):
         self.assertEqual(paths, ["/apps/" + SLUG,
                                  "/installation/repositories?per_page=100"])
 
+    def test_owner_job_cannot_run_from_pr_or_schedule(self):
+        from pathlib import Path
+        workflow = (Path(__file__).resolve().parents[3]
+                    / ".github/workflows/ai-eng-singleton-verify.yml").read_text()
+        job = workflow.split("  owner-app-credential-probe:", 1)[1]
+        self.assertIn("github.event_name == 'workflow_dispatch'", job)
+        self.assertIn("github.actor == 'DaniilSydorenko'", job)
+        self.assertIn("github.ref == 'refs/heads/main'", job)
+        self.assertIn("vars.AI_ENG_WRITER_PROBE_ENABLED == 'true'", job)
+        self.assertIn("environment: ai-eng-lease-owner", job)
+        self.assertIn("permissions:\\n      contents: read", job)
+        self.assertIn("permission-contents: read", job)
+        self.assertIn("persist-credentials: false", job)
+        self.assertNotIn("api.cursor.com", job)
+        self.assertNotIn("schedule:", workflow)
+
     def test_default_cli_without_secret_is_safe_stop(self):
         with patch.dict("os.environ", {}, clear=True), redirect_stdout(io.StringIO()) as out:
             self.assertEqual(probe.main(), 2)
