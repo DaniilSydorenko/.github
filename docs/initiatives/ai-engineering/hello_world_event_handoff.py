@@ -6,7 +6,7 @@ dispatcher. No network, GitHub writes, workflow wiring, or production scheduler.
 This is not authenticated GitHub webhook processing: ``SyntheticAcceptEvent`` and
 local handoff snapshots are untrusted inputs re-checked against in-memory fixtures.
 In-process ``_processed_accept_ids`` is replay suppression for unit tests only,
-not durable cross-process idempotency.
+not durable cross-process idempotency. No automatic merge or live dispatch is permitted by this module.
 """
 from __future__ import annotations
 
