@@ -69,12 +69,57 @@ class PublicationValidatorTests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("duplicate sensitive surface path", result.stdout)
 
+    def test_reject_parent_traversal_sensitive_path(self) -> None:
+        payload = json.loads(json.dumps(BASE))
+        payload["sensitive_surfaces"][0]["path"] = "../private/"
+        result = self.run_manifest(payload)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("unsafe or ambiguous", result.stdout)
+
+    def test_reject_duplicate_relative_alias(self) -> None:
+        payload = json.loads(json.dumps(BASE))
+        payload["sensitive_surfaces"].append({
+            "path": "./private/", "disposition": "review",
+        })
+        result = self.run_manifest(payload)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("duplicate sensitive surface path", result.stdout)
+
+    def test_preserve_hidden_and_nonhidden_as_distinct_paths(self) -> None:
+        payload = json.loads(json.dumps(BASE))
+        payload["sensitive_surfaces"] = [
+            {"path": ".local/", "disposition": "private-runtime"},
+            {"path": "local/", "disposition": "review"},
+        ]
+        result = self.run_manifest(payload)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
     def test_ready_state_requires_technical_gates(self) -> None:
         payload = json.loads(json.dumps(BASE))
         payload["target"]["status"] = "ready-for-owner-gate"
         result = self.run_manifest(payload)
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("requires green technical gates", result.stdout)
+
+    def test_ready_state_cannot_skip_history_audit(self) -> None:
+        payload = json.loads(json.dumps(BASE))
+        payload["target"]["status"] = "ready-for-owner-gate"
+        for key in ("current_tree_public_safe", "history_public_safe", "exact_head_ci_green"):
+            payload["gates"][key] = True
+        payload["history"]["audit_required"] = False
+        result = self.run_manifest(payload)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("history.audit_required", result.stdout)
+
+    def test_ready_state_cannot_disable_owner_history_rewrite_gate(self) -> None:
+        payload = json.loads(json.dumps(BASE))
+        payload["target"]["status"] = "ready-for-owner-gate"
+        for key in ("current_tree_public_safe", "history_public_safe", "exact_head_ci_green"):
+            payload["gates"][key] = True
+        payload["history"]["rewrite_owner_gated"] = False
+        result = self.run_manifest(payload)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("history.rewrite_owner_gated", result.stdout)
 
     def test_owner_approval_cannot_appear_early(self) -> None:
         payload = json.loads(json.dumps(BASE))
