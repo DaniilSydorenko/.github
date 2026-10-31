@@ -1,5 +1,10 @@
 # AI Engineering Ecosystem — Nine-Phase Roadmap v2
 
+## 2026-10-31 Career Intelligence Cloudflare milestone — external product proof, NOT autonomous-execution proof
+
+Owner authenticated with Cloudflare Access/Google and loaded a successfully deployed Career Intelligence React/TanStack SSR site from Cloudflare Worker `career-intelligence-preview`. This is a real **owner-operated product deployment**, useful as a future controlled integration-test target, but **not** evidence for the AI Engineering singleton lease, unattended Cursor launch, identity-provider custody, token-cost accounting, autonomous release loop or approval of an AI operator. Keep existing phase gates and kill switches unchanged. The site remains a protected web preview only; API/isolated DB/Wave 2/final PUBLIC GO are not accepted. Canonical record: [Career Intelligence docs PR #198](https://github.com/DaniilSydorenko/career-intelligence/pull/198), [staging host issue #174](https://github.com/DaniilSydorenko/career-intelligence/issues/174). No deployment credentials, personal source records or new scheduler in this update.
+
+
 **Status:** OWNER RESEARCH INITIATIVE / NON-ENFORCING / PILOTS 01–03 ACCEPTED / EXECUTION READINESS UNPROVEN  
 **As of:** 2026-10-30 (saved lease ruleset readback; launch still blocked)  
 **Owner:** Daniil (personal engineering initiative; not GitHub HQ or a scheduled Autopilot worker)  
