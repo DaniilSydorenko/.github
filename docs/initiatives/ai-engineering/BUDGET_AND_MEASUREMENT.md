@@ -1,5 +1,14 @@
 # AI Engineering Ecosystem — Budget & Measurement
 
+## 2026-10-31 — GitHub Actions execution hold is NOT Cursor spend proof
+
+The owner-triggered [AI Engineering Singleton Gate Tests #50](https://github.com/DaniilSydorenko/.github/actions/runs/41187585268) finished with all three jobs failed **before any runner steps**. GitHub's account-level Actions execution restriction is an **external availability gate**. Neither the credential probe nor offline Python tests ran; no code, credential, or provider-cost verdict can be inferred.
+
+- GitHub Actions runner/CI proof is temporarily BLOCKED. Existing GitHub Connector read/write work and carefully scoped static analysis are independent of GitHub-hosted runner availability.
+- Keep GitHub Actions account eligibility/budget distinct from Cursor Cloud model usage and [Low-Burn measurement #120](https://github.com/DaniilSydorenko/.github/issues/120). Never post payment details, account exports, private financial totals or keys publicly.
+- Do not weaken required security checks, change billing, add a substitute privileged runner, launch extra Cursor tasks, or claim exact-head CI passed while Actions cannot execute.
+- When owner restores Actions eligibility, manually re-run the existing read-scoped single-repo App probe from protected main, approve the environment and verify actual job steps and trusted probe output. A rerun with no steps is still BLOCKED, not PASS.
+- Operational steps and stop conditions: [App owner setup handoff](APP_WRITER_OWNER_SETUP.md). Canonical [roadmap](ROADMAP.md) presently has an independent open editor [PR #144](https://github.com/DaniilSydorenko/.github/pull/144); do not create an overlapping writer.
 **Status:** evidence protocol only — not verified live billing configuration or an executable spending limiter. Last owner account observation: 2026-10-22; recheck before any new provider launch.  
 **Scope:** owner-approved personal AI engineering pilots; public-safe only.  
 **Related:** [Roadmap](ROADMAP.md) · [Operating Rules](OPERATING_RULES.md)
