@@ -1,5 +1,10 @@
 # [CAREER][GITHUB] — Independent Live Roadmap
 
+## 2026-10-31 external product deployment observation — NOT GitHub HQ milestone credit
+
+Owner observed Career Intelligence private site successfully deployed as Cloudflare Worker `career-intelligence-preview`, authenticated via Cloudflare Access/Google with Worker **All traffic / Owner Only**. DNS zone `daniilsydorenko.com` is Active. **GitHub HQ does not own this deployment** and does not inherit its completion percentage. Full protected staging site+isolated API/DB, Wave 2 DATA approval, external negative access tests and final publication GO are still open. Source: [CI #174](https://github.com/DaniilSydorenko/career-intelligence/issues/174), [CI docs PR #198](https://github.com/DaniilSydorenko/career-intelligence/pull/198), and [canonical owner handoff](https://github.com/DaniilSydorenko/career-intelligence/blob/docs/ci-v1-hosted-preview-handoff-20261031/docs/CI_V1_HOSTED_MILESTONE_AND_FINISH_HANDOFF_2026-10-31.md). Do not create HQ release Issues, schedule agents, modify governance score, or infer that #108/GRS/CI is satisfied from this product milestone.
+
+
 **Owner:** GitHub HQ. **Strategy:** Infrastructure Reset v1 (2026-10-15). Accepted code = default branches; runtime = actual provider. **Historical record:** [immutable pre-reset roadmap](https://github.com/DaniilSydorenko/.github/blob/37dde39e6311f4c3176f156f8ed2a49ca9cf7fa2/reports/github-hq/ROADMAP-LIVE.md). No second archive.
 **Authority:** [HQ boundaries](HQ-AUTOPILOT-BOUNDARIES.md) · [round protocol](ENGINEERING-ROUND-PROTOCOL.md) · [GRS](../../grs/OPERATING-MODEL.md) · [registry](../../governance/repository-registry.json) · [owner gate #56](https://github.com/DaniilSydorenko/.github/issues/56). Domain roadmaps and Control Plane remain independent.
 
