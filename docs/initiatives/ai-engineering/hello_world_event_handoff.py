@@ -2,6 +2,11 @@
 
 Reacts to synthetic accept events and invokes the existing stubbed single-Issue
 dispatcher. No network, GitHub writes, workflow wiring, or production scheduler.
+
+This is not authenticated GitHub webhook processing: ``SyntheticAcceptEvent`` and
+local handoff snapshots are untrusted inputs re-checked against in-memory fixtures.
+In-process ``_processed_accept_ids`` is replay suppression for unit tests only,
+not durable cross-process idempotency.
 """
 from __future__ import annotations
 
@@ -241,7 +246,11 @@ class HelloWorldEventSimulator:
         return checked
 
     def handle_pr_a_accepted(self, event: SyntheticAcceptEvent) -> dict[str, Any]:
-        """Event-driven bridge: Accept A → dispatch Issue B (stubbed), replay-safe."""
+        """Event-driven bridge: Accept A → dispatch Issue B (stubbed), replay-safe.
+
+        ``event.owner_accepted`` is not owner proof; handoff ``owner_visual_acceptance``
+        must already match trusted simulation state. Bounded to Issue #43 only.
+        """
         if event.kind not in KNOWN_ACCEPT_EVENTS:
             return {"state": "STOP", "reason": "unknown_event", "trace": list(self.trace)}
         if event.event_id in self._processed_accept_ids:
