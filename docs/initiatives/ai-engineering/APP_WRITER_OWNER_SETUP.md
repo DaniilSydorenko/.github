@@ -1,5 +1,24 @@
 # Owner handoff — dedicated GitHub lease-writer App (NO LIVE LAUNCH)
 
+## 2026-10-31 — App operator checkpoint; live activation remains BLOCKED
+
+This is a **public-safe operational delta**, not authority to launch Cursor or change settings. Canonical [roadmap](ROADMAP.md) is concurrently edited by [PR #144](https://github.com/DaniilSydorenko/.github/pull/144): no competing writer on that path.
+
+**Owner UI observed:** dedicated owner-operated App registered with repository Metadata:read and Contents:write only, installed solely into DaniilSydorenko/.github. The ai-eng-lease-owner Environment is main-only with owner reviewer, self-review allowed and admin bypass off. The expected private-key **secret name** and App metadata variable names exist in the UI; the private key is neither disclosed nor verified here.
+
+**GitHub API verified:** central main is protected by ACTIVE ai-eng-hq-main-protection (PR required, 0 approvals, delete/force push blocked; no required CI). Both exact-ref lease rulesets remain DISABLED. The managed Cursor kill switch remains False. Protection of main is not proof of exclusive App token custody or singleton lease.
+
+**Runtime outcome:** [manual GitHub Actions run #50](https://github.com/DaniilSydorenko/.github/actions/runs/41187585268) was owner-triggered and Environment-approved; all three jobs failed before runner steps. The owner-visible GitHub annotation reports an account-level Actions execution restriction. No App provenance probe or Python tests actually executed. CREDENTIAL_PATH_OBSERVED has NOT been verified; do not treat failure as a broken RSA key or logic.
+
+**Smallest ordered exit gates:**
+
+1. **NOW, no Actions needed:** static review of effective bypass semantics, trusted main/workflow and token-custody boundaries, lease CAS and recovery; use only trustworthy local offline tests if available. Avoid concurrent edits to the PR #144 roadmap.
+2. **EXTERNAL OWNER HOLD:** restore GitHub Actions availability independently through account settings/support; do not repeat attempts or invent an alternate privileged runner.
+3. **AFTER RESTORATION:** owner triggers the existing ai-eng-singleton-verify.yml from main, approves ai-eng-lease-owner, verifies *all* job results and specifically a real CREDENTIAL_PATH_OBSERVED from owner-app-credential-probe, then turns the probe opt-in OFF. Fail-closed lease audit remains expected until protection is independently verified.
+4. **SEPARATE OWNER GO:** verify dedicated-App identity and exact ruleset bypass, keep immutable no-force/no-delete with zero bypass; prove real positive fast-forward CAS and safe negative operations without risking the sole lease. No Cursor activation yet.
+5. **SEPARATE OWNER GO:** refresh provider-wide active-agent inventory and independent cost evidence ([#120](https://github.com/DaniilSydorenko/.github/issues/120)); one exact-scope owner-approved Cursor pilot, verified terminal state, STOP. Sequential continuous handoff requires a later distinct owner decision and two actual no-overlap tasks.
+
+**Fail-closed:** no Actions runtime, unknown App custody, uncertain ruleset behavior, stale PR SHA, missing cost controls, private domain approval or duplicate active work => STOP. No new scheduler, service, bot, merge or model call from this document.
 **Status (2026-10-30):** two exact-target rulesets are saved **Disabled**. Existing PR #143 has a read-only credential-path probe and owner-only/manual Actions job. The managed Cursor launch kill switch remains `PILOT_ACTIVATION_ENABLED=False`. This document is an owner security checklist, **not** authority to create an App or spend money.
 
 ## One-time owner setup (only after security review / explicit GO)
