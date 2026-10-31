@@ -4,6 +4,8 @@
 Observes GitHub REST facts for one owner-chosen pull request. Never dispatches
 Cursor, never grants git write, and never treats Issue text, webhook payloads,
 or comment strings as owner authorization.
+A successful observed check-run is not proof that all required checks ran.
+This observer returns advisory owner gates only, never live launch authority.
 """
 
 from __future__ import annotations
