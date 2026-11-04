@@ -36,7 +36,10 @@ class HistoryPathAuditTests(unittest.TestCase):
 
     def write_manifest(self, repo: Path, surfaces: list[dict]) -> Path:
         path = repo / "manifest.json"
-        path.write_text(json.dumps({"sensitive_surfaces": surfaces}), encoding="utf-8")
+        path.write_text(json.dumps({
+            "history": {"audit_required": True},
+            "sensitive_surfaces": surfaces
+        }), encoding="utf-8")
         return path
 
     def audit(self, repo: Path, manifest: Path) -> subprocess.CompletedProcess[str]:
@@ -98,14 +101,141 @@ class HistoryPathAuditTests(unittest.TestCase):
         self.assertIn("HISTORY_MATCH: daniil/", result.stdout)
         self.assertIn("daniil/gap-map.md", result.stdout)
 
-    def test_private_runtime_path_is_not_history_failure(self) -> None:
+    def test_private_runtime_in_history_blocks_publication(self) -> None:
         repo = self.make_repo()
         self.commit_file(repo, ".local/migration/example.txt", "local")
         manifest = self.write_manifest(
             repo, [{"path": ".local/migration/", "disposition": "private-runtime"}]
         )
         result = self.audit(repo, manifest)
+        self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+        self.assertIn("HISTORY_MATCH: .local/migration/", result.stdout)
+        self.assertIn(".local/migration/example.txt", result.stdout)
+
+    def test_uncommitted_private_runtime_path_is_history_clean(self) -> None:
+        repo = self.make_repo()
+        self.commit_file(repo, "src/index.ts", "export {}")
+        manifest = self.write_manifest(
+            repo, [{"path": ".local/migration/", "disposition": "private-runtime"}]
+        )
+        result = self.audit(repo, manifest)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_hidden_directory_does_not_alias_public_directory(self) -> None:
+        repo = self.make_repo()
+        self.commit_file(repo, "local/migration/example.txt", "public")
+        manifest = self.write_manifest(
+            repo, [{"path": ".local/migration/", "disposition": "private-runtime"}]
+        )
+        result = self.audit(repo, manifest)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_explicit_relative_prefix_preserves_hidden_path(self) -> None:
+        repo = self.make_repo()
+        self.commit_file(repo, ".local/migration/example.txt", "private")
+        manifest = self.write_manifest(
+            repo, [{"path": "./.local/migration/", "disposition": "private-runtime"}]
+        )
+        result = self.audit(repo, manifest)
+        self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+        self.assertIn("HISTORY_MATCH: .local/migration/", result.stdout)
+
+    def test_path_traversal_cannot_silently_pass_history(self) -> None:
+        repo = self.make_repo()
+        self.commit_file(repo, "src/index.ts", "export {}")
+        manifest = self.write_manifest(
+            repo, [{"path": "../private/", "disposition": "externalize"}]
+        )
+        result = self.audit(repo, manifest)
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("unsafe or ambiguous Git path", result.stdout)
+
+    def test_unsupported_disposition_cannot_skip_audit(self) -> None:
+        repo = self.make_repo()
+        self.commit_file(repo, "src/index.ts", "export {}")
+        manifest = self.write_manifest(
+            repo, [{"path": "private/", "disposition": "untracked"}]
+        )
+        result = self.audit(repo, manifest)
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("unsupported disposition", result.stdout)
+
+    def test_reject_nonobject_manifest_without_crashing(self) -> None:
+        repo = self.make_repo()
+        self.commit_file(repo, "src/index.ts", "export {}")
+        manifest = repo / "manifest.json"
+        manifest.write_text("[]", encoding="utf-8")
+        result = self.audit(repo, manifest)
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("root must be an object", result.stdout)
+
+    def test_reject_disabled_history_audit(self) -> None:
+        repo = self.make_repo()
+        self.commit_file(repo, "src/index.ts", "export {}")
+        manifest = repo / "manifest.json"
+        manifest.write_text(json.dumps({
+            "history": {"audit_required": False},
+            "sensitive_surfaces": [{"path": "private/", "disposition": "externalize"}]
+        }), encoding="utf-8")
+        result = self.audit(repo, manifest)
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("history.audit_required must be true", result.stdout)
+
+    def test_missing_history_requirement_cannot_claim_clean(self) -> None:
+        repo = self.make_repo()
+        self.commit_file(repo, "src/index.ts", "export {}")
+        manifest = repo / "manifest.json"
+        manifest.write_text(json.dumps({
+            "sensitive_surfaces": [{"path": "private/", "disposition": "externalize"}]
+        }), encoding="utf-8")
+        result = self.audit(repo, manifest)
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertIn("history must be an object", result.stdout)
+        self.assertNotIn("PASS:", result.stdout)
+
+    def test_malformed_history_requirement_cannot_claim_clean(self) -> None:
+        repo = self.make_repo()
+        self.commit_file(repo, "src/index.ts", "export {}")
+        manifest = repo / "manifest.json"
+        for value in (None, 0, 1, "true", [], {}):
+            with self.subTest(value=value):
+                manifest.write_text(json.dumps({
+                    "history": {"audit_required": value},
+                    "sensitive_surfaces": [{"path": "private/", "disposition": "externalize"}]
+                }), encoding="utf-8")
+                result = self.audit(repo, manifest)
+                self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+                self.assertIn("history.audit_required must be true", result.stdout)
+                self.assertNotIn("PASS:", result.stdout)
+
+    def test_reject_malformed_history_without_crashing(self) -> None:
+        repo = self.make_repo()
+        self.commit_file(repo, "src/index.ts", "export {}")
+        manifest = repo / "manifest.json"
+        manifest.write_text(json.dumps({
+            "history": [],
+            "sensitive_surfaces": [{"path": "private/", "disposition": "externalize"}]
+        }), encoding="utf-8")
+        result = self.audit(repo, manifest)
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("history must be an object", result.stdout)
+
+    def test_detects_git_quoted_sensitive_paths(self) -> None:
+        """Git's default --name-only C-quotes tabs, newlines, and Unicode."""
+        repo = self.make_repo()
+        paths = ("private/tab\tfile.txt", "private/newline\nfile.txt", "private/café.txt")
+        for name in paths:
+            self.commit_file(repo, name, "fixture")
+
+        manifest = self.write_manifest(
+            repo, [{"path": "private/", "disposition": "externalize"}]
+        )
+        result = self.audit(repo, manifest)
+        self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+        self.assertIn("HISTORY_MATCH: private/", result.stdout)
+        for name in paths:
+            self.assertIn(name, result.stdout)
+        self.assertNotIn("PASS:", result.stdout)
 
     def test_exact_file_surface_matches_history(self) -> None:
         repo = self.make_repo()
