@@ -16,6 +16,18 @@ Accepted pure admission/verification code is necessary, not sufficient. Do not i
 6. **Accepted modules:** HQ #133 lease guard, #134 next-Issue preview and #135 outcome verifier are pure software gates. `PILOT_ACTIVATION_ENABLED = False` remains in force until separately owner-approved live admission.
 
 
+## Delegation discovery — default for engineering chats (manual, owner-gated)
+
+When an owner asks a ChatGPT engineering chat to **implement, fix, test or review code**, the chat MUST explicitly consider the existing GitHub Issue → `@cursor` route before choosing connector-only code edits. This is a **decision obligation, not permission to launch**. GitHub Connector is appropriate for deterministic reads, issue/PR coordination, small authorized metadata or documentation changes, and independent CI review; Cursor is the preferred *candidate executor* for bounded implementation when the owner has authorized that exact task and the provider/writer/budget gates are satisfied. Do not require the owner to repeat that Cursor exists.
+
+1. Read target repo `AGENTS.md`, relevant existing Issue/PR and current SHA. Reuse an existing implementation PR or Cursor session if independently supported; never start a duplicate writer.
+2. Classify `CONNECTOR_ONLY`, `CURSOR_CANDIDATE`, `WAITING_DEPENDENCY`, `OWNER_GATE`, or `STOP`. For `CURSOR_CANDIDATE`, verify one-shot owner scope, no competing writer, permitted provider invocation and applicable budget/lease gates **before** posting `@cursor`. Unknown gates mean no launch.
+3. For an authorized manual handoff, post **one** scoped `@cursor` comment in the **owning repository Issue**, with goal, allowed/forbidden paths, required tests and stop conditions per the existing dispatch contract below. Posting a comment is only `DISPATCH_REQUESTED`; verify a provider acknowledgement/agent identity before reporting `STARTED`. A GitHub Connector write alone does not prove Cursor executed.
+4. On completion, inspect exact PR HEAD and required CI independently; report `PR_OPEN`, `CI_PASS`, `MERGED`, and `ACCEPTED` separately. Never silently retry `@cursor` or merge.
+5. If this route is unavailable, say exactly why and what the next safe action is. Do not default to connector-only implementation **without explaining the delegation decision**.
+
+**Local adoption:** each participating domain repository should add a short `AGENTS.md` pointer to this section and its own scope/owner rules. This central document does not override local instructions, grant cross-repo authority, enable unattended dispatch, or alter `PILOT_ACTIVATION_ENABLED = False`. Apply local changes only through independently authorized, repo-owned PRs.
+
 ## 1. Precedence and authority
 
 1. Provider/account security policies, owner-specific explicit gates, repository-local `AGENTS.md`, required CI, release and data rules always apply. If rules differ, use the stricter applicable rule.
