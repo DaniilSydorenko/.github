@@ -10,6 +10,10 @@ GitHub HQ is **infrastructure steward**, not a manager of other repositories' PR
 
 **NO unattended Cursor activation from HQ:** AI Engineering must independently prove a protected singleton lease / sole allowed writer, provider token and billing/BYOK visibility, launch-route controls, owner GO and one measured low-burn Issue/PR → single Cursor run → tests → permitted merge → accepted `main` → safe lease release. Unknown evidence => STOP, not an extra agent or new controller.
 
+## Engineering chat delegation discovery
+
+For an owner-requested engineering implementation, fix, test or code review, **explicitly evaluate GitHub Issue → `@cursor` before defaulting to GitHub Connector-only edits**. Connector is the coordination/evidence tool; a bounded Cursor run is a candidate executor, **not** an automatic entitlement. Follow [Delegation discovery](docs/initiatives/ai-engineering/OPERATING_RULES.md#delegation-discovery--default-for-engineering-chats-manual-owner-gated), local domain authorization, active-writer/provider/budget gates and one-shot dispatch rules. If any gate is unknown, STOP rather than launch. A posted `@cursor` comment is only a request, not proof of agent start. This does not activate unattended Cursor or give HQ authority over product repositories.
+
 ## Low-Burn agent work (owner-approved Cursor/Issue tasks)
 
 - Use **one Issue = one coherent, verifiable outcome**. Fetch current default-branch SHA and relevant Issue/PR; read mandatory local rules plus only task-relevant files initially. Expand context only for a proved dependency; do not default to whole-repo or full-chat ingestion.
