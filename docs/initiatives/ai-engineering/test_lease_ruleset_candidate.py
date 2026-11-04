@@ -23,6 +23,11 @@ GUARD = {**BASE, "id": 2, "rules": [{"type": "deletion"},
          "bypass_actors": []}
 
 
+MAIN = {**BASE, "name": "ai-eng-hq-main-protection", "id": 3,
+        "conditions": {"ref_name": {"include": ["refs/heads/main"], "exclude": []}},
+        "rules": [{"type": "pull_request"}], "bypass_actors": []}
+
+
 class CandidateTests(unittest.TestCase):
     def verify(self, branch=BRANCH, policies=None, app=APP_ID):
         value = probe.audit(branch, [UPDATE, GUARD] if policies is None else policies,
@@ -34,6 +39,39 @@ class CandidateTests(unittest.TestCase):
 
     def test_two_independent_rules_are_candidate_only(self):
         self.assertEqual(self.verify()["status"], "CANDIDATE")
+
+    def test_active_main_only_rule_is_disjoint_from_lease(self):
+        self.assertEqual(self.verify(policies=[UPDATE, GUARD, MAIN])["status"], "CANDIDATE")
+
+    def test_active_wildcard_or_other_lease_rule_never_disappears(self):
+        ambiguous = [
+            {**MAIN, "id": 4, "conditions": {
+                "ref_name": {"include": ["refs/heads/*"], "exclude": []}}},
+            {**MAIN, "id": 5, "conditions": {
+                "ref_name": {"include": [probe.EXPECTED_REF], "exclude": []}}},
+            {**MAIN, "id": 6, "conditions": {
+                "ref_name": {"include": ["~ALL"], "exclude": []}}},
+            {**MAIN, "id": 7, "conditions": {
+                "ref_name": {"include": ["refs/heads/main", probe.EXPECTED_REF],
+                             "exclude": []}}},
+            {**MAIN, "id": 8, "source": "Untrusted/other"},
+        ]
+        for extra in ambiguous:
+            with self.subTest(extra=extra["id"]):
+                self.assertEqual(self.verify(policies=[UPDATE, GUARD, extra])["status"], "STOP")
+
+    def test_disabled_lease_rulesets_coexist_with_active_main_only_rule(self):
+        value = probe.audit_prepared({**BRANCH, "protected": False},
+                                     self.prepared() + [MAIN])
+        self.assertEqual(value["status"], "PREPARED")
+        self.assertFalse(value["cursor_launch_authorized"])
+
+    def test_prepared_state_rejects_broad_active_rule(self):
+        wildcard = {**MAIN, "conditions": {
+            "ref_name": {"include": ["refs/heads/*"], "exclude": []}}}
+        self.assertEqual(probe.audit_prepared(
+            {**BRANCH, "protected": False},
+            self.prepared() + [wildcard])["status"], "STOP")
 
     def test_unprotected_lease_stops(self):
         self.assertEqual(self.verify(branch={**BRANCH, "protected": False})["status"], "STOP")
