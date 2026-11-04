@@ -195,6 +195,25 @@ class CandidateTests(unittest.TestCase):
         self.assertEqual(value["status"], "CANDIDATE")
         self.assertEqual(reader.paths[-2:], ["/rulesets/1", "/rulesets/2"])
 
+    def test_live_probe_with_real_three_ruleset_inventory(self):
+        prepared = self.prepared()
+        responses = {
+            f"/branches/{probe.REF}": {**BRANCH, "protected": False},
+            "/rulesets?includes_parents=false&per_page=100": [
+                {"id": 26090757}, {"id": 26170483}, {"id": 3}],
+            "/rulesets/26090757": prepared[0],
+            "/rulesets/26170483": prepared[1],
+            "/rulesets/3": MAIN,
+        }
+
+        class Reader:
+            def get(self, path):
+                return responses[path]
+
+        result = probe.public_readonly_probe(Reader(), APP_ID)
+        self.assertEqual(result["status"], "PREPARED")
+        self.assertFalse(result["cursor_launch_authorized"])
+
     def prepared(self):
         base = {**probe.BASE} if hasattr(probe, "BASE") else {
             "target": "branch", "source_type": "Repository", "source": probe.REPO,
