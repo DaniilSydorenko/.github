@@ -11,11 +11,12 @@ import urllib.error
 import urllib.request
 
 API = "https://api.github.com/repos/DaniilSydorenko/haversine-geolocation"
-ISSUES = (215, 216, 217)
+ISSUES = (215, 216, 217, 220)
 ALLOWED = {
     215: "CONTRIBUTING.md",
     216: "docs/compatibility.md",
     217: "docs/examples/v2-consumers.md",
+    220: "docs/agent-pilot-proof.md",
 }
 
 
@@ -52,6 +53,7 @@ def inspect(fetch=get):
             if "#215" in (p.get("body") or "") or
                "#216" in (p.get("body") or "") or
                "#217" in (p.get("body") or "") or
+               "#220" in (p.get("body") or "") or
                "pilot/215-" in ((p.get("head") or {}).get("ref") or "")
         ]
         return {
