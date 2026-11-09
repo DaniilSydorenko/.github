@@ -28,6 +28,23 @@ jobs:
         run: python3 -m py_compile docs/initiatives/ai-engineering/runner_readiness.py
       - name: Fail-closed offline fixtures
         run: python3 docs/initiatives/ai-engineering/runner_readiness.py --self-test
+      - name: Set up OpenHands SDK Python runtime
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+          cache-dependency-path: docs/initiatives/ai-engineering/openhands-smoke-requirements.txt
+      - name: Install pinned OpenHands SDK and tools (no model invocation)
+        run: python -m pip install -r docs/initiatives/ai-engineering/openhands-smoke-requirements.txt
+      - name: Verify real OpenHands SDK imports (no model invocation)
+        run: |
+          python - <<'PY'
+          from openhands.sdk import LLM, Agent, Conversation, Tool
+          from openhands.tools.file_editor import FileEditorTool
+          from openhands.tools.terminal import TerminalTool
+          assert FileEditorTool.name and TerminalTool.name
+          print("PASS: OpenHands SDK + tools import in GitHub Actions")
+          PY
 
   manual-readonly-inventory:
     if: >-
