@@ -1,19 +1,37 @@
 name: AI Engineering OpenHands Runner Readiness (read-only)
 
-# Explicitly observational: not a runner, agent launch, queue, lease, or scheduler.
+# PRs run offline contract tests only. Live inventory is manual, owner-only, main-only.
+# No agent launch, model invocation, lease mutation, dispatch, queue, or scheduler.
 on:
+  pull_request:
+    paths:
+      - 'docs/initiatives/ai-engineering/runner_readiness.py'
+      - '.github/workflows/ai-eng-openhands-readiness.yml'
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: ai-eng-openhands-readiness
+  group: ai-eng-openhands-readiness-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: false
 
 jobs:
-  readiness:
+  offline-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - name: Compile readiness probe
+        run: python3 -m py_compile docs/initiatives/ai-engineering/runner_readiness.py
+      - name: Fail-closed offline fixtures
+        run: python3 docs/initiatives/ai-engineering/runner_readiness.py --self-test
+
+  manual-readonly-inventory:
     if: >-
+      github.event_name == 'workflow_dispatch' &&
       github.repository == 'DaniilSydorenko/.github' &&
       github.actor == 'DaniilSydorenko' &&
       github.ref == 'refs/heads/main'
@@ -24,7 +42,5 @@ jobs:
         with:
           ref: main
           persist-credentials: false
-      - name: Offline fail-closed contract tests
-        run: python3 docs/initiatives/ai-engineering/runner_readiness.py --self-test
-      - name: Live GitHub issue and PR inventory (GET only)
+      - name: Live GitHub issue and PR inventory (public GET only)
         run: python3 docs/initiatives/ai-engineering/runner_readiness.py --live
