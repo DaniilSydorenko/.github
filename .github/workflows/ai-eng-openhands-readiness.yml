@@ -1,0 +1,30 @@
+name: AI Engineering OpenHands Runner Readiness (read-only)
+
+# Explicitly observational: not a runner, agent launch, queue, lease, or scheduler.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ai-eng-openhands-readiness
+  cancel-in-progress: false
+
+jobs:
+  readiness:
+    if: >-
+      github.repository == 'DaniilSydorenko/.github' &&
+      github.actor == 'DaniilSydorenko' &&
+      github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: main
+          persist-credentials: false
+      - name: Offline fail-closed contract tests
+        run: python3 docs/initiatives/ai-engineering/runner_readiness.py --self-test
+      - name: Live GitHub issue and PR inventory (GET only)
+        run: python3 docs/initiatives/ai-engineering/runner_readiness.py --live
