@@ -45,6 +45,33 @@ def _exact_ref_rule(item: object) -> bool:
             and refs.get("exclude") == [])
 
 
+
+def _provably_disjoint_literal_branch(item: object) -> bool:
+    """Ignore only an exact, unrelated branch rule; wildcards remain unknown.
+
+    The repo's active main-only protection must not obscure lease preparation.
+    A wildcard or extra rule with possible lease overlap must never be ignored.
+    """
+    if (not isinstance(item, dict) or item.get("target") != "branch"
+            or item.get("source_type") != "Repository"
+            or item.get("source") != REPO
+            or item.get("enforcement") not in {"active", "disabled", "evaluate"}):
+        return False
+    conditions = item.get("conditions")
+    refs = conditions.get("ref_name") if isinstance(conditions, dict) else None
+    if not isinstance(refs, dict) or set(refs) != {"include", "exclude"}:
+        return False
+    names = refs.get("include")
+    if not isinstance(names, list) or len(names) != 1 or refs.get("exclude") != []:
+        return False
+    name = names[0]
+    if (not isinstance(name, str) or name == EXPECTED_REF
+            or re.fullmatch(r"refs/heads/[A-Za-z0-9._/-]+", name) is None):
+        return False
+    path = name[len("refs/heads/"):]
+    return all(part not in {"", ".", ".."} for part in path.split("/"))
+
+
 def audit(branch: object, rulesets: object, *, approved_app_id: object) -> dict:
     """Classify a configuration CANDIDATE, never verified dispatch authority.
 
@@ -63,9 +90,13 @@ def audit(branch: object, rulesets: object, *, approved_app_id: object) -> dict:
         return result("STOP", "ruleset_inventory_unavailable_or_truncated")
     if any(not isinstance(item, dict) for item in rulesets):
         return result("STOP", "malformed_ruleset_inventory")
-    exact = [item for item in rulesets if _exact_ref_rule(item)]
-    if len(exact) != 2:
-        return result("STOP", "two_independent_exact_active_rulesets_not_proven")
+    # The complete inventory may include unrelated exact-branch rulesets
+    # (such as the HQ main branch). Unknown overlap, broad selectors and
+    # extra lease rulesets must STOP, not be silently filtered out.
+    relevant = [item for item in rulesets if not _provably_disjoint_literal_branch(item)]
+    if len(relevant) != 2 or any(not _exact_ref_rule(item) for item in relevant):
+        return result("STOP", "potentially_overlapping_or_missing_lease_ruleset")
+    exact = relevant
     ids = [item.get("id") for item in exact]
     if any(type(i) is not int or i <= 0 for i in ids) or len(set(ids)) != 2:
         return result("STOP", "ruleset_identity_unverified")
@@ -110,10 +141,14 @@ def audit_prepared(branch: object, rulesets: object) -> dict:
     if (not isinstance(branch, dict) or branch.get("name") != REF
             or branch.get("protected") is not False):
         return result("STOP", "not_an_unprotected_preparation_snapshot")
-    if not isinstance(rulesets, list) or len(rulesets) != 2:
+    if (not isinstance(rulesets, list) or len(rulesets) >= 100
+            or any(not isinstance(item, dict) for item in rulesets)):
+        return result("STOP", "disabled_ruleset_inventory_incomplete")
+    relevant = [item for item in rulesets if not _provably_disjoint_literal_branch(item)]
+    if len(relevant) != 2:
         return result("STOP", "disabled_ruleset_inventory_incomplete")
     by_name = {}
-    for item in rulesets:
+    for item in relevant:
         if (not isinstance(item, dict) or not isinstance(item.get("id"), int)
                 or type(item["id"]) is not int or item["id"] <= 0
                 or item.get("name") in by_name
