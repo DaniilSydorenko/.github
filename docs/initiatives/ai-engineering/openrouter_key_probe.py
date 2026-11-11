@@ -25,14 +25,16 @@ def probe(key, opener=urllib.request.urlopen):
     )
     try:
         with opener(request, timeout=10) as response:
+            # A credential endpoint is not a model invocation; never print its payload.
             payload = json.load(response)
             if not isinstance(payload, dict) or not isinstance(payload.get("data"), dict):
                 return {"status": "STOP", "reason": "unexpected_response"}
             return {"status": "PASS", "reason": "credential_endpoint_responded",
                     "model_invoked": False, "charged_request": False}
     except urllib.error.HTTPError as exc:
+        # Do not echo provider error bodies or response headers.
         return {"status": "STOP", "reason": "http_error", "http_status": exc.code}
-    except (urllib.error.URLError, TimeoutError, ValueError, TypeError):
+    except (urllib.error.URLError, TimeoutError, ValueError, TypeError, OSError):
         return {"status": "STOP", "reason": "endpoint_unavailable_or_invalid"}
 
 
@@ -53,6 +55,17 @@ def self_test():
     result = probe("sk-or-fake-for-offline-test", fake_open)
     assert result["status"] == "PASS"
     assert "label" not in str(result)
+    def invalid_json(request, timeout):
+        class BadResponse(FakeResponse):
+            def read(self, *args):
+                return b"not-json"
+        return BadResponse()
+    assert probe("sk-or-fake-for-offline-test", invalid_json)["status"] == "STOP"
+    def rejected(request, timeout):
+        raise urllib.error.HTTPError(URL, 401, "invalid token secret", {}, None)
+    rejected_result = probe("sk-or-fake-for-offline-test", rejected)
+    assert rejected_result == {"status": "STOP", "reason": "http_error", "http_status": 401}
+    assert "secret" not in str(rejected_result)
     print("PASS: offline OpenRouter key-probe contract (no network, no secrets)")
 
 
