@@ -51,6 +51,30 @@ jobs:
           print("PASS: OpenHands SDK + tools import in GitHub Actions")
           PY
 
+  # Lane A: owner-triggered credential check; no LLM request and no write token.
+  # This job cannot run from a PR head; only after the owner accepts the
+  # workflow into main and manually dispatches it from main.
+  manual-openrouter-connection:
+    if: >-
+      github.event_name == 'workflow_dispatch' &&
+      github.repository == 'DaniilSydorenko/.github' &&
+      github.actor == 'DaniilSydorenko' &&
+      github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: ai-eng-lease-owner
+    timeout-minutes: 3
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: main
+          persist-credentials: false
+      - name: OpenRouter key endpoint GET (no model request)
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+        run: python3 docs/initiatives/ai-engineering/openrouter_key_probe.py --live
+
   manual-readonly-inventory:
     if: >-
       github.event_name == 'workflow_dispatch' &&
