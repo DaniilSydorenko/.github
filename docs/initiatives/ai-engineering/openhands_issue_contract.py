@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 """Lane B: offline contract for Issue #220. NOT an OpenHands executor."""
-import json
 import sys
 
 REPO = "DaniilSydorenko/haversine-geolocation"
@@ -16,6 +15,8 @@ def admit(issue, changed_paths, *, agent_active=False, lease_verified=False,
     body = issue.get("body") or ""
     if PATH not in body or "OpenHands" not in body:
         return {"decision": "STOP", "reason": "scope_missing"}
+    if not changed_paths:
+        return {"decision": "STOP", "reason": "no_changes"}
     if any(p != PATH for p in changed_paths) or len(changed_paths) != len(set(changed_paths)):
         return {"decision": "STOP", "reason": "out_of_scope_diff"}
     if agent_active:
@@ -28,8 +29,10 @@ def admit(issue, changed_paths, *, agent_active=False, lease_verified=False,
 def self_test():
     issue = {"number": 220, "state": "open",
              "body": "OpenHands pilot; allowed docs/agent-pilot-proof.md"}
-    assert admit(issue, [])["decision"] == "STOP"
+    assert admit(issue, [])["reason"] == "no_changes"
     assert admit(issue, [PATH, "package.json"])["reason"] == "out_of_scope_diff"
+    assert admit(issue, [PATH, PATH])["reason"] == "out_of_scope_diff"
+    assert admit({**issue, "body": "OpenHands pilot"}, [PATH])["reason"] == "scope_missing"
     assert admit(issue, [PATH], agent_active=True)["reason"] == "active_agent"
     assert admit({**issue, "number": 219}, [PATH])["reason"] == "wrong_issue"
     assert admit(issue, [PATH], lease_verified=True, writer_verified=True,
