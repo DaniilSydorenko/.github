@@ -12,6 +12,11 @@ def admit(issue, changed_paths, *, agent_active=False, lease_verified=False,
     """Fail closed: content validation is necessary but not sufficient for launch."""
     if issue.get("number") != ISSUE or issue.get("state") != "open":
         return {"decision": "STOP", "reason": "wrong_issue"}
+    # GitHub issues and pull requests share the Issues API; never admit a PR.
+    if "pull_request" in issue:
+        return {"decision": "STOP", "reason": "not_an_issue"}
+    if issue.get("repository_url") not in (None, "https://api.github.com/repos/" + REPO):
+        return {"decision": "STOP", "reason": "wrong_repository"}
     body = issue.get("body") or ""
     if PATH not in body or "OpenHands" not in body:
         return {"decision": "STOP", "reason": "scope_missing"}
@@ -35,6 +40,8 @@ def self_test():
     assert admit({**issue, "body": "OpenHands pilot"}, [PATH])["reason"] == "scope_missing"
     assert admit(issue, [PATH], agent_active=True)["reason"] == "active_agent"
     assert admit({**issue, "number": 219}, [PATH])["reason"] == "wrong_issue"
+    assert admit({**issue, "pull_request": {}}, [PATH])["reason"] == "not_an_issue"
+    assert admit({**issue, "repository_url": "https://api.github.com/repos/other/repo"}, [PATH])["reason"] == "wrong_repository"
     assert admit(issue, [PATH], lease_verified=True, writer_verified=True,
                  budget_verified=True, owner_go=True)["decision"] == "ADMISSION_CONDITIONS_MET"
     print("PASS: Issue #220 fail-closed scope/admission contract; no agent launch")
