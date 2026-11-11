@@ -10,6 +10,14 @@ on:
       - 'docs/initiatives/ai-engineering/openhands_issue_contract.py'
       - '.github/workflows/ai-eng-openhands-readiness.yml'
   workflow_dispatch:
+    inputs:
+      operation:
+        description: 'Read-only operation (never launches an agent)'
+        required: true
+        type: choice
+        options:
+          - inventory
+          - openrouter-connection
 
 permissions:
   contents: read
@@ -62,6 +70,7 @@ jobs:
   manual-openrouter-connection:
     if: >-
       github.event_name == 'workflow_dispatch' &&
+      inputs.operation == 'openrouter-connection' &&
       github.repository == 'DaniilSydorenko/.github' &&
       github.actor == 'DaniilSydorenko' &&
       github.ref == 'refs/heads/main'
@@ -83,6 +92,7 @@ jobs:
   manual-readonly-inventory:
     if: >-
       github.event_name == 'workflow_dispatch' &&
+      inputs.operation == 'inventory' &&
       github.repository == 'DaniilSydorenko/.github' &&
       github.actor == 'DaniilSydorenko' &&
       github.ref == 'refs/heads/main'
