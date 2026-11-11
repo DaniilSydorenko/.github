@@ -6,6 +6,7 @@ on:
   pull_request:
     paths:
       - 'docs/initiatives/ai-engineering/runner_readiness.py'
+      - 'docs/initiatives/ai-engineering/openrouter_key_probe.py'
       - '.github/workflows/ai-eng-openhands-readiness.yml'
   workflow_dispatch:
 
@@ -28,6 +29,10 @@ jobs:
         run: python3 -m py_compile docs/initiatives/ai-engineering/runner_readiness.py
       - name: Fail-closed offline fixtures
         run: python3 docs/initiatives/ai-engineering/runner_readiness.py --self-test
+      - name: Compile and offline-test OpenRouter credential probe (no secret)
+        run: |
+          python3 -m py_compile docs/initiatives/ai-engineering/openrouter_key_probe.py
+          python3 docs/initiatives/ai-engineering/openrouter_key_probe.py --self-test
       - name: Set up OpenHands SDK Python runtime
         uses: actions/setup-python@v6
         with:
