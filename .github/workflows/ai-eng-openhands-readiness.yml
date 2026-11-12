@@ -104,4 +104,6 @@ jobs:
           ref: main
           persist-credentials: false
       - name: Live GitHub issue and PR inventory (public GET only)
-        run: python3 docs/initiatives/ai-engineering/runner_readiness.py --live
+        run: |
+          python3 docs/initiatives/ai-engineering/runner_readiness.py --live
+          python3 docs/initiatives/ai-engineering/openhands_issue_contract.py --live-preflight
