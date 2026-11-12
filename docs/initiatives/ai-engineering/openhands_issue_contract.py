@@ -55,6 +55,20 @@ def live_preflight(fetch=None):
             return {"decision": "STOP", "reason": "pr_inventory_incomplete"}
         if any("#220" in (p.get("body") or "") for p in prs):
             return {"decision": "STOP", "reason": "existing_issue_pr"}
+        # Check actual changed paths, not only descriptions.
+        for pr in prs:
+            number = pr.get("number")
+            if not isinstance(number, int) or number < 1:
+                return {"decision": "STOP", "reason": "invalid_pr_inventory"}
+            files = fetch("/pulls/" + str(number) + "/files?per_page=100")
+            if not isinstance(files, list) or len(files) >= 100:
+                return {"decision": "STOP", "reason": "pr_file_inventory_incomplete"}
+            if any(not isinstance(item, dict) or not isinstance(item.get("filename"), str)
+                   for item in files):
+                return {"decision": "STOP", "reason": "invalid_pr_files"}
+            if any(item["filename"] == PATH or item.get("previous_filename") == PATH
+                   for item in files):
+                return {"decision": "STOP", "reason": "overlapping_pr_path"}
         file_present = True
         try:
             fetch("/contents/" + PATH + "?ref=master")
@@ -90,6 +104,20 @@ def preflight_self_test():
     assert live_preflight(good)["reason"] == "scope_preflight_passed_but_live_gates_unverified"
     assert live_preflight(lambda p: [{"body": "#220"}] if p.startswith("/pulls?") else good(p))["reason"] == "existing_issue_pr"
     assert live_preflight(lambda p: {"sha": "exists"} if p.startswith("/contents/") else good(p))["reason"] == "target_file_already_exists"
+    def overlap(path):
+        if path.startswith("/pulls/1/files"):
+            return [{"filename": PATH}]
+        if path.startswith("/pulls?"):
+            return [{"number": 1, "body": ""}]
+        return good(path)
+    assert live_preflight(overlap)["reason"] == "overlapping_pr_path"
+    def incomplete(path):
+        if path.startswith("/pulls/1/files"):
+            return [{"filename": "docs/unrelated.md"}] * 100
+        if path.startswith("/pulls?"):
+            return [{"number": 1, "body": ""}]
+        return good(path)
+    assert live_preflight(incomplete)["reason"] == "pr_file_inventory_incomplete"
     print("PASS: Issue #220 read-only preflight fixtures (no network, no authorization)")
 
 def self_test():
