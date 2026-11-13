@@ -122,3 +122,4 @@ jobs:
         run: |
           python3 docs/initiatives/ai-engineering/runner_readiness.py --live
           python3 docs/initiatives/ai-engineering/openhands_issue_contract.py --live-preflight
+          python3 docs/initiatives/ai-engineering/autopilot_snapshot.py --live
