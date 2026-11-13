@@ -9,6 +9,7 @@ import json
 import os
 import pathlib
 import sys
+import tempfile
 
 TARGET = "docs/agent-pilot-proof.md"
 ISSUE = 220
@@ -69,7 +70,19 @@ def self_test():
         pass
     else:
         raise AssertionError("unauthorized execution was accepted")
-    print("PASS: OpenHands executor prompt and unauthorized execution rejection")
+    with tempfile.TemporaryDirectory() as temp:
+        root = pathlib.Path(temp)
+        (root / ".git").mkdir()
+        assert validate_workspace(root) == root.resolve()
+        (root / TARGET).parent.mkdir(parents=True)
+        (root / TARGET).write_text("existing", encoding="utf-8")
+        try:
+            validate_workspace(root)
+        except ValueError as error:
+            assert str(error) == "target already exists"
+        else:
+            raise AssertionError("existing target accepted")
+    print("PASS: OpenHands executor workspace, prompt, and unauthorized execution rejection")
 
 
 def main():
