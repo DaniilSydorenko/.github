@@ -10,6 +10,7 @@ import os
 import pathlib
 import sys
 import tempfile
+import subprocess
 
 TARGET = "docs/agent-pilot-proof.md"
 ISSUE = 220
@@ -28,6 +29,17 @@ def validate_workspace(workspace):
         raise ValueError("workspace must be an existing Git checkout")
     if (root / TARGET).exists():
         raise ValueError("target already exists")
+    try:
+        check = subprocess.run(["git", "-C", str(root), "rev-parse", "--show-toplevel"],
+                               capture_output=True, text=True, check=True, timeout=10)
+        if pathlib.Path(check.stdout.strip()).resolve() != root:
+            raise ValueError("workspace is not the Git root")
+        status = subprocess.run(["git", "-C", str(root), "status", "--porcelain", "--untracked-files=all"],
+                                capture_output=True, text=True, check=True, timeout=10)
+        if status.stdout.strip():
+            raise ValueError("workspace is not clean")
+    except (subprocess.SubprocessError, OSError) as error:
+        raise ValueError("Git workspace verification failed") from error
     return root
 
 
@@ -72,8 +84,16 @@ def self_test():
         raise AssertionError("unauthorized execution was accepted")
     with tempfile.TemporaryDirectory() as temp:
         root = pathlib.Path(temp)
-        (root / ".git").mkdir()
+        subprocess.run(["git", "init", "-q", str(root)], check=True, timeout=10)
         assert validate_workspace(root) == root.resolve()
+        (root / "untracked.txt").write_text("dirty", encoding="utf-8")
+        try:
+            validate_workspace(root)
+        except ValueError as error:
+            assert str(error) == "workspace is not clean"
+        else:
+            raise AssertionError("dirty workspace accepted")
+        (root / "untracked.txt").unlink()
         (root / TARGET).parent.mkdir(parents=True)
         (root / TARGET).write_text("existing", encoding="utf-8")
         try:
