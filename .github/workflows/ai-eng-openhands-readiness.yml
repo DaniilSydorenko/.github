@@ -13,6 +13,7 @@ on:
       - 'docs/initiatives/ai-engineering/autopilot_snapshot.py'
       - 'docs/initiatives/ai-engineering/openhands_executor.py'
       - 'docs/initiatives/ai-engineering/openhands_patch_prepare.py'
+      - 'docs/initiatives/ai-engineering/openhands_draft_handoff.py'
       - '.github/workflows/ai-eng-openhands-readiness.yml'
   workflow_dispatch:
     inputs:
@@ -71,6 +72,10 @@ jobs:
         run: |
           python3 -m py_compile docs/initiatives/ai-engineering/openhands_patch_prepare.py
           python3 docs/initiatives/ai-engineering/openhands_patch_prepare.py --self-test
+      - name: Verify protected Draft PR handoff contract (offline)
+        run: |
+          python3 -m py_compile docs/initiatives/ai-engineering/openhands_draft_handoff.py
+          python3 docs/initiatives/ai-engineering/openhands_draft_handoff.py --self-test
       - name: Set up OpenHands SDK Python runtime
         uses: actions/setup-python@v6
         with:
