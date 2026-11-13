@@ -109,6 +109,36 @@ def self_test():
             executor_authority="fixture",
             executor=mock_executor)
         assert invoked == ["agent"] and result["decision"] == "STOP"
+        proof.unlink()
+        published = []
+        def failed_agent(*args, **kwargs):
+            proof.write_text("OpenHands Issue #220 distance(a,b). This does not change behavior.\\n")
+            return "failed"
+        try:
+            run_agent_then_handoff(
+                root, base, patch, api_key="dummy", model="mock",
+                executor_authority="fixture", executor=failed_agent,
+                publisher=lambda *args: published.append("unsafe"))
+        except RuntimeError:
+            pass
+        else:
+            raise AssertionError("failed agent accepted")
+        assert not published, "publisher invoked after agent failure"
+        proof.unlink()
+        def bad_agent(*args, **kwargs):
+            proof.write_text("OpenHands Issue #220 distance(a,b). This does not change behavior.\\n")
+            (root / "package.json").write_text("unsafe", encoding="utf-8")
+            return "completed"
+        try:
+            run_agent_then_handoff(
+                root, base, patch, api_key="dummy", model="mock",
+                executor_authority="fixture", executor=bad_agent,
+                publisher=lambda *args: published.append("unsafe"))
+        except ValueError:
+            pass
+        else:
+            raise AssertionError("out-of-scope agent accepted")
+        assert not published, "publisher invoked after out-of-scope changes"
     print("PASS: replayable agent patch and guarded publisher handoff")
 
 
