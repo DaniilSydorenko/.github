@@ -91,6 +91,7 @@ def self_test():
             raise AssertionError("extra changes accepted")
         assert len(called) == 1
         (root / "package.json").unlink()
+        proof.unlink()
         try:
             run_agent_then_handoff(root, base, patch, api_key="dummy", model="mock",
                                    executor_authority=None)
@@ -99,10 +100,14 @@ def self_test():
         else:
             raise AssertionError("untrusted agent execution accepted")
         invoked = []
+        def mock_executor(*args, **kwargs):
+            invoked.append("agent")
+            proof.write_text("OpenHands Issue #220 distance(a,b). This does not change behavior.\\n".replace("\\\\n", "\\n"))
+            return "completed"
         result = run_agent_then_handoff(
             root, base, patch, api_key="dummy", model="mock",
             executor_authority="fixture",
-            executor=lambda *a, **kw: invoked.append("agent") or "completed")
+            executor=mock_executor)
         assert invoked == ["agent"] and result["decision"] == "STOP"
     print("PASS: replayable agent patch and guarded publisher handoff")
 
