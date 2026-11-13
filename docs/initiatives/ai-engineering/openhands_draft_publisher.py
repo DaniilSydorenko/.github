@@ -31,7 +31,7 @@ def publish_verified_proof(*, token, base_sha, proof_path, authority,
     if len(base_sha) != 40 or any(c not in "0123456789abcdef" for c in base_sha):
         raise ValueError("invalid base SHA")
     path = pathlib.Path(proof_path)
-    if not path.is_file() or path.is_symlink():
+    if not path.is_file() or path.is_symlink() or path.stat().st_size > 12000:
         raise ValueError("invalid proof")
     from openhands_artifact_verifier import verify
     content = path.read_text(encoding="utf-8")
@@ -43,7 +43,7 @@ def publish_verified_proof(*, token, base_sha, proof_path, authority,
     head = transport("GET", api + "/git/ref/heads/master", token)
     if head["object"]["sha"] != base_sha:
         raise RuntimeError("base moved; stop")
-    existing = transport("GET", api + "/pulls?state=open&head=DaniilSydorenko:" + BRANCH, token)
+    existing = transport("GET", api + "/pulls?state=all&head=DaniilSydorenko:" + BRANCH, token)
     if existing:
         raise RuntimeError("branch PR already exists")
     # GitHub REST create-ref is atomic: existing branch rejects the request.
@@ -93,6 +93,7 @@ def self_test():
         assert result["html_url"].endswith("/draft")
         assert [c[0] for c in calls] == ["GET", "GET", "POST", "PUT", "POST"]
         assert calls[-1][2]["draft"] is True
+        assert "state=all" in calls[1][1]
         calls.clear()
         def stale(method, url, token, payload=None):
             calls.append(method)
