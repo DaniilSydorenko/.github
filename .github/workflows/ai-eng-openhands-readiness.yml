@@ -88,6 +88,25 @@ jobs:
           assert verdict['sdk_invocation'] is False
           print('PASS: isolated executor dry-run did not launch agent')
           PY
+      - name: Checkout actual Issue 220 target (read-only, no persisted token)
+        uses: actions/checkout@v6
+        with:
+          repository: DaniilSydorenko/haversine-geolocation
+          ref: master
+          path: issue220-target
+          persist-credentials: false
+      - name: Verify executor against actual target repository (no model invocation)
+        run: |
+          python3 docs/initiatives/ai-engineering/openhands_executor.py --dry-run --workspace issue220-target > /tmp/ai-eng-real-target-verdict.json
+          python3 - <<'PY'
+          import json
+          with open('/tmp/ai-eng-real-target-verdict.json', encoding='utf-8') as source:
+              result = json.load(source)
+          assert result['decision'] == 'STOP'
+          assert result['reason'] == 'live_authorization_not_integrated'
+          assert result['sdk_invocation'] is False
+          print('PASS: actual Haversine checkout is valid and execution remains disabled')
+          PY
       - name: Verify real OpenHands SDK imports (no model invocation)
         run: |
           python - <<'PY'
