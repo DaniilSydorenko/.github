@@ -105,12 +105,30 @@ def self_test():
     print("PASS: OpenHands executor workspace, prompt, and unauthorized execution rejection")
 
 
+
+def sdk_construction_test():
+    """Instantiate the actual pinned SDK locally with a dummy key; never run."""
+    with tempfile.TemporaryDirectory() as temp:
+        root = pathlib.Path(temp)
+        subprocess.run(["git", "init", "-q", str(root)], check=True, timeout=10)
+        conversation = build_sdk_conversation(
+            validate_workspace(root), "offline-construction-test-only",
+            "openrouter/openai/gpt-4o-mini")
+        assert conversation is not None
+        # Deliberately do NOT call send_message() or run().
+    print("PASS: real OpenHands SDK conversation constructed without model invocation")
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--self-test", action="store_true")
+    parser.add_argument("--sdk-construction-test", action="store_true")
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--workspace")
     args = parser.parse_args()
+    if args.sdk_construction_test and not (args.self_test or args.dry_run or args.workspace):
+        sdk_construction_test()
+        return 0
     if args.self_test and not args.dry_run and not args.workspace:
         self_test()
         return 0
