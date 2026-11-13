@@ -95,6 +95,8 @@ jobs:
           cache-dependency-path: docs/initiatives/ai-engineering/openhands-smoke-requirements.txt
       - name: Install pinned OpenHands SDK and tools (no model invocation)
         run: python -m pip install -r docs/initiatives/ai-engineering/openhands-smoke-requirements.txt
+      - name: Construct actual OpenHands SDK conversation (dummy key, no model call)
+        run: python3 docs/initiatives/ai-engineering/openhands_executor.py --sdk-construction-test
       - name: Exercise OpenHands executor dry-run in isolated Git checkout
         run: |
           mkdir -p /tmp/ai-eng-issue220-checkout
