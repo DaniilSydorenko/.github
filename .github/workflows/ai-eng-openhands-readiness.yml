@@ -74,6 +74,19 @@ jobs:
           cache-dependency-path: docs/initiatives/ai-engineering/openhands-smoke-requirements.txt
       - name: Install pinned OpenHands SDK and tools (no model invocation)
         run: python -m pip install -r docs/initiatives/ai-engineering/openhands-smoke-requirements.txt
+      - name: Exercise OpenHands executor dry-run in isolated Git checkout
+        run: |
+          mkdir -p /tmp/ai-eng-issue220-checkout/.git
+          python3 docs/initiatives/ai-engineering/openhands_executor.py --dry-run --workspace /tmp/ai-eng-issue220-checkout > /tmp/ai-eng-issue220-verdict.json
+          python3 - <<'PY'
+          import json
+          with open('/tmp/ai-eng-issue220-verdict.json', encoding='utf-8') as handle:
+              verdict = json.load(handle)
+          assert verdict['decision'] == 'STOP'
+          assert verdict['reason'] == 'live_authorization_not_integrated'
+          assert verdict['sdk_invocation'] is False
+          print('PASS: isolated executor dry-run did not launch agent')
+          PY
       - name: Verify real OpenHands SDK imports (no model invocation)
         run: |
           python - <<'PY'
