@@ -26,6 +26,7 @@ on:
         options:
           - inventory
           - openrouter-connection
+          - pilot-preflight
 
 permissions:
   contents: read
@@ -181,3 +182,48 @@ jobs:
           python3 docs/initiatives/ai-engineering/runner_readiness.py --live
           python3 docs/initiatives/ai-engineering/openhands_issue_contract.py --live-preflight
           python3 docs/initiatives/ai-engineering/autopilot_snapshot.py --live
+
+  # Protected owner-only preflight. This does NOT call an LLM or publish a PR.
+  # It checks the real target checkout and all offline integration contracts.
+  manual-pilot-preflight:
+    if: >-
+      github.event_name == 'workflow_dispatch' &&
+      inputs.operation == 'pilot-preflight' &&
+      github.repository == 'DaniilSydorenko/.github' &&
+      github.actor == 'DaniilSydorenko' &&
+      github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: ai-eng-lease-owner
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: main
+          persist-credentials: false
+      - uses: actions/checkout@v6
+        with:
+          repository: DaniilSydorenko/haversine-geolocation
+          ref: master
+          path: issue220-target
+          persist-credentials: false
+      - name: Validate protected preflight without agent or GitHub writes
+        run: |
+          set -euo pipefail
+          python3 docs/initiatives/ai-engineering/openhands_executor.py --self-test
+          python3 docs/initiatives/ai-engineering/openhands_artifact_verifier.py --self-test
+          python3 docs/initiatives/ai-engineering/openhands_patch_prepare.py --self-test
+          python3 docs/initiatives/ai-engineering/openhands_draft_handoff.py --self-test
+          python3 docs/initiatives/ai-engineering/openhands_draft_publisher.py
+          python3 docs/initiatives/ai-engineering/openhands_pipeline.py --self-test
+          python3 docs/initiatives/ai-engineering/openhands_executor.py --dry-run --workspace issue220-target > /tmp/pilot-preflight.json
+          python3 - <<'PY'
+          import json
+          with open('/tmp/pilot-preflight.json', encoding='utf-8') as source:
+              result = json.load(source)
+          assert result['decision'] == 'STOP'
+          assert result['reason'] == 'live_authorization_not_integrated'
+          assert result['sdk_invocation'] is False
+          print('PASS: protected preflight, no model call, no repository write')
+          PY
