@@ -55,7 +55,8 @@ def run_agent_then_handoff(workspace, base_sha, patch_output, *,
         raise ValueError("checkout HEAD differs from approved base")
     status = executor(root, api_key, model, authorization=executor_authority)
     # Fail closed unless the executor reports a known successful terminal state.
-    if str(status).lower() not in ("finished", "completed", "success"):
+    terminal = getattr(status, "value", status)
+    if not isinstance(terminal, str) or terminal.lower() not in ("finished", "completed", "success"):
         raise RuntimeError("agent did not report verified completion")
     return handoff(root, base_sha, patch_output, publisher=publisher)
 
@@ -109,6 +110,17 @@ def self_test():
             executor_authority="fixture",
             executor=mock_executor)
         assert invoked == ["agent"] and result["decision"] == "STOP"
+        from enum import Enum
+        class AgentStatus(Enum):
+            FINISHED = "finished"
+        proof.unlink()
+        result = run_agent_then_handoff(
+            root, base, patch, api_key="dummy", model="mock",
+            executor_authority="fixture",
+            executor=lambda *args, **kwargs: (proof.write_text(
+                "OpenHands Issue #220 distance(a,b). This does not change behavior.\\n"),
+                AgentStatus.FINISHED)[1])
+        assert result["decision"] == "STOP"
         proof.unlink()
         published = []
         def failed_agent(*args, **kwargs):
