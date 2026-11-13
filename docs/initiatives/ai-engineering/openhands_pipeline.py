@@ -11,6 +11,7 @@ import tempfile
 
 from openhands_patch_prepare import prepare, TARGET
 from openhands_draft_publisher import publish_verified_proof
+from openhands_executor import execute_authorized, validate_workspace
 
 
 def handoff(workspace, base_sha, patch_output, *, publisher=None):
@@ -34,6 +35,29 @@ def handoff(workspace, base_sha, patch_output, *, publisher=None):
         return {"decision": "STOP", "reason": "protected_publisher_not_connected",
                 "patch": str(patch)}
     return publisher(root / TARGET, base_sha)
+
+
+
+def run_agent_then_handoff(workspace, base_sha, patch_output, *,
+                           api_key, model, executor_authority, publisher=None,
+                           executor=execute_authorized):
+    """Single controlled call chain; execution never begins without authority.
+
+    Publisher remains separately protected and optional. No CLI exposes this.
+    """
+    root = validate_workspace(workspace)
+    if not isinstance(base_sha, str) or len(base_sha) != 40 or any(
+            ch not in "0123456789abcdef" for ch in base_sha):
+        raise ValueError("invalid base SHA")
+    current = subprocess.check_output(
+        ["git", "-C", str(root), "rev-parse", "HEAD"], text=True, timeout=15).strip()
+    if current != base_sha:
+        raise ValueError("checkout HEAD differs from approved base")
+    status = executor(root, api_key, model, authorization=executor_authority)
+    # Fail closed unless the executor reports a known successful terminal state.
+    if str(status).lower() not in ("finished", "completed", "success"):
+        raise RuntimeError("agent did not report verified completion")
+    return handoff(root, base_sha, patch_output, publisher=publisher)
 
 
 def self_test():
@@ -66,6 +90,20 @@ def self_test():
         else:
             raise AssertionError("extra changes accepted")
         assert len(called) == 1
+        (root / "package.json").unlink()
+        try:
+            run_agent_then_handoff(root, base, patch, api_key="dummy", model="mock",
+                                   executor_authority=None)
+        except PermissionError:
+            pass
+        else:
+            raise AssertionError("untrusted agent execution accepted")
+        invoked = []
+        result = run_agent_then_handoff(
+            root, base, patch, api_key="dummy", model="mock",
+            executor_authority="fixture",
+            executor=lambda *a, **kw: invoked.append("agent") or "completed")
+        assert invoked == ["agent"] and result["decision"] == "STOP"
     print("PASS: replayable agent patch and guarded publisher handoff")
 
 
