@@ -27,16 +27,12 @@ def prepare(workspace, base, output):
     content = target.read_text(encoding="utf-8")
     if not verify([TARGET], content).startswith("PASS:"):
         raise ValueError("proof contract failed")
-    # Diff --no-index captures a new, untracked file without staging or committing.
-    with tempfile.TemporaryDirectory() as temp:
-        empty = pathlib.Path(temp) / "empty"
-        empty.write_bytes(b"")
-        result = subprocess.run(["git", "diff", "--no-index", "--", str(empty), str(target)],
-                                capture_output=True, timeout=15)
-        if result.returncode != 1 or not result.stdout:
-            raise ValueError("cannot construct patch")
-        patch = result.stdout.replace(str(empty).encode(), ("a/" + TARGET).encode()).replace(
-            str(target).encode(), ("b/" + TARGET).encode())
+    # /dev/null produces a proper new-file patch; rewrite absolute path headers.
+    result = subprocess.run(["git", "diff", "--no-index", "--", "/dev/null", str(target)],
+                            capture_output=True, timeout=15)
+    if result.returncode != 1 or not result.stdout:
+        raise ValueError("cannot construct patch")
+    patch = result.stdout.replace(str(target).lstrip("/").encode(), TARGET.encode())
     destination.parent.mkdir(parents=True, exist_ok=True)
     destination.write_bytes(patch)
     return destination
