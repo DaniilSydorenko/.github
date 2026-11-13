@@ -208,6 +208,10 @@ jobs:
           ref: master
           path: issue220-target
           persist-credentials: false
+      - name: Verify live Issue 220 scope and PR collision (public GET only)
+        run: |
+          set -euo pipefail
+          python3 docs/initiatives/ai-engineering/openhands_issue_contract.py --live-preflight
       - name: Validate protected preflight without agent or GitHub writes
         run: |
           set -euo pipefail
