@@ -64,7 +64,12 @@ def self_test():
         patch = pathlib.Path(temp) / "proof.patch"
         prepare(root, base, patch)
         assert b"docs/agent-pilot-proof.md" in patch.read_bytes()
-        subprocess.run(["git", "-C", str(root), "apply", "--check", str(patch)], check=True)
+        clean = pathlib.Path(temp) / "clean"
+        clean.mkdir()
+        subprocess.run(["git", "init", "-q", str(clean)], check=True)
+        subprocess.run(["git", "-C", str(clean), "apply", "--check", str(patch)], check=True)
+        subprocess.run(["git", "-C", str(clean), "apply", str(patch)], check=True)
+        assert (clean / TARGET).read_text(encoding="utf-8") == proof.read_text(encoding="utf-8")
         (root / "package.json").write_text("{}", encoding="utf-8")
         try:
             prepare(root, base, patch)
