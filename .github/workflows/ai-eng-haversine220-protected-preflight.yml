@@ -1,0 +1,55 @@
+name: AI Engineering Haversine 220 Protected Lease Preflight
+
+# Explicit owner dispatch only. This workflow is a safe integration checkpoint,
+# NOT the paid OpenHands execution path or a cross-system distributed lease.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Serializes runs of THIS workflow only. External Cursor/other jobs require
+# a separate shared lease service before live execution can be authorized.
+concurrency:
+  group: ai-eng-haversine-220-protected-preflight
+  cancel-in-progress: false
+
+jobs:
+  protected-preflight:
+    if: >-
+      github.repository == 'DaniilSydorenko/.github' &&
+      github.actor == 'DaniilSydorenko' &&
+      github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: ai-eng-lease-owner
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: main
+          persist-credentials: false
+      - name: Verify owner-protected context and offline admission contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 docs/initiatives/ai-engineering/openhands_live_admission.py
+          python3 docs/initiatives/ai-engineering/pilot_readiness_report.py --self-test
+      - name: Real Issue 220 and overlapping PR evidence (read-only)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 docs/initiatives/ai-engineering/openhands_issue_contract.py --live-preflight
+      - name: Record explicit non-authorization
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 docs/initiatives/ai-engineering/pilot_readiness_report.py --live | tee pilot220-readiness.json
+          python3 - <<'PY'
+          import json
+          with open('pilot220-readiness.json', encoding='utf-8') as f:
+              result = json.load(f)
+          assert result['decision'] == 'STOP'
+          assert result['live_execution_authorized'] is False
+          assert 'exclusive_lease_not_proven' in result['blockers']
+          print('PASS: owner-protected serialized preflight; no live execution')
+          PY
