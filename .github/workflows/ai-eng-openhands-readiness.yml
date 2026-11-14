@@ -22,6 +22,7 @@ on:
       - 'docs/initiatives/ai-engineering/openhands_pipeline.py'
       - 'docs/initiatives/ai-engineering/openhands_sequential_simulation.py'
       - '.github/workflows/ai-eng-openhands-readiness.yml'
+      - '.github/workflows/ai-eng-haversine220-protected-preflight.yml'
   workflow_dispatch:
     inputs:
       operation:
@@ -66,6 +67,20 @@ jobs:
         run: |
           python3 -m py_compile docs/initiatives/ai-engineering/openhands_artifact_verifier.py
           python3 docs/initiatives/ai-engineering/openhands_artifact_verifier.py --self-test
+      - name: Verify protected pilot workflow safety markers
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          workflow = Path('.github/workflows/ai-eng-haversine220-protected-preflight.yml').read_text()
+          for marker in ('workflow_dispatch:', 'cancel-in-progress: false',
+                         'environment: ai-eng-lease-owner',
+                         "github.actor == 'DaniilSydorenko'",
+                         'persist-credentials: false',
+                         "assert result['decision'] == 'STOP'"):
+              assert marker in workflow, marker
+          assert 'OPENROUTER_API_KEY' not in workflow
+          print('PASS: protected preflight remains owner-only and no-spend')
+          PY
       - name: Offline strict live-admission boundary contract
         run: |
           python3 -m py_compile docs/initiatives/ai-engineering/openhands_live_admission.py
