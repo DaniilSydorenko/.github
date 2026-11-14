@@ -30,6 +30,7 @@ on:
           - inventory
           - openrouter-connection
           - pilot-preflight
+          - pilot-integration
 
 permissions:
   contents: read
@@ -208,6 +209,54 @@ jobs:
           python3 docs/initiatives/ai-engineering/runner_readiness.py --live
           python3 docs/initiatives/ai-engineering/openhands_issue_contract.py --live-preflight
           python3 docs/initiatives/ai-engineering/autopilot_snapshot.py --live
+
+  # Real repository + real SDK wiring, without a model request or GitHub write.
+  # Requires protected environment approval and manual owner dispatch from main.
+  manual-pilot-integration:
+    if: >-
+      github.event_name == 'workflow_dispatch' &&
+      inputs.operation == 'pilot-integration' &&
+      github.repository == 'DaniilSydorenko/.github' &&
+      github.actor == 'DaniilSydorenko' &&
+      github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: ai-eng-lease-owner
+    timeout-minutes: 8
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: main
+          persist-credentials: false
+      - uses: actions/checkout@v6
+        with:
+          repository: DaniilSydorenko/haversine-geolocation
+          ref: master
+          path: issue220-target
+          persist-credentials: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+          cache-dependency-path: docs/initiatives/ai-engineering/openhands-smoke-requirements.txt
+      - name: Install pinned real OpenHands SDK
+        run: python -m pip install -r docs/initiatives/ai-engineering/openhands-smoke-requirements.txt
+      - name: Verify actual target and instantiate real SDK without model invocation
+        run: |
+          set -euo pipefail
+          python3 docs/initiatives/ai-engineering/openhands_issue_contract.py --live-preflight
+          python3 docs/initiatives/ai-engineering/openhands_executor.py --sdk-construction-test
+          python3 docs/initiatives/ai-engineering/openhands_executor.py --dry-run --workspace issue220-target > /tmp/openhands-integration-verdict.json
+          python3 - <<'PY'
+          import json
+          with open('/tmp/openhands-integration-verdict.json', encoding='utf-8') as f:
+              result = json.load(f)
+          assert result['decision'] == 'STOP'
+          assert result['reason'] == 'live_authorization_not_integrated'
+          assert result['sdk_invocation'] is False
+          print('PASS: real target checkout + real SDK + verified no-spend STOP')
+          PY
 
   # Protected owner-only preflight. This does NOT call an LLM or publish a PR.
   # It checks the real target checkout and all offline integration contracts.
