@@ -5,6 +5,7 @@ A report, snapshot, CLI argument or owner text is never execution authority.
 This module deliberately has NO live grant factory or CLI launch path.
 """
 from dataclasses import dataclass
+import math
 
 REPO = "DaniilSydorenko/haversine-geolocation"
 ISSUE = 220
@@ -33,6 +34,7 @@ def check_admission(admission, *, lease, writer, owner, budget, executor,
         return {"decision": "STOP", "reason": "invalid_base_sha"}
     if (not isinstance(admission.max_spend_usd, (int, float)) or
             isinstance(admission.max_spend_usd, bool) or
+            not math.isfinite(admission.max_spend_usd) or
             not 0 < admission.max_spend_usd <= MAX_SPEND_USD):
         return {"decision": "STOP", "reason": "invalid_budget_cap"}
     gates = {
