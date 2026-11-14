@@ -23,6 +23,11 @@ GUARD = {**BASE, "id": 2, "rules": [{"type": "deletion"},
          "bypass_actors": []}
 
 
+MAIN = {**BASE, "name": "ai-eng-hq-main-protection", "id": 3,
+        "conditions": {"ref_name": {"include": ["refs/heads/main"], "exclude": []}},
+        "rules": [{"type": "pull_request"}], "bypass_actors": []}
+
+
 class CandidateTests(unittest.TestCase):
     def verify(self, branch=BRANCH, policies=None, app=APP_ID):
         value = probe.audit(branch, [UPDATE, GUARD] if policies is None else policies,
@@ -34,6 +39,39 @@ class CandidateTests(unittest.TestCase):
 
     def test_two_independent_rules_are_candidate_only(self):
         self.assertEqual(self.verify()["status"], "CANDIDATE")
+
+    def test_active_main_only_rule_is_disjoint_from_lease(self):
+        self.assertEqual(self.verify(policies=[UPDATE, GUARD, MAIN])["status"], "CANDIDATE")
+
+    def test_active_wildcard_or_other_lease_rule_never_disappears(self):
+        ambiguous = [
+            {**MAIN, "id": 4, "conditions": {
+                "ref_name": {"include": ["refs/heads/*"], "exclude": []}}},
+            {**MAIN, "id": 5, "conditions": {
+                "ref_name": {"include": [probe.EXPECTED_REF], "exclude": []}}},
+            {**MAIN, "id": 6, "conditions": {
+                "ref_name": {"include": ["~ALL"], "exclude": []}}},
+            {**MAIN, "id": 7, "conditions": {
+                "ref_name": {"include": ["refs/heads/main", probe.EXPECTED_REF],
+                             "exclude": []}}},
+            {**MAIN, "id": 8, "source": "Untrusted/other"},
+        ]
+        for extra in ambiguous:
+            with self.subTest(extra=extra["id"]):
+                self.assertEqual(self.verify(policies=[UPDATE, GUARD, extra])["status"], "STOP")
+
+    def test_disabled_lease_rulesets_coexist_with_active_main_only_rule(self):
+        value = probe.audit_prepared({**BRANCH, "protected": False},
+                                     self.prepared() + [MAIN])
+        self.assertEqual(value["status"], "PREPARED")
+        self.assertFalse(value["cursor_launch_authorized"])
+
+    def test_prepared_state_rejects_broad_active_rule(self):
+        wildcard = {**MAIN, "conditions": {
+            "ref_name": {"include": ["refs/heads/*"], "exclude": []}}}
+        self.assertEqual(probe.audit_prepared(
+            {**BRANCH, "protected": False},
+            self.prepared() + [wildcard])["status"], "STOP")
 
     def test_unprotected_lease_stops(self):
         self.assertEqual(self.verify(branch={**BRANCH, "protected": False})["status"], "STOP")
@@ -156,6 +194,25 @@ class CandidateTests(unittest.TestCase):
         value = probe.public_readonly_probe(reader, APP_ID)
         self.assertEqual(value["status"], "CANDIDATE")
         self.assertEqual(reader.paths[-2:], ["/rulesets/1", "/rulesets/2"])
+
+    def test_live_probe_with_real_three_ruleset_inventory(self):
+        prepared = self.prepared()
+        responses = {
+            f"/branches/{probe.REF}": {**BRANCH, "protected": False},
+            "/rulesets?includes_parents=false&per_page=100": [
+                {"id": 26090757}, {"id": 26170483}, {"id": 3}],
+            "/rulesets/26090757": prepared[0],
+            "/rulesets/26170483": prepared[1],
+            "/rulesets/3": MAIN,
+        }
+
+        class Reader:
+            def get(self, path):
+                return responses[path]
+
+        result = probe.public_readonly_probe(Reader(), APP_ID)
+        self.assertEqual(result["status"], "PREPARED")
+        self.assertFalse(result["cursor_launch_authorized"])
 
     def prepared(self):
         base = {**probe.BASE} if hasattr(probe, "BASE") else {
