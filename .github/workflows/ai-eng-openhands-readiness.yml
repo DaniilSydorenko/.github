@@ -1,0 +1,240 @@
+name: AI Engineering OpenHands Runner Readiness (read-only)
+
+# PRs run offline contract tests only. Live inventory is manual, owner-only, main-only.
+# No agent launch, model invocation, lease mutation, dispatch, queue, or scheduler.
+on:
+  pull_request:
+    paths:
+      - 'docs/initiatives/ai-engineering/runner_readiness.py'
+      - 'docs/initiatives/ai-engineering/openrouter_key_probe.py'
+      - 'docs/initiatives/ai-engineering/openhands_issue_contract.py'
+      - 'docs/initiatives/ai-engineering/openhands_artifact_verifier.py'
+      - 'docs/initiatives/ai-engineering/autopilot_next_action.py'
+      - 'docs/initiatives/ai-engineering/autopilot_snapshot.py'
+      - 'docs/initiatives/ai-engineering/openhands_executor.py'
+      - 'docs/initiatives/ai-engineering/openhands_patch_prepare.py'
+      - 'docs/initiatives/ai-engineering/openhands_draft_handoff.py'
+      - 'docs/initiatives/ai-engineering/openhands_draft_publisher.py'
+      - 'docs/initiatives/ai-engineering/openhands_pipeline.py'
+      - 'docs/initiatives/ai-engineering/openhands_sequential_simulation.py'
+      - '.github/workflows/ai-eng-openhands-readiness.yml'
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: 'Read-only operation (never launches an agent)'
+        required: true
+        type: choice
+        options:
+          - inventory
+          - openrouter-connection
+          - pilot-preflight
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ai-eng-openhands-readiness-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  offline-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - name: Compile readiness probe
+        run: python3 -m py_compile docs/initiatives/ai-engineering/runner_readiness.py
+      - name: Fail-closed offline fixtures
+        run: python3 docs/initiatives/ai-engineering/runner_readiness.py --self-test
+      - name: Compile and offline-test OpenRouter credential probe (no secret)
+        run: |
+          python3 -m py_compile docs/initiatives/ai-engineering/openrouter_key_probe.py
+          python3 docs/initiatives/ai-engineering/openrouter_key_probe.py --self-test
+      - name: Lane B Issue 220 fail-closed offline contract
+        run: |
+          python3 -m py_compile docs/initiatives/ai-engineering/openhands_issue_contract.py
+          python3 docs/initiatives/ai-engineering/openhands_issue_contract.py --self-test
+      - name: Lane B offline artifact verifier contract
+        run: |
+          python3 -m py_compile docs/initiatives/ai-engineering/openhands_artifact_verifier.py
+          python3 docs/initiatives/ai-engineering/openhands_artifact_verifier.py --self-test
+      - name: Offline deterministic autopilot next-action contract
+        run: |
+          python3 -m py_compile docs/initiatives/ai-engineering/autopilot_next_action.py
+          python3 docs/initiatives/ai-engineering/autopilot_next_action.py --self-test
+      - name: Offline GitHub evidence collector contract
+        run: |
+          python3 -m py_compile docs/initiatives/ai-engineering/autopilot_snapshot.py
+          python3 docs/initiatives/ai-engineering/autopilot_snapshot.py --self-test
+      - name: Offline OpenHands executor authorization tests
+        run: |
+          python3 -m py_compile docs/initiatives/ai-engineering/openhands_executor.py
+          python3 docs/initiatives/ai-engineering/openhands_executor.py --self-test
+      - name: Verify safe OpenHands patch handoff (no GitHub writes)
+        run: |
+          python3 -m py_compile docs/initiatives/ai-engineering/openhands_patch_prepare.py
+          python3 docs/initiatives/ai-engineering/openhands_patch_prepare.py --self-test
+      - name: Verify protected Draft PR handoff contract (offline)
+        run: |
+          python3 -m py_compile docs/initiatives/ai-engineering/openhands_draft_handoff.py
+          python3 docs/initiatives/ai-engineering/openhands_draft_handoff.py --self-test
+      - name: Verify Draft PR publisher with mocked GitHub API (no writes)
+        run: |
+          python3 -m py_compile docs/initiatives/ai-engineering/openhands_draft_publisher.py
+          python3 docs/initiatives/ai-engineering/openhands_draft_publisher.py
+      - name: Test complete offline agent-result-to-publisher handoff
+        run: |
+          python3 -m py_compile docs/initiatives/ai-engineering/openhands_pipeline.py
+          python3 docs/initiatives/ai-engineering/openhands_pipeline.py --self-test
+      - name: Simulate two sequential autonomous tasks (offline, no LLM)
+        run: |
+          python3 -m py_compile docs/initiatives/ai-engineering/openhands_sequential_simulation.py
+          python3 docs/initiatives/ai-engineering/openhands_sequential_simulation.py
+      - name: Set up OpenHands SDK Python runtime
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+          cache-dependency-path: docs/initiatives/ai-engineering/openhands-smoke-requirements.txt
+      - name: Install pinned OpenHands SDK and tools (no model invocation)
+        run: python -m pip install -r docs/initiatives/ai-engineering/openhands-smoke-requirements.txt
+      - name: Construct actual OpenHands SDK conversation (dummy key, no model call)
+        run: python3 docs/initiatives/ai-engineering/openhands_executor.py --sdk-construction-test
+      - name: Exercise OpenHands executor dry-run in isolated Git checkout
+        run: |
+          mkdir -p /tmp/ai-eng-issue220-checkout
+          git init -q /tmp/ai-eng-issue220-checkout
+          python3 docs/initiatives/ai-engineering/openhands_executor.py --dry-run --workspace /tmp/ai-eng-issue220-checkout > /tmp/ai-eng-issue220-verdict.json
+          python3 - <<'PY'
+          import json
+          with open('/tmp/ai-eng-issue220-verdict.json', encoding='utf-8') as handle:
+              verdict = json.load(handle)
+          assert verdict['decision'] == 'STOP'
+          assert verdict['reason'] == 'live_authorization_not_integrated'
+          assert verdict['sdk_invocation'] is False
+          print('PASS: isolated executor dry-run did not launch agent')
+          PY
+      - name: Checkout actual Issue 220 target (read-only, no persisted token)
+        uses: actions/checkout@v6
+        with:
+          repository: DaniilSydorenko/haversine-geolocation
+          ref: master
+          path: issue220-target
+          persist-credentials: false
+      - name: Verify executor against actual target repository (no model invocation)
+        run: |
+          python3 docs/initiatives/ai-engineering/openhands_executor.py --dry-run --workspace issue220-target > /tmp/ai-eng-real-target-verdict.json
+          python3 - <<'PY'
+          import json
+          with open('/tmp/ai-eng-real-target-verdict.json', encoding='utf-8') as source:
+              result = json.load(source)
+          assert result['decision'] == 'STOP'
+          assert result['reason'] == 'live_authorization_not_integrated'
+          assert result['sdk_invocation'] is False
+          print('PASS: actual Haversine checkout is valid and execution remains disabled')
+          PY
+      - name: Verify real OpenHands SDK imports (no model invocation)
+        run: |
+          python - <<'PY'
+          from openhands.sdk import LLM, Agent, Conversation, Tool
+          from openhands.tools.file_editor import FileEditorTool
+          from openhands.tools.terminal import TerminalTool
+          assert FileEditorTool.name and TerminalTool.name
+          print("PASS: OpenHands SDK + tools import in GitHub Actions")
+          PY
+
+  # Lane A: owner-triggered credential check; no LLM request and no write token.
+  # This job cannot run from a PR head; only after the owner accepts the
+  # workflow into main and manually dispatches it from main.
+  manual-openrouter-connection:
+    if: >-
+      github.event_name == 'workflow_dispatch' &&
+      inputs.operation == 'openrouter-connection' &&
+      github.repository == 'DaniilSydorenko/.github' &&
+      github.actor == 'DaniilSydorenko' &&
+      github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: ai-eng-lease-owner
+    timeout-minutes: 3
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: main
+          persist-credentials: false
+      - name: OpenRouter key endpoint GET (no model request)
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+        run: python3 docs/initiatives/ai-engineering/openrouter_key_probe.py --live
+
+  manual-readonly-inventory:
+    if: >-
+      github.event_name == 'workflow_dispatch' &&
+      inputs.operation == 'inventory' &&
+      github.repository == 'DaniilSydorenko/.github' &&
+      github.actor == 'DaniilSydorenko' &&
+      github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: main
+          persist-credentials: false
+      - name: Live GitHub issue and PR inventory (public GET only)
+        run: |
+          python3 docs/initiatives/ai-engineering/runner_readiness.py --live
+          python3 docs/initiatives/ai-engineering/openhands_issue_contract.py --live-preflight
+          python3 docs/initiatives/ai-engineering/autopilot_snapshot.py --live
+
+  # Protected owner-only preflight. This does NOT call an LLM or publish a PR.
+  # It checks the real target checkout and all offline integration contracts.
+  manual-pilot-preflight:
+    if: >-
+      github.event_name == 'workflow_dispatch' &&
+      inputs.operation == 'pilot-preflight' &&
+      github.repository == 'DaniilSydorenko/.github' &&
+      github.actor == 'DaniilSydorenko' &&
+      github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: ai-eng-lease-owner
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: main
+          persist-credentials: false
+      - uses: actions/checkout@v6
+        with:
+          repository: DaniilSydorenko/haversine-geolocation
+          ref: master
+          path: issue220-target
+          persist-credentials: false
+      - name: Verify live Issue 220 scope and PR collision (public GET only)
+        run: |
+          set -euo pipefail
+          python3 docs/initiatives/ai-engineering/openhands_issue_contract.py --live-preflight
+      - name: Validate protected preflight without agent or GitHub writes
+        run: |
+          set -euo pipefail
+          python3 docs/initiatives/ai-engineering/openhands_executor.py --self-test
+          python3 docs/initiatives/ai-engineering/openhands_artifact_verifier.py --self-test
+          python3 docs/initiatives/ai-engineering/openhands_patch_prepare.py --self-test
+          python3 docs/initiatives/ai-engineering/openhands_draft_handoff.py --self-test
+          python3 docs/initiatives/ai-engineering/openhands_draft_publisher.py
+          python3 docs/initiatives/ai-engineering/openhands_pipeline.py --self-test
+          python3 docs/initiatives/ai-engineering/openhands_executor.py --dry-run --workspace issue220-target > /tmp/pilot-preflight.json
+          python3 - <<'PY'
+          import json
+          with open('/tmp/pilot-preflight.json', encoding='utf-8') as source:
+              result = json.load(source)
+          assert result['decision'] == 'STOP'
+          assert result['reason'] == 'live_authorization_not_integrated'
+          assert result['sdk_invocation'] is False
+          print('PASS: protected preflight, no model call, no repository write')
+          PY
