@@ -1,8 +1,10 @@
 name: AI Engineering OpenHands Runner Readiness (read-only)
 
-# PRs run offline contract tests only. Live inventory is manual, owner-only, main-only.
+# PRs and daily schedules run offline contract tests only. Live inventory is manual, owner-only, main-only.
 # No agent launch, model invocation, lease mutation, dispatch, queue, or scheduler.
 on:
+  schedule:
+    - cron: '17 7 * * *'
   pull_request:
     paths:
       - 'docs/initiatives/ai-engineering/runner_readiness.py'
