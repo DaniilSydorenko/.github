@@ -14,6 +14,7 @@ on:
       - 'docs/initiatives/ai-engineering/autopilot_next_action.py'
       - 'docs/initiatives/ai-engineering/autopilot_snapshot.py'
       - 'docs/initiatives/ai-engineering/pilot_readiness_report.py'
+      - 'docs/initiatives/ai-engineering/openhands_live_admission.py'
       - 'docs/initiatives/ai-engineering/openhands_executor.py'
       - 'docs/initiatives/ai-engineering/openhands_patch_prepare.py'
       - 'docs/initiatives/ai-engineering/openhands_draft_handoff.py'
@@ -65,6 +66,10 @@ jobs:
         run: |
           python3 -m py_compile docs/initiatives/ai-engineering/openhands_artifact_verifier.py
           python3 docs/initiatives/ai-engineering/openhands_artifact_verifier.py --self-test
+      - name: Offline strict live-admission boundary contract
+        run: |
+          python3 -m py_compile docs/initiatives/ai-engineering/openhands_live_admission.py
+          python3 docs/initiatives/ai-engineering/openhands_live_admission.py
       - name: Offline Haversine pilot blocker report contract
         run: |
           python3 -m py_compile docs/initiatives/ai-engineering/pilot_readiness_report.py
