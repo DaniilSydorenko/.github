@@ -88,12 +88,14 @@ def self_test():
     events.clear()
     outcome = run_queue(tasks, execute=execute,
                         verify=lambda task: task.issue != 220,
-                        authority=_OFFLINE_TEST_AUTHORITY)
+                        authority=_OFFLINE_TEST_AUTHORITY,
+                        acquire_lease=acquire, release_lease=release)
     assert len(outcome) == 1 and outcome[0].status == "STOP"
     assert events == [("lease_acquire", 220), ("execute", 220), ("lease_release", 220)]
     events.clear()
     outcome = run_queue(tasks, execute=lambda task: "failed",
-                        verify=verify, authority=_OFFLINE_TEST_AUTHORITY)
+                        verify=verify, authority=_OFFLINE_TEST_AUTHORITY,
+                        acquire_lease=acquire, release_lease=release)
     assert len(outcome) == 1 and outcome[0].detail == "executor_failed"
     assert events == [("lease_acquire", 220), ("lease_release", 220)]
     events.clear()
@@ -105,7 +107,8 @@ def self_test():
     try:
         run_queue(tasks + [Task(222, "docs/third.md")],
                   execute=execute, verify=verify,
-                  authority=_OFFLINE_TEST_AUTHORITY)
+                  authority=_OFFLINE_TEST_AUTHORITY,
+                  acquire_lease=acquire, release_lease=release)
     except ValueError:
         pass
     else:
