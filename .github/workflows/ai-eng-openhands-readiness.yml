@@ -1,6 +1,6 @@
 name: AI Engineering OpenHands Runner Readiness (read-only)
 
-# PRs and daily schedules run offline contract tests only. Live inventory is manual, owner-only, main-only.
+# PRs run offline contract tests; daily schedule checks real GitHub scope without launching agents.
 # No agent launch, model invocation, lease mutation, dispatch, queue, or scheduler.
 on:
   schedule:
@@ -40,6 +40,7 @@ concurrency:
 
 jobs:
   offline-contract:
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 3
     steps:
@@ -146,6 +147,22 @@ jobs:
           assert FileEditorTool.name and TerminalTool.name
           print("PASS: OpenHands SDK + tools import in GitHub Actions")
           PY
+
+  # Autonomous read-only daily discovery; real GitHub GET, no model cost or writes.
+  scheduled-issue220-discovery:
+    if: github.event_name == 'schedule' && github.repository == 'DaniilSydorenko/.github'
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - name: Read real Issue 220 and overlapping PRs; stop safely
+        run: |
+          set -euo pipefail
+          python3 docs/initiatives/ai-engineering/openhands_issue_contract.py --live-preflight
 
   # Lane A: owner-triggered credential check; no LLM request and no write token.
   # This job cannot run from a PR head; only after the owner accepts the
