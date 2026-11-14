@@ -50,7 +50,12 @@ def run_queue(tasks, *, execute, verify, authority, acquire_lease, release_lease
             break
         finally:
             if held:
-                release_lease(task)
+                try:
+                    if release_lease(task) is not True:
+                        raise RuntimeError("lease release not confirmed")
+                except Exception:
+                    results.append(Outcome(task.issue, "STOP", "lease_release_unconfirmed"))
+                    break
     return results
 
 
@@ -66,6 +71,7 @@ def self_test():
         return True
     def release(task):
         events.append(("lease_release", task.issue))
+        return True
     def execute(task):
         events.append(("execute", task.issue))
         return "completed"
@@ -104,6 +110,13 @@ def self_test():
                         acquire_lease=lambda task: False, release_lease=release)
     assert len(outcome) == 1 and outcome[0].detail == "lease_unavailable"
     assert events == []
+    events.clear()
+    outcome = run_queue(tasks, execute=execute, verify=verify,
+                        authority=_OFFLINE_TEST_AUTHORITY,
+                        acquire_lease=acquire, release_lease=lambda task: False)
+    assert outcome[-1].detail == "lease_release_unconfirmed"
+    assert not any(event[1] == 221 for event in events)
+    events.clear()
     try:
         run_queue(tasks + [Task(222, "docs/third.md")],
                   execute=execute, verify=verify,
