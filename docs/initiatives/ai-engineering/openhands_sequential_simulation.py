@@ -44,7 +44,7 @@ def run_queue(tasks, *, execute, verify, authority, acquire_lease, release_lease
             if verify(task) is not True:
                 results.append(Outcome(task.issue, "STOP", "artifact_not_verified"))
                 break
-            results.append(Outcome(task.issue, "PASS", "verified_offline"))
+            # PASS is recorded only after the lease has been released successfully.
         except Exception:
             results.append(Outcome(task.issue, "STOP", "execution_or_verification_error"))
             break
@@ -56,6 +56,8 @@ def run_queue(tasks, *, execute, verify, authority, acquire_lease, release_lease
                 except Exception:
                     results.append(Outcome(task.issue, "STOP", "lease_release_unconfirmed"))
                     break
+        if not results or results[-1].issue != task.issue:
+            results.append(Outcome(task.issue, "PASS", "verified_offline"))
     return results
 
 
@@ -114,7 +116,7 @@ def self_test():
     outcome = run_queue(tasks, execute=execute, verify=verify,
                         authority=_OFFLINE_TEST_AUTHORITY,
                         acquire_lease=acquire, release_lease=lambda task: False)
-    assert outcome[-1].detail == "lease_release_unconfirmed"
+    assert len(outcome) == 1 and outcome[0].detail == "lease_release_unconfirmed"
     assert not any(event[1] == 221 for event in events)
     events.clear()
     try:
