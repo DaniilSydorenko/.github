@@ -52,6 +52,10 @@ def self_test():
     assert verify([TARGET, "package.json"], good) == "STOP: changed_paths_not_exact"
     assert verify([], good) == "STOP: changed_paths_not_exact"
     assert verify([TARGET], "OpenHands Issue #220 distance(a,b)") == "STOP: proof_content_incomplete"
+    # Real first live run generated generic docs without provenance or no-change claim.
+    first_live_proof = ("# Distance API\n\nThe distance(a, b) API calculates the "
+                        "distance between two points.\n")
+    assert verify([TARGET], first_live_proof) == "STOP: proof_content_incomplete"
     assert verify([TARGET], good + "x" * 12000) == "STOP: missing_or_oversized_proof"
     with tempfile.TemporaryDirectory() as temp:
         root = pathlib.Path(temp)
