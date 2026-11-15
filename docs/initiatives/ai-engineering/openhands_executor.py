@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Issue #220 OpenHands SDK executor, currently dry-run only.
+"""Issue #220 OpenHands SDK executor; live call only via protected runner.
 
-Live execution deliberately requires a separate trusted lease/authorization
-integration; this module never accepts CLI flags as proof of authorization.
+Live execution requires a protected workflow; no CLI flag grants authority.
+Only FileEditorTool is exposed, not TerminalTool (no agent shell access).
 """
 import argparse
 import json
@@ -47,13 +47,11 @@ def build_sdk_conversation(root, api_key, model):
     """Real OpenHands SDK wiring. Caller must provide verified execution authority."""
     from openhands.sdk import LLM, Agent, Conversation, Tool
     from openhands.tools.file_editor import FileEditorTool
-    from openhands.tools.terminal import TerminalTool
     from pydantic import SecretStr
 
     llm = LLM(model=model, api_key=SecretStr(api_key),
               base_url="https://openrouter.ai/api/v1", usage_id="issue220")
     agent = Agent(llm=llm, tools=[
-        Tool(name=TerminalTool.name),
         Tool(name=FileEditorTool.name),
     ])
     return Conversation(agent=agent, workspace=str(root))
@@ -69,7 +67,7 @@ def execute_authorized(root, api_key, model, *, authorization):
     return conversation.state.execution_status
 
 
-# Sentinel intentionally never issued by CLI or snapshot; integration pending.
+# Sentinel is NOT a security boundary. Only protected workflow can invoke live runner.
 _TRUSTED_AUTHORIZATION = object()
 
 
