@@ -35,3 +35,19 @@
 - The model can still attempt unexpected file edits; the patch verifier rejects out-of-scope Git changes, but this is not a full OS sandbox.
 - The live runner's in-process sentinel is not a secure authorization credential. No untrusted code should execute inside the trusted Python process.
 - Publisher integration and end-to-end Draft PR creation remain separate work.
+
+## Separate Draft PR publisher (second explicit GO)
+
+This is a **separate workflow**, not a continuation that the model can trigger.
+The first paid execution remains a verified patch artifact only.
+
+1. Create a dedicated fine-grained GitHub PAT with **only** `DaniilSydorenko/haversine-geolocation` selected; grant **Contents: Read and write** and **Pull requests: Read and write**. Keep expiration short. The control repository's normal `GITHUB_TOKEN` cannot write to the separate Haversine repository.
+2. Save it in `DaniilSydorenko/.github` as an **environment secret** named `HAVERSINE_PUBLISH_TOKEN` under the protected `ai-eng-lease-owner` environment. Never paste it in an issue, commit, log, or chat.
+3. After a successful paid run, inspect the exact `haversine-issue220-verified-patch` artifact and confirm the content is accurate. Note the successful run's numeric GitHub Actions **run ID**.
+4. Manually dispatch **AI Engineering Haversine 220 Protected Draft Publisher** on `main` with `source_run_id`. This is a **second** protected environment approval and a separate human authorization to create a Draft PR.
+5. Publisher checks the source run's repository, actor, workflow path, event, successful live job, first attempt, and control-branch SHA. It downloads only the named artifact, checks the one-file patch, replays it, rechecks Haversine PR collisions and base SHA, then creates a **Draft** PR.
+6. Inspect the Draft PR manually. No auto-merge, no release, no next issue. If the source workflow has changed since the run, publisher intentionally rejects it as stale.
+
+**Important:** The dedicated publisher token is needed only for the second step; do not give it to the OpenHands model execution job. No live publisher test should be run without a successful, reviewed source artifact.
+
+**Known limitation:** A fine-grained PAT is an operationally scoped credential, not a short-lived GitHub App installation token. Future hardening should replace it with an installation token and an external lease if multi-agent orchestration expands.
