@@ -1,0 +1,61 @@
+name: AI Engineering Haversine 220 Protected Draft Publisher
+
+# Deliberate second human GO. Never scheduled or triggered by the model run.
+on:
+  workflow_dispatch:
+    inputs:
+      source_run_id:
+        description: 'Successful, reviewed live-executor GitHub Actions run ID'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: ai-eng-haversine220-single-live-executor
+  cancel-in-progress: false
+
+jobs:
+  publish-reviewed-proof:
+    if: >-
+      github.repository == 'DaniilSydorenko/.github' &&
+      github.actor == 'DaniilSydorenko' &&
+      github.ref == 'refs/heads/main' &&
+      github.run_attempt == 1
+    runs-on: ubuntu-latest
+    environment: ai-eng-lease-owner
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: main
+          persist-credentials: false
+      - uses: actions/checkout@v6
+        with:
+          repository: DaniilSydorenko/haversine-geolocation
+          ref: master
+          path: issue220-target
+          persist-credentials: false
+      - name: Download only the named verified patch from the selected run
+        uses: actions/download-artifact@v4
+        with:
+          name: haversine-issue220-verified-patch
+          run-id: ${{ inputs.source_run_id }}
+          github-token: ${{ github.token }}
+          repository: DaniilSydorenko/.github
+          path: ${{ runner.temp }}/issue220-proof
+      - name: Verify provenance, replay exact patch and create Draft PR only
+        env:
+          GH_TOKEN: ${{ secrets.HAVERSINE_PUBLISH_TOKEN }}
+          SOURCE_RUN_ID: ${{ inputs.source_run_id }}
+        run: |
+          set -euo pipefail
+          if ! [[ "$SOURCE_RUN_ID" =~ ^[1-9][0-9]{0,17}$ ]]; then
+            echo 'STOP: invalid run id'
+            exit 1
+          fi
+          python3 docs/initiatives/ai-engineering/openhands_protected_publish.py \
+            --publish "$SOURCE_RUN_ID" issue220-target \
+            "$RUNNER_TEMP/issue220-proof/haversine-220.patch"
