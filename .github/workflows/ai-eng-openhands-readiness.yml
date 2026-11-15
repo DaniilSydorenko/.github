@@ -11,6 +11,9 @@ on:
       - 'docs/initiatives/ai-engineering/openrouter_key_probe.py'
       - 'docs/initiatives/ai-engineering/openrouter_budget_gate.py'
       - 'docs/initiatives/ai-engineering/openhands_live_runner.py'
+      - 'docs/initiatives/ai-engineering/openhands_protected_publish.py'
+      - 'docs/initiatives/ai-engineering/openhands_protected_publish_test.py'
+      - '.github/workflows/ai-eng-haversine220-protected-publisher.yml'
       - 'docs/initiatives/ai-engineering/openhands_issue_contract.py'
       - 'docs/initiatives/ai-engineering/openhands_artifact_verifier.py'
       - 'docs/initiatives/ai-engineering/autopilot_next_action.py'
@@ -67,6 +70,10 @@ jobs:
         run: python3 docs/initiatives/ai-engineering/openrouter_budget_gate.py --self-test
       - name: Verify protected live runner admission and patch (offline, no model)
         run: python3 docs/initiatives/ai-engineering/openhands_live_runner.py --self-test
+      - name: Verify protected publisher provenance and replay (offline)
+        run: |
+          python3 -m py_compile docs/initiatives/ai-engineering/openhands_protected_publish.py
+          python3 docs/initiatives/ai-engineering/openhands_protected_publish_test.py
       - name: Lane B Issue 220 fail-closed offline contract
         run: |
           python3 -m py_compile docs/initiatives/ai-engineering/openhands_issue_contract.py
