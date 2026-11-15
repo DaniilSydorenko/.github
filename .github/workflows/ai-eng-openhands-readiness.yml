@@ -9,6 +9,7 @@ on:
     paths:
       - 'docs/initiatives/ai-engineering/runner_readiness.py'
       - 'docs/initiatives/ai-engineering/openrouter_key_probe.py'
+      - 'docs/initiatives/ai-engineering/openrouter_budget_gate.py'
       - 'docs/initiatives/ai-engineering/openhands_issue_contract.py'
       - 'docs/initiatives/ai-engineering/openhands_artifact_verifier.py'
       - 'docs/initiatives/ai-engineering/autopilot_next_action.py'
@@ -32,6 +33,7 @@ on:
         options:
           - inventory
           - openrouter-connection
+          - pilot-budget-check
           - pilot-preflight
           - pilot-integration
 
@@ -59,6 +61,8 @@ jobs:
         run: |
           python3 -m py_compile docs/initiatives/ai-engineering/openrouter_key_probe.py
           python3 docs/initiatives/ai-engineering/openrouter_key_probe.py --self-test
+      - name: Verify provider-side $1 key cap contract offline
+        run: python3 docs/initiatives/ai-engineering/openrouter_budget_gate.py --self-test
       - name: Lane B Issue 220 fail-closed offline contract
         run: |
           python3 -m py_compile docs/initiatives/ai-engineering/openhands_issue_contract.py
@@ -332,3 +336,26 @@ jobs:
           assert result['sdk_invocation'] is False
           print('PASS: protected preflight, no model call, no repository write')
           PY
+
+  # Read-only provider-side spending cap evidence. NO model invocation.
+  manual-pilot-budget-check:
+    if: >-
+      github.event_name == 'workflow_dispatch' &&
+      inputs.operation == 'pilot-budget-check' &&
+      github.repository == 'DaniilSydorenko/.github' &&
+      github.actor == 'DaniilSydorenko' &&
+      github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: ai-eng-lease-owner
+    timeout-minutes: 3
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: main
+          persist-credentials: false
+      - name: Verify OpenRouter key has a real provider-enforced <=$1 limit
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+        run: python3 docs/initiatives/ai-engineering/openrouter_budget_gate.py --live
