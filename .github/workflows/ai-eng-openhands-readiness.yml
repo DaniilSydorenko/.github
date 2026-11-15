@@ -1,7 +1,7 @@
-name: AI Engineering OpenHands Runner Readiness (read-only)
+name: AI Engineering OpenHands Runner Readiness + Protected Pilot
 
 # PRs run offline contract tests; daily schedule checks real GitHub scope without launching agents.
-# No agent launch, model invocation, lease mutation, dispatch, queue, or scheduler.
+# Read-only by default; explicit owner-approved pilot-live-execute is the ONLY model call.
 on:
   schedule:
     - cron: '17 7 * * *'
@@ -10,6 +10,7 @@ on:
       - 'docs/initiatives/ai-engineering/runner_readiness.py'
       - 'docs/initiatives/ai-engineering/openrouter_key_probe.py'
       - 'docs/initiatives/ai-engineering/openrouter_budget_gate.py'
+      - 'docs/initiatives/ai-engineering/openhands_live_runner.py'
       - 'docs/initiatives/ai-engineering/openhands_issue_contract.py'
       - 'docs/initiatives/ai-engineering/openhands_artifact_verifier.py'
       - 'docs/initiatives/ai-engineering/autopilot_next_action.py'
@@ -27,7 +28,7 @@ on:
   workflow_dispatch:
     inputs:
       operation:
-        description: 'Read-only operation (never launches an agent)'
+        description: 'Only pilot-live-execute invokes a model; all other operations read-only'
         required: true
         type: choice
         options:
@@ -36,6 +37,7 @@ on:
           - pilot-budget-check
           - pilot-preflight
           - pilot-integration
+          - pilot-live-execute
 
 permissions:
   contents: read
@@ -63,6 +65,8 @@ jobs:
           python3 docs/initiatives/ai-engineering/openrouter_key_probe.py --self-test
       - name: Verify provider-side $1 key cap contract offline
         run: python3 docs/initiatives/ai-engineering/openrouter_budget_gate.py --self-test
+      - name: Verify protected live runner admission and patch (offline, no model)
+        run: python3 docs/initiatives/ai-engineering/openhands_live_runner.py --self-test
       - name: Lane B Issue 220 fail-closed offline contract
         run: |
           python3 -m py_compile docs/initiatives/ai-engineering/openhands_issue_contract.py
@@ -359,3 +363,55 @@ jobs:
         env:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
         run: python3 docs/initiatives/ai-engineering/openrouter_budget_gate.py --live
+
+  # EXPLICIT PAID PILOT: requires owner workflow_dispatch + environment approval.
+  # No GitHub write token, no terminal tool, no PR publishing, no auto-merge.
+  # All live invocations share a single concurrency lock across refs and reruns.
+  manual-pilot-live-execute:
+    if: >-
+      github.event_name == 'workflow_dispatch' &&
+      inputs.operation == 'pilot-live-execute' &&
+      github.repository == 'DaniilSydorenko/.github' &&
+      github.actor == 'DaniilSydorenko' &&
+      github.ref == 'refs/heads/main' &&
+      github.run_attempt == 1
+    concurrency:
+      group: ai-eng-haversine220-single-live-executor
+      cancel-in-progress: false
+    runs-on: ubuntu-latest
+    environment: ai-eng-lease-owner
+    timeout-minutes: 12
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: main
+          persist-credentials: false
+      - uses: actions/checkout@v6
+        with:
+          repository: DaniilSydorenko/haversine-geolocation
+          ref: master
+          path: issue220-target
+          persist-credentials: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+          cache-dependency-path: docs/initiatives/ai-engineering/openhands-smoke-requirements.txt
+      - name: Install pinned OpenHands SDK
+        run: python -m pip install -r docs/initiatives/ai-engineering/openhands-smoke-requirements.txt
+      - name: Protected one-shot agent execution and verified patch
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          AI_ENG_APPROVED_OPERATION: ${{ inputs.operation }}
+        run: |
+          set -euo pipefail
+          python3 docs/initiatives/ai-engineering/openhands_live_runner.py --live issue220-target "$RUNNER_TEMP/haversine-220.patch"
+      - name: Upload verified patch for owner review (no GitHub writes)
+        uses: actions/upload-artifact@v4
+        with:
+          name: haversine-issue220-verified-patch
+          path: ${{ runner.temp }}/haversine-220.patch
+          if-no-files-found: error
+          retention-days: 7
