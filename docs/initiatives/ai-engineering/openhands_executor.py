@@ -47,7 +47,7 @@ def build_sdk_conversation(root, api_key, model):
     """Real OpenHands SDK wiring. Caller must provide verified execution authority."""
     from openhands.sdk import LLM, Agent, Conversation, Tool
     from openhands.tools.file_editor import FileEditorTool
-        from pydantic import SecretStr
+    from pydantic import SecretStr
 
     llm = LLM(model=model, api_key=SecretStr(api_key),
               base_url="https://openrouter.ai/api/v1", usage_id="issue220")
