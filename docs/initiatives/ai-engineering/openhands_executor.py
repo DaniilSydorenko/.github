@@ -19,6 +19,10 @@ PROMPT = (
     + TARGET + ". Explain the distance(a, b) API with a short usage example. "
     "Do not change library behavior or any other tracked/untracked file. "
     "Do not commit, push, open PRs, install packages, or access secrets. "
+    "The document MUST explicitly include the exact words OpenHands and Issue #220, "
+    "show distance(a, b), and explicitly say this documentation does not change "
+    "library behavior. Read the real implementation before describing behavior; "
+    "do not invent an API signature or runnable example if you cannot verify it. "
     "Stop after writing the single documentation file."
 )
 
@@ -74,6 +78,8 @@ _TRUSTED_AUTHORIZATION = object()
 def self_test():
     assert "issue #220" in PROMPT and TARGET in PROMPT
     assert "Do not commit, push" in PROMPT
+    for required in ("OpenHands", "Issue #220", "distance(a, b)", "does not change", "do not invent"):
+        assert required in PROMPT, required
     try:
         execute_authorized(None, None, None, authorization=None)
     except PermissionError:
