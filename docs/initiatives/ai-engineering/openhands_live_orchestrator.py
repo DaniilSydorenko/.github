@@ -19,7 +19,7 @@ from openhands_three_issue_gate import QUEUE
 
 REPO = "DaniilSydorenko/haversine-geolocation"
 API = "https://api.github.com/repos/" + REPO
-SHA = re.compile(r"[0-9a-f]{40}\\Z")
+SHA = re.compile(r"[0-9a-f]{40}\Z")
 EXPECTED = ((216, "docs/compatibility.md"),
             (217, "docs/examples/v2-consumers.md"),
             (226, "docs/examples/v2-coding-assistants.md"))
