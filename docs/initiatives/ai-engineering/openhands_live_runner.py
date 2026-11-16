@@ -162,7 +162,9 @@ def self_test():
             assert result["decision"] == "PATCH_VERIFIED"
             assert called == [(MODEL, True)]
             assert (pathlib.Path(tmp) / "proof.patch").is_file()
-    print("PASS: protected live runner offline admission, fail-closed gates and verified patch")
+    assert verify([TARGET], "OpenHands Issue #220 distance(a,b)") == "STOP: proof_content_incomplete"
+    assert str(ProofRejected("STOP: proof_content_incomplete")) == "STOP: proof_content_incomplete"
+    print("PASS: protected live runner offline admission, fail-closed gates, proof diagnostics and verified patch")
 
 
 if __name__ == "__main__":
