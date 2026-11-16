@@ -19,7 +19,12 @@ def verify(paths, content):
                 r"distance\s*\(", r"(?:no|not|doesn't|does not)\s+(?:change|modify|alter)")
     if not all(re.search(pattern, content, re.I) for pattern in required):
         return "STOP: proof_content_incomplete"
-    # This is a narrow factual tripwire, not a substitute for code review.\n    if re.search(r"(?:API|function|library)\\s+(?:of|from|in)\\s+(?:the\\s+)?OpenHands", content, re.I):\n        return "STOP: incorrect_project_attribution"\n    if not all(anchor in content for anchor in ("src/v2/distance.ts", "src/v2/coordinate.ts", "haversine-geolocation")):\n        return "STOP: missing_source_grounding"\n    return "PASS: offline_artifact_contract_only"
+    # This is a narrow factual tripwire, not a substitute for code review.
+    if re.search(r"(?:API|function|library)\s+(?:of|from|in)\s+(?:the\s+)?OpenHands", content, re.I):
+        return "STOP: incorrect_project_attribution"
+    if not all(anchor in content for anchor in ("src/v2/distance.ts", "src/v2/coordinate.ts", "haversine-geolocation")):
+        return "STOP: missing_source_grounding"
+    return "PASS: offline_artifact_contract_only"
 
 
 def changed_paths(base):
@@ -47,8 +52,11 @@ def changed_paths(base):
 
 def self_test():
     good = ("OpenHands pilot for Issue #220. Example: distance(a, b). "
-            "This does not change library behavior. Source: src/v2/distance.ts, "\n            "src/v2/coordinate.ts; import from haversine-geolocation.")
-    assert verify([TARGET], good).startswith("PASS:")\n    assert verify([TARGET], good + " API from the OpenHands project") == "STOP: incorrect_project_attribution"\n    assert verify([TARGET], "OpenHands Issue #220 distance(a,b) does not change behavior") == "STOP: missing_source_grounding"
+            "This does not change library behavior. Source: src/v2/distance.ts, "
+            "src/v2/coordinate.ts; import from haversine-geolocation.")
+    assert verify([TARGET], good).startswith("PASS:")
+    assert verify([TARGET], good + " API from the OpenHands project") == "STOP: incorrect_project_attribution"
+    assert verify([TARGET], "OpenHands Issue #220 distance(a,b) does not change behavior") == "STOP: missing_source_grounding"
     assert verify([TARGET, "package.json"], good) == "STOP: changed_paths_not_exact"
     assert verify([], good) == "STOP: changed_paths_not_exact"
     assert verify([TARGET], "OpenHands Issue #220 distance(a,b)") == "STOP: proof_content_incomplete"
