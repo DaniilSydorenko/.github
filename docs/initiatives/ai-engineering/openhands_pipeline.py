@@ -73,7 +73,7 @@ def self_test():
                                        text=True).strip()
         proof = root / TARGET
         proof.parent.mkdir(parents=True)
-        proof.write_text("OpenHands Issue #220 distance(a,b). This does not change behavior.\n")
+        proof.write_text("OpenHands Issue #220 distance(a,b). This does not change behavior. Source: src/v2/distance.ts and src/v2/coordinate.ts in haversine-geolocation.\n")
         patch = pathlib.Path(temp) / "artifact.patch"
         result = handoff(root, base, patch)
         assert result["decision"] == "STOP"
@@ -103,7 +103,7 @@ def self_test():
         invoked = []
         def mock_executor(*args, **kwargs):
             invoked.append("agent")
-            proof.write_text("OpenHands Issue #220 distance(a,b). This does not change behavior.\\n".replace("\\\\n", "\\n"))
+            proof.write_text("OpenHands Issue #220 distance(a,b). This does not change behavior. Source: src/v2/distance.ts and src/v2/coordinate.ts in haversine-geolocation.\\n".replace("\\\\n", "\\n"))
             return "completed"
         result = run_agent_then_handoff(
             root, base, patch, api_key="dummy", model="mock",
@@ -118,13 +118,13 @@ def self_test():
             root, base, patch, api_key="dummy", model="mock",
             executor_authority="fixture",
             executor=lambda *args, **kwargs: (proof.write_text(
-                "OpenHands Issue #220 distance(a,b). This does not change behavior.\\n"),
+                "OpenHands Issue #220 distance(a,b). This does not change behavior. Source: src/v2/distance.ts and src/v2/coordinate.ts in haversine-geolocation.\\n"),
                 AgentStatus.FINISHED)[1])
         assert result["decision"] == "STOP"
         proof.unlink()
         published = []
         def failed_agent(*args, **kwargs):
-            proof.write_text("OpenHands Issue #220 distance(a,b). This does not change behavior.\\n")
+            proof.write_text("OpenHands Issue #220 distance(a,b). This does not change behavior. Source: src/v2/distance.ts and src/v2/coordinate.ts in haversine-geolocation.\\n")
             return "failed"
         try:
             run_agent_then_handoff(
@@ -138,7 +138,7 @@ def self_test():
         assert not published, "publisher invoked after agent failure"
         proof.unlink()
         def bad_agent(*args, **kwargs):
-            proof.write_text("OpenHands Issue #220 distance(a,b). This does not change behavior.\\n")
+            proof.write_text("OpenHands Issue #220 distance(a,b). This does not change behavior. Source: src/v2/distance.ts and src/v2/coordinate.ts in haversine-geolocation.\\n")
             (root / "package.json").write_text("unsafe", encoding="utf-8")
             return "completed"
         try:

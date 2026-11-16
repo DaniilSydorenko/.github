@@ -66,7 +66,7 @@ _PROTECTED_AUTHORITY = object()
 
 
 def self_test():
-    good = "OpenHands Issue #220: distance(a,b). This does not change behavior."
+    good = "OpenHands Issue #220: distance(a,b). This does not change behavior. Source: src/v2/distance.ts and src/v2/coordinate.ts in haversine-geolocation."
     import tempfile
     with tempfile.TemporaryDirectory() as temp:
         proof = pathlib.Path(temp) / "proof.md"

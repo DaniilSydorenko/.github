@@ -155,7 +155,7 @@ def self_test():
                 called.append((model, authorization is _TRUSTED_AUTHORIZATION))
                 proof = workspace / "docs/agent-pilot-proof.md"
                 proof.parent.mkdir(parents=True)
-                proof.write_text("OpenHands Issue #220: distance(a,b). This does not change behavior.\n")
+                proof.write_text("OpenHands Issue #220: distance(a,b). This does not change behavior. Source: src/v2/distance.ts and src/v2/coordinate.ts in haversine-geolocation.\n")
                 return "finished"
             result = run(root, pathlib.Path(tmp) / "proof.patch", "offline",
                          executor=fake_executor, budget=budget, preflight=ok)

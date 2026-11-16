@@ -60,7 +60,7 @@ def self_test():
                                        text=True).strip()
         proof = root / TARGET
         proof.parent.mkdir(parents=True)
-        proof.write_text("OpenHands Issue #220: distance(a,b). This does not change behavior.\n")
+        proof.write_text("OpenHands Issue #220: distance(a,b). This does not change behavior. Source: src/v2/distance.ts and src/v2/coordinate.ts in haversine-geolocation.\n")
         patch = pathlib.Path(temp) / "proof.patch"
         prepare(root, base, patch)
         assert b"docs/agent-pilot-proof.md" in patch.read_bytes()
