@@ -26,6 +26,7 @@ on:
       - 'docs/initiatives/ai-engineering/openhands_draft_publisher.py'
       - 'docs/initiatives/ai-engineering/openhands_pipeline.py'
       - 'docs/initiatives/ai-engineering/openhands_sequential_simulation.py'
+      - 'docs/initiatives/ai-engineering/openhands_three_issue_gate.py'
       - '.github/workflows/ai-eng-openhands-readiness.yml'
       - '.github/workflows/ai-eng-haversine220-protected-preflight.yml'
   workflow_dispatch:
@@ -136,6 +137,10 @@ jobs:
         run: |
           python3 -m py_compile docs/initiatives/ai-engineering/openhands_sequential_simulation.py
           python3 docs/initiatives/ai-engineering/openhands_sequential_simulation.py
+      - name: Verify three-Issue transition policy (offline, no agent)
+        run: |
+          python3 -m py_compile docs/initiatives/ai-engineering/openhands_three_issue_gate.py
+          python3 docs/initiatives/ai-engineering/openhands_three_issue_gate.py
       - name: Set up OpenHands SDK Python runtime
         uses: actions/setup-python@v6
         with:
