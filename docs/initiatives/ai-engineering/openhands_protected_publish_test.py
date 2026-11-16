@@ -50,7 +50,7 @@ def main():
                                        text=True).strip()
         proof = root / TARGET
         proof.parent.mkdir(parents=True)
-        proof.write_text("OpenHands Issue #220 distance(a,b). This does not change behavior.\n")
+        proof.write_text("OpenHands Issue #220 distance(a,b). This does not change behavior. Source: src/v2/distance.ts and src/v2/coordinate.ts in haversine-geolocation.\n")
         patch = pathlib.Path(tmp) / "proof.patch"
         prepare(root, base, patch)
         proof.unlink()
