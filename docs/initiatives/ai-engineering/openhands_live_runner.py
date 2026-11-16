@@ -16,6 +16,11 @@ from openrouter_budget_gate import probe
 from openhands_issue_contract import live_preflight
 from openhands_executor import execute_authorized, validate_workspace, _TRUSTED_AUTHORIZATION
 from openhands_pipeline import handoff
+from openhands_artifact_verifier import verify, changed_paths, TARGET
+
+class ProofRejected(ValueError):
+    """A stable verifier verdict, safe to print without exposing model output."""
+
 
 MODEL = "openrouter/openai/gpt-4o-mini"
 TARGET_REPO = "DaniilSydorenko/haversine-geolocation"
@@ -76,6 +81,19 @@ def run(workspace, patch, key, *, executor=execute_authorized,
     terminal = getattr(state, "value", state)
     if not isinstance(terminal, str) or terminal.lower() not in ("finished", "completed", "success"):
         raise RuntimeError("agent_terminal_not_success")
+    # Provide a safe, actionable contract verdict before the patch handoff.
+    # The first real run completed its model call but wrote incomplete proof.
+    previous = pathlib.Path.cwd()
+    try:
+        os.chdir(root)
+        paths = changed_paths(base)
+    finally:
+        os.chdir(previous)
+    proof = root / TARGET
+    content = proof.read_text(encoding="utf-8") if proof.is_file() and not proof.is_symlink() else ""
+    verdict = verify(paths, content)
+    if not verdict.startswith("PASS:"):
+        raise ProofRejected(verdict)
     result = handoff(root, base, patch)
     if result.get("reason") != "protected_publisher_not_connected":
         raise RuntimeError("unexpected_publisher")
@@ -144,7 +162,9 @@ def self_test():
             assert result["decision"] == "PATCH_VERIFIED"
             assert called == [(MODEL, True)]
             assert (pathlib.Path(tmp) / "proof.patch").is_file()
-    print("PASS: protected live runner offline admission, fail-closed gates and verified patch")
+    assert verify([TARGET], "OpenHands Issue #220 distance(a,b)") == "STOP: proof_content_incomplete"
+    assert str(ProofRejected("STOP: proof_content_incomplete")) == "STOP: proof_content_incomplete"
+    print("PASS: protected live runner offline admission, fail-closed gates, proof diagnostics and verified patch")
 
 
 if __name__ == "__main__":
@@ -156,7 +176,7 @@ if __name__ == "__main__":
             print(json.dumps(result, sort_keys=True))
         except Exception as error:
             # Do not log exception details: SDK/provider errors can contain secrets.
-            print(json.dumps({"decision": "STOP", "reason": type(error).__name__,
+            print(json.dumps({"decision": "STOP", "reason": (str(error) if isinstance(error, ProofRejected) else type(error).__name__),
                               "model_may_have_been_invoked": True}))
             sys.exit(1)
     else:
