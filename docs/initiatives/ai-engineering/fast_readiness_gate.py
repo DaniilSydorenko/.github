@@ -4,6 +4,7 @@
 PASS means only local source/contract checks passed. NEVER live readiness.
 """
 from __future__ import annotations
+import ast
 import json
 import subprocess
 import sys
@@ -39,16 +40,23 @@ def static_contract(files: dict[str, str]) -> list[str]:
 
 
 def live_integration_observations(files: dict[str, str]) -> list[str]:
-    """Cheap conservative signals, NOT a proof that no bypass exists.
+    """Static triage of known launch paths; never an authorization decision.
 
-    Never promote these observations to G2/G3 PASS. An explicit blocker is
-    useful; absence of one still requires authenticated integration evidence.
+    Parse the runner's actual calls rather than trusting a marker string in
+    comments. This is intentionally conservative: a missing signal is NOT
+    proof of global singleton enforcement or credential isolation.
     """
     runner = files.get("runner", "")
     orchestrator = files.get("orchestrator", "")
     blockers = []
-    if "execute_authorized(" in runner and "Controller(" not in runner:
-        blockers.append("legacy_runner_model_call_without_inline_lease_controller")
+    try:
+        tree = ast.parse(runner)
+    except SyntaxError:
+        return ["legacy_runner_unparseable"]
+    calls = {node.func.id for node in ast.walk(tree)
+             if isinstance(node, ast.Call) and isinstance(node.func, ast.Name)}
+    if "execute_authorized" in calls:
+        blockers.append("legacy_runner_model_call_requires_trusted_lease_integration_review")
     if "live_authorization_not_integrated" in orchestrator:
         blockers.append("three_issue_orchestrator_read_only")
     return blockers
@@ -71,7 +79,9 @@ environment: ai-eng-lease-owner""",
     bad = dict(base)
     bad["orchestrator"] += "\nsubprocess.Popen("
     assert static_contract(bad)
-    assert live_integration_observations({"runner": "execute_authorized(", "orchestrator": "live_authorization_not_integrated"}) == ["legacy_runner_model_call_without_inline_lease_controller", "three_issue_orchestrator_read_only"]
+    assert live_integration_observations({"runner": "execute_authorized(root, key)", "orchestrator": "live_authorization_not_integrated"}) == ["legacy_runner_model_call_requires_trusted_lease_integration_review", "three_issue_orchestrator_read_only"]
+    assert live_integration_observations({"runner": "# execute_authorized(root, key)", "orchestrator": ""}) == []
+    assert live_integration_observations({"runner": "def broken(", "orchestrator": ""}) == ["legacy_runner_unparseable"]
     assert live_integration_observations({"runner": "", "orchestrator": ""}) == []
     print("PASS: fast-gate negative fixtures (not live admission)")
 
