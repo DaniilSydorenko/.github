@@ -29,6 +29,7 @@ on:
       - 'docs/initiatives/ai-engineering/openhands_three_issue_gate.py'
       - 'docs/initiatives/ai-engineering/openhands_live_orchestrator.py'
       - 'docs/initiatives/ai-engineering/test_openhands_164_singleton.py'
+      - 'docs/initiatives/ai-engineering/fast_readiness_gate.py'
       - '.github/workflows/ai-eng-openhands-readiness.yml'
       - '.github/workflows/ai-eng-haversine220-protected-preflight.yml'
   workflow_dispatch:
@@ -61,6 +62,10 @@ jobs:
       - uses: actions/checkout@v6
         with:
           persist-credentials: false
+      - name: G0/G1 fast safety regression (no network or model)
+        run: |
+          python3 docs/initiatives/ai-engineering/fast_readiness_gate.py --self-test
+          python3 docs/initiatives/ai-engineering/fast_readiness_gate.py
       - name: Compile readiness probe
         run: python3 -m py_compile docs/initiatives/ai-engineering/runner_readiness.py
       - name: Fail-closed offline fixtures
