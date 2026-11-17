@@ -15,6 +15,7 @@ TESTS = [
     ["openhands_live_orchestrator.py", "--self-test"],
     ["openhands_three_issue_gate.py"],
     ["test_openhands_164_singleton.py"],
+    ["openhands_164_lease_preconditions.py"],
     ["test_github_ref_lease.py"],
 ]
 
