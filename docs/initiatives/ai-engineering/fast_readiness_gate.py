@@ -37,6 +37,22 @@ def static_contract(files: dict[str, str]) -> list[str]:
     return problems
 
 
+def live_integration_observations(files: dict[str, str]) -> list[str]:
+    """Cheap conservative signals, NOT a proof that no bypass exists.
+
+    Never promote these observations to G2/G3 PASS. An explicit blocker is
+    useful; absence of one still requires authenticated integration evidence.
+    """
+    runner = files.get("runner", "")
+    orchestrator = files.get("orchestrator", "")
+    blockers = []
+    if "execute_authorized(" in runner and "Controller(" not in runner:
+        blockers.append("legacy_runner_model_call_without_inline_lease_controller")
+    if "live_authorization_not_integrated" in orchestrator:
+        blockers.append("three_issue_orchestrator_read_only")
+    return blockers
+
+
 def self_test() -> None:
     base = {"workflow": """offline-contract:
 test_openhands_164_singleton.py
@@ -54,6 +70,8 @@ environment: ai-eng-lease-owner""",
     bad = dict(base)
     bad["orchestrator"] += "\nsubprocess.Popen("
     assert static_contract(bad)
+    assert live_integration_observations({"runner": "execute_authorized(", "orchestrator": "live_authorization_not_integrated"}) == ["legacy_runner_model_call_without_inline_lease_controller", "three_issue_orchestrator_read_only"]
+    assert live_integration_observations({"runner": "", "orchestrator": ""}) == []
     print("PASS: fast-gate negative fixtures (not live admission)")
 
 
@@ -68,6 +86,9 @@ def main() -> int:
     orchestrator = HERE / "openhands_live_orchestrator.py"
     problems = static_contract({"workflow": workflow.read_text(),
                                 "orchestrator": orchestrator.read_text()})
+    runner = HERE / "openhands_live_runner.py"
+    integration_blockers = live_integration_observations({
+        "runner": runner.read_text(), "orchestrator": orchestrator.read_text()})
     results = []
     for command in TESTS:
         cmd = [sys.executable, str(HERE / command[0]), *command[1:]]
@@ -81,7 +102,9 @@ def main() -> int:
     if any(not x["pass"] for x in results):
         problems.append("offline_contract_failure")
     report = {"gate": "G0_G1_ONLY", "status": "PASS" if not problems else "FAIL",
-              "live_admission": "BLOCKED", "problems": problems, "tests": results,
+              "live_admission": "BLOCKED", "g2": "BLOCKED", "g3": "UNKNOWN",
+              "g4": "BLOCKED", "integration_observations": integration_blockers,
+              "problems": problems, "tests": results,
               "model_calls": 0, "github_writes": 0}
     print(json.dumps(report, sort_keys=True))
     return 0 if not problems else 1
