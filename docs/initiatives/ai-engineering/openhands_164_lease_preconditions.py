@@ -26,19 +26,31 @@ class Context:
     request_id: str
     target_sha: str
     workflow_run_id: str
+    expected_lease_sha: str
 
 
 def validate_lease_snapshot(snapshot: dict[str, Any], ctx: Context, *,
+                            observed_lease_sha: str = '',
                             authenticated_ref: bool = False,
                             exclusive_writer_verified: bool = False,
                             credential_path_verified: bool = False) -> str:
     """Necessary preconditions only; never returns a launch capability.
 
+    The observed ref SHA must come from a fresh authenticated read and match
+    the independently pinned lease commit. This comparison alone does NOT
+    prevent a subsequent ref advance (TOCTOU): the trusted workflow must
+    establish an exclusive writer and revalidate immediately before dispatch.
     All three evidence flags must be supplied by an independently trusted
     live verifier, not by issue text, agent output, or caller-supplied JSON.
     """
     if not (authenticated_ref and exclusive_writer_verified and credential_path_verified):
         raise AdmissionDenied("operational_security_not_verified")
+    if (not isinstance(ctx.expected_lease_sha, str)
+            or not SHA.fullmatch(ctx.expected_lease_sha)
+            or not isinstance(observed_lease_sha, str)
+            or not SHA.fullmatch(observed_lease_sha)
+            or observed_lease_sha != ctx.expected_lease_sha):
+        raise AdmissionDenied("lease_ref_sha_missing_or_stale")
     if type(ctx.issue) is not int or ctx.issue not in ISSUES:
         raise AdmissionDenied("issue_out_of_scope")
     if not isinstance(ctx.target_sha, str) or not SHA.fullmatch(ctx.target_sha):
@@ -72,11 +84,11 @@ def self_test() -> None:
     from test_github_ref_lease import MemoryGitRef
     from dataclasses import replace
     store = MemoryGitRef()
-    ctx = Context(216, "openhands-164-issue-216", "a" * 40, "123456")
+    ctx = Context(216, "openhands-164-issue-216", "a" * 40, "123456", "b" * 40)
     assert Controller(store).acquire(ctx.request_id, f"{REPO}/issues/216") == "ACQUIRED"
     snapshot = store.read().state
     flags = dict(authenticated_ref=True, exclusive_writer_verified=True,
-                 credential_path_verified=True)
+                 credential_path_verified=True, observed_lease_sha="b" * 40)
     assert validate_lease_snapshot(snapshot, ctx, **flags).startswith("LEASE_PRECONDITIONS")
     cases = [
         (snapshot, ctx, {**flags, "exclusive_writer_verified": False}),
@@ -85,6 +97,9 @@ def self_test() -> None:
         (snapshot, replace(ctx, issue=217), flags),
         (snapshot, replace(ctx, target_sha="invalid"), flags),
         (snapshot, replace(ctx, workflow_run_id="0"), flags),
+        (snapshot, replace(ctx, expected_lease_sha="c" * 40), flags),
+        (snapshot, ctx, {**flags, "observed_lease_sha": "c" * 40}),
+        (snapshot, ctx, {**flags, "observed_lease_sha": ""}),
         ({**snapshot, "phase": "DISPATCHING"}, ctx, flags),
         ({**snapshot, "request_id": "openhands-164-issue-217"}, ctx, flags),
         ({**snapshot, "source_issue_url": f"{REPO}/issues/217"}, ctx, flags),
