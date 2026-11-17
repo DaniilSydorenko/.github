@@ -76,9 +76,17 @@ def inspect(fetch):
         files = fetch("/pulls/" + str(number) + "/files?per_page=100&page=1")
         if not isinstance(files, list) or len(files) >= 100:
             raise AdmissionStop("pr_file_inventory_incomplete")
-        paths = [f.get("filename") for f in files if isinstance(f, dict)]
-        if len(paths) != len(files) or any(not isinstance(p, str) for p in paths):
-            raise AdmissionStop("invalid_pr_files")
+        paths = []
+        for f in files:
+            if not isinstance(f, dict) or not isinstance(f.get("filename"), str):
+                raise AdmissionStop("invalid_pr_files")
+            paths.append(f["filename"])
+            # A rename FROM a pilot target also occupies that target.
+            if f.get("status") == "renamed":
+                previous = f.get("previous_filename")
+                if not isinstance(previous, str) or not previous:
+                    raise AdmissionStop("invalid_pr_rename")
+                paths.append(previous)
         if set(paths).intersection(path for _, path in EXPECTED):
             raise AdmissionStop("active_pr_overlaps_pilot_scope_" + str(number))
         active.append(number)
@@ -111,6 +119,11 @@ def self_test():
         ("/pulls?state=open&per_page=100&page=1", [{}], "invalid_pr_inventory"),
         ("/pulls/224/files?per_page=100&page=1",
          [{"filename": EXPECTED[1][1]}], "active_pr_overlaps_pilot_scope_224"),
+        ("/pulls/224/files?per_page=100&page=1",
+         [{"filename": "docs/other.md", "status": "renamed",
+           "previous_filename": EXPECTED[0][1]}], "active_pr_overlaps_pilot_scope_224"),
+        ("/pulls/224/files?per_page=100&page=1",
+         [{"filename": "docs/other.md", "status": "renamed"}], "invalid_pr_rename"),
         ("/pulls?state=open&per_page=100&page=1",
          [{"number": n} for n in range(100)], "pr_inventory_incomplete"),
     ):
