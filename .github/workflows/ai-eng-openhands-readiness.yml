@@ -30,6 +30,7 @@ on:
       - 'docs/initiatives/ai-engineering/openhands_live_orchestrator.py'
       - 'docs/initiatives/ai-engineering/test_openhands_164_singleton.py'
       - 'docs/initiatives/ai-engineering/fast_readiness_gate.py'
+      - 'docs/initiatives/ai-engineering/openhands_164_lease_preconditions.py'
       - '.github/workflows/ai-eng-openhands-readiness.yml'
       - '.github/workflows/ai-eng-haversine220-protected-preflight.yml'
   workflow_dispatch:
