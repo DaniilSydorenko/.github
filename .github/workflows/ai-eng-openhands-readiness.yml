@@ -28,6 +28,7 @@ on:
       - 'docs/initiatives/ai-engineering/openhands_sequential_simulation.py'
       - 'docs/initiatives/ai-engineering/openhands_three_issue_gate.py'
       - 'docs/initiatives/ai-engineering/openhands_live_orchestrator.py'
+      - 'docs/initiatives/ai-engineering/test_openhands_164_singleton.py'
       - '.github/workflows/ai-eng-openhands-readiness.yml'
       - '.github/workflows/ai-eng-haversine220-protected-preflight.yml'
   workflow_dispatch:
@@ -142,6 +143,9 @@ jobs:
         run: |
           python3 -m py_compile docs/initiatives/ai-engineering/openhands_three_issue_gate.py
           python3 docs/initiatives/ai-engineering/openhands_three_issue_gate.py
+      - name: Verify #164 three-Issue singleton CAS regression (offline, no API)
+        run: |
+          python3 -m unittest discover -s docs/initiatives/ai-engineering -p 'test_openhands_164_singleton.py' -v
       - name: Verify #164 read-only live inventory adapter (offline)
         run: |
           python3 -m py_compile docs/initiatives/ai-engineering/openhands_live_orchestrator.py
