@@ -1,6 +1,7 @@
 # #164 Delivery plan — baseline 2026-11-18
 
 **Owner-facing delivery contract, not a claim of live readiness.**
+This plan follows [Delivery Governance](DELIVERY_GOVERNANCE.md). **Prior human-workday estimates are deprecated for owner planning**; future estimates use bounded AI sessions and distinguish owner time, elapsed time and actual runtime. Calendar checkpoints below are legacy provisional targets, not commitments; rebaseline after D0/D1.
 Source of scope: central issue #164. Implementation: existing Draft PR #166.
 No new parallel implementation PRs or duplicate Haversine issues.
 
@@ -30,7 +31,7 @@ is implied.
 | D5 | P0 | G0–G4 evidence review and owner GO/NO-GO | 0.5–1 day | Dec 2 | Every gate independently PASS or explicit BLOCKED | NOT STARTED |
 | D6 | P0 | Owner-authorized bounded paid pilot | 0.5–1 day | Dec 3 (conditional) | 3 verified Draft PRs OR bounded STOP, shared spend cap | NOT AUTHORIZED TO RUN NOW |
 
-**Total estimated engineering effort:** 5–10 working days, excluding
+**Historical human-engineer effort estimate (NOT an AI runtime or owner-time forecast):** 5–10 working days, excluding
 permission review delays, CI queues and unknown defects. The Dec 3 date
 is a **conditional planning target**, not a committed completion date.
 Confidence LOW until D0/D1 finish. Re-estimate at D1 exit; never hide
@@ -61,6 +62,19 @@ schedule changes.
 blockers exist. Unknowns are tracked separately until D0 closes.
 New P0/P1 findings require issue/PR comment, severity, owner, acceptance
 test and impact on dates; never silently expand scope.
+
+## AI-session rebaseline (provisional; pending D0/D1)
+
+| Package | Bounded AI-session estimate | Owner attention |
+| --- | --- | --- |
+| D0–D1 inventory and effective permissions | 1–2 sessions | 0–1 decision if privileged evidence needed |
+| D2 lease adapter and adversarial tests | 1–3 sessions | 0 unless authorization required |
+| D3 three-issue parameterization | 2–4 sessions | 0 |
+| D4 integrated workflow and negative E2E | 2–4 sessions | 0–1 decision |
+| D5 evidence audit | 1–2 sessions | GO/NO-GO decision |
+| D6 live pilot | only after verified G0–G4 and owner GO | explicit approval |
+
+These are **planning hypotheses**, not measured durations or a promise of autonomous background work. Confidence LOW; adjust after D0/D1. Target owner attention 10–20 minutes/day, not eight hours of prompting.
 
 ## Operating cadence
 
