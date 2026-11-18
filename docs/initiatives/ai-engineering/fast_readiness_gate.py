@@ -62,6 +62,22 @@ def live_integration_observations(files: dict[str, str]) -> list[str]:
     return blockers
 
 
+def governance_contract(files: dict[str, str]) -> list[str]:
+    problems = []
+    for key, markers in {
+        'agents': ('DELIVERY_GOVERNANCE.md', 'DELIVERY_PLAN_164.md'),
+        'governance': ('New chat bootstrap', 'Cross-repository adoption', 'Owner-time budget'),
+        'plan': ('DELIVERY_GOVERNANCE.md', 'AI-session rebaseline', 'B01'),
+        'adoption': ('AGENTS.md', 'NOT_INVENTORIED', 'ENFORCED'),
+    }.items():
+        if not files.get(key):
+            problems.append('governance_missing_file:' + key)
+        for marker in markers:
+            if marker not in files.get(key, ''):
+                problems.append('governance_missing_marker:' + key + ':' + marker)
+    return problems
+
+
 def self_test() -> None:
     base = {"workflow": """offline-contract:
 test_openhands_164_singleton.py
@@ -83,6 +99,9 @@ environment: ai-eng-lease-owner""",
     assert live_integration_observations({"runner": "# execute_authorized(root, key)", "orchestrator": ""}) == []
     assert live_integration_observations({"runner": "def broken(", "orchestrator": ""}) == ["legacy_runner_unparseable"]
     assert live_integration_observations({"runner": "", "orchestrator": ""}) == []
+    fixture = {"agents": "DELIVERY_GOVERNANCE.md DELIVERY_PLAN_164.md", "governance": "New chat bootstrap Cross-repository adoption Owner-time budget", "plan": "DELIVERY_GOVERNANCE.md AI-session rebaseline B01", "adoption": "AGENTS.md NOT_INVENTORIED ENFORCED"}
+    assert governance_contract(fixture) == []
+    assert governance_contract({**fixture, "agents": ""})
     print("PASS: fast-gate negative fixtures (not live admission)")
 
 
@@ -97,6 +116,12 @@ def main() -> int:
     orchestrator = HERE / "openhands_live_orchestrator.py"
     problems = static_contract({"workflow": workflow.read_text(),
                                 "orchestrator": orchestrator.read_text()})
+    problems.extend(governance_contract({
+        "agents": (ROOT / "AGENTS.md").read_text(),
+        "governance": (HERE / "DELIVERY_GOVERNANCE.md").read_text(),
+        "plan": (HERE / "DELIVERY_PLAN_164.md").read_text(),
+        "adoption": (HERE / "REPOSITORY_ADOPTION_KIT.md").read_text(),
+    }))
     runner = HERE / "openhands_live_runner.py"
     integration_blockers = live_integration_observations({
         "runner": runner.read_text(), "orchestrator": orchestrator.read_text()})
