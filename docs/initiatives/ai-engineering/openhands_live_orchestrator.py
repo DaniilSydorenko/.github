@@ -69,10 +69,21 @@ def inspect(fetch):
     if not isinstance(prs, list) or len(prs) >= 100:
         raise AdmissionStop("pr_inventory_incomplete")
     active = []
+    seen_pr_numbers = set()
     for pr in prs:
         if not isinstance(pr, dict) or type(pr.get("number")) is not int:
             raise AdmissionStop("invalid_pr_inventory")
         number = pr["number"]
+        if number < 1 or number in seen_pr_numbers:
+            raise AdmissionStop("duplicate_or_invalid_pr_number")
+        seen_pr_numbers.add(number)
+        # A PR may claim the issue without touching the target file yet.
+        # Treat it as an existing writer, not as a free queue slot.
+        body = pr.get("body")
+        if body is not None and not isinstance(body, str):
+            raise AdmissionStop("invalid_pr_body")
+        if isinstance(body, str) and any(re.search(r"(?<![\\w])#"+str(issue)+r"(?![\\d])", body) for issue, _ in EXPECTED):
+            raise AdmissionStop("active_pr_claims_pilot_issue_" + str(number))
         files = fetch("/pulls/" + str(number) + "/files?per_page=100&page=1")
         if not isinstance(files, list) or len(files) >= 100:
             raise AdmissionStop("pr_file_inventory_incomplete")
@@ -127,6 +138,9 @@ def self_test():
         ("/issues/216", {"number": 216, "state": "closed",
                           "body": EXPECTED[0][1]}, "issue_scope_or_state_mismatch_216"),
         ("/pulls?state=open&per_page=100&page=1", [{}], "invalid_pr_inventory"),
+        ("/pulls?state=open&per_page=100&page=1", [{"number": 224}, {"number": 224}], "duplicate_or_invalid_pr_number"),
+        ("/pulls?state=open&per_page=100&page=1", [{"number": 224, "body": "Implements #217"}], "active_pr_claims_pilot_issue_224"),
+        ("/pulls?state=open&per_page=100&page=1", [{"number": 224, "body": 7}], "invalid_pr_body"),
         ("/pulls/224/files?per_page=100&page=1",
          [{"filename": EXPECTED[1][1]}], "active_pr_overlaps_pilot_scope_224"),
         ("/pulls/224/files?per_page=100&page=1",
