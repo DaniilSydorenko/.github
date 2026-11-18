@@ -90,7 +90,17 @@ def inspect(fetch):
         if set(paths).intersection(path for _, path in EXPECTED):
             raise AdmissionStop("active_pr_overlaps_pilot_scope_" + str(number))
         active.append(number)
-    # Re-read the target base after the potentially long PR/issue inventory.\n    # A moving base invalidates the snapshot; never return a coherent-looking\n    # queue inventory assembled across two different master commits.\n    final_head = fetch("/git/ref/heads/master")\n    final_sha = (final_head.get("object", {}).get("sha")\n                 if isinstance(final_head, dict) else None)\n    if not isinstance(final_sha, str) or not SHA.fullmatch(final_sha):\n        raise AdmissionStop("default_head_recheck_unverified")\n    if final_sha != sha:\n        raise AdmissionStop("default_head_changed_during_inventory")\n    return {"decision": "STOP", "reason": "live_authorization_not_integrated",
+    # Re-read the target base after the potentially long PR/issue inventory.
+    # A moving base invalidates the snapshot; never return a coherent-looking
+    # queue inventory assembled across two different master commits.
+    final_head = fetch("/git/ref/heads/master")
+    final_sha = (final_head.get("object", {}).get("sha")
+                 if isinstance(final_head, dict) else None)
+    if not isinstance(final_sha, str) or not SHA.fullmatch(final_sha):
+        raise AdmissionStop("default_head_recheck_unverified")
+    if final_sha != sha:
+        raise AdmissionStop("default_head_changed_during_inventory")
+    return {"decision": "STOP", "reason": "live_authorization_not_integrated",
             "default_head": sha, "issues": issues, "open_prs_checked": active,
             "model_invoked": False, "github_write": False}
 
@@ -133,7 +143,33 @@ def self_test():
             assert str(error) == reason, (reason, error)
         else:
             raise AssertionError("unsafe evidence accepted: " + reason)
-    calls = [0]\n    def moving_head(path):\n        if path == "/git/ref/heads/master":\n            calls[0] += 1\n            if calls[0] == 2:\n                return {"object": {"sha": "b" * 40}}\n        return fake(path)\n    try:\n        inspect(moving_head)\n    except AdmissionStop as error:\n        assert str(error) == "default_head_changed_during_inventory"\n    else:\n        raise AssertionError("moving base accepted")\n    calls[0] = 0\n    def lost_head(path):\n        if path == "/git/ref/heads/master":\n            calls[0] += 1\n            if calls[0] == 2:\n                return {"object": {}}\n        return fake(path)\n    try:\n        inspect(lost_head)\n    except AdmissionStop as error:\n        assert str(error) == "default_head_recheck_unverified"\n    else:\n        raise AssertionError("missing recheck accepted")\n    print("PASS: #164 authenticated inventory contract (offline; no network/writes/model)")
+    calls = [0]
+    def moving_head(path):
+        if path == "/git/ref/heads/master":
+            calls[0] += 1
+            if calls[0] == 2:
+                return {"object": {"sha": "b" * 40}}
+        return fake(path)
+    try:
+        inspect(moving_head)
+    except AdmissionStop as error:
+        assert str(error) == "default_head_changed_during_inventory"
+    else:
+        raise AssertionError("moving base accepted")
+    calls[0] = 0
+    def lost_head(path):
+        if path == "/git/ref/heads/master":
+            calls[0] += 1
+            if calls[0] == 2:
+                return {"object": {}}
+        return fake(path)
+    try:
+        inspect(lost_head)
+    except AdmissionStop as error:
+        assert str(error) == "default_head_recheck_unverified"
+    else:
+        raise AssertionError("missing recheck accepted")
+    print("PASS: #164 authenticated inventory contract (offline; no network/writes/model)")
 
 
 def main():
