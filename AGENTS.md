@@ -1,5 +1,10 @@
 # GitHub HQ — agent entry point
 
+## Mandatory AI engineering delivery bootstrap (proposed in #166)
+
+For work in `docs/initiatives/ai-engineering/**` or `ai-eng-*` workflows, first read [Delivery Governance](docs/initiatives/ai-engineering/DELIVERY_GOVERNANCE.md), then the initiative's canonical delivery plan (currently [#164](docs/initiatives/ai-engineering/DELIVERY_PLAN_164.md)), tracking issue and active PR exact-head CI. Treat these as the **working source of truth across new chats**. Keep owner interaction brief; use bounded AI sessions rather than eight-hour workday estimates. This is process guidance, **not** permission to launch models, alter security or operate other repositories. Existing owner/security/domain gates prevail.
+
+
 This repository owns shared GitHub HQ infrastructure and governance, **not** domain product backlogs. Start with `reports/github-hq/HQ-AUTOPILOT-BOUNDARIES.md`, the canonical `reports/github-hq/ROADMAP-LIVE.md`, and local GRS rules when the task touches GRS. The separate `docs/initiatives/ai-engineering/ROADMAP.md` is an owner research initiative, not HQ enforcement authority. Never alter product repositories, their PR queues, account billing or publication through an HQ issue without the relevant explicit owner/safety gates.
 
 ## GitHub HQ integration and AI autonomy boundary (2026-10-26)
