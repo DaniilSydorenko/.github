@@ -7,7 +7,7 @@ Last verified: 2026-11-18, GitHub installation repository listing (17 repositori
 | Repository | Default branch | Local AGENTS.md | Governance adoption | Domain caveat |
 | --- | --- | --- | --- | --- |
 | DaniilSydorenko/.github | main | Present | PROPOSED in Draft PR #166; CI must match exact HEAD | HQ owns shared infrastructure, not domain PRs |
-| DaniilSydorenko/haversine-geolocation | master | Present | CANDIDATE; no adoption PR | Preserve v2 roadmap and local master baseline |
+| DaniilSydorenko/haversine-geolocation | master | Present | CANDIDATE; [read-only compatibility review](HAVERSINE_ADOPTION_REVIEW.md), no adoption PR | Preserve mandatory 12-step round, v2 roadmap and local master baseline |
 | DaniilSydorenko/listing-kit | main | Present | CANDIDATE; no adoption PR | Private alpha, privacy and white-hat rules |
 | DaniilSydorenko/engineering-labs | main | Present | CANDIDATE; no adoption PR | Public-safe learning; no employer branding |
 | DaniilSydorenko/career-intelligence | main | Present | CANDIDATE; no adoption PR | Lovable sync/history restrictions |
