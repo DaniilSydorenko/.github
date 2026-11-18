@@ -28,6 +28,8 @@ on:
       - 'docs/initiatives/ai-engineering/test_lease_ruleset_candidate.py'
       - 'docs/initiatives/ai-engineering/app_writer_provenance.py'
       - 'docs/initiatives/ai-engineering/test_app_writer_provenance.py'
+      - 'docs/initiatives/ai-engineering/openhands_lease_admission_adapter.py'
+      - 'docs/initiatives/ai-engineering/test_openhands_lease_admission_adapter.py'
       - '.github/workflows/ai-eng-singleton-verify.yml'
   workflow_dispatch:
 
