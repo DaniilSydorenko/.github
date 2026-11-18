@@ -101,7 +101,7 @@ def inspect(fetch):
         if set(paths).intersection(path for _, path in EXPECTED):
             raise AdmissionStop("active_pr_overlaps_pilot_scope_" + str(number))
         active.append(number)
-    # Re-read the target base after the potentially long PR/issue inventory.
+    # Issues can close or be retargeted while the PR inventory is fetched.\n    # Require the same scoped, open issue evidence at the end of discovery.\n    for number, path in EXPECTED:\n        latest = fetch("/issues/" + str(number))\n        if (not isinstance(latest, dict) or latest.get("number") != number\n                or latest.get("state") != "open"\n                or latest.get("pull_request") is not None\n                or not isinstance(latest.get("body"), str)\n                or path not in latest["body"]):\n            raise AdmissionStop("issue_changed_during_inventory_" + str(number))\n    # Re-read the target base after the potentially long PR/issue inventory.
     # A moving base invalidates the snapshot; never return a coherent-looking
     # queue inventory assembled across two different master commits.
     final_head = fetch("/git/ref/heads/master")
