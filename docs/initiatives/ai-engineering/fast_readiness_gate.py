@@ -122,6 +122,11 @@ def main() -> int:
         "plan": (HERE / "DELIVERY_PLAN_164.md").read_text(),
         "adoption": (HERE / "REPOSITORY_ADOPTION_KIT.md").read_text(),
     }))
+    for source in (HERE / "openhands_live_orchestrator.py", HERE / "openhands_164_lease_preconditions.py", HERE / "openhands_three_issue_gate.py"):
+        try:
+            ast.parse(source.read_text(), filename=str(source))
+        except SyntaxError:
+            problems.append("python_syntax_invalid:" + source.name)
     runner = HERE / "openhands_live_runner.py"
     integration_blockers = live_integration_observations({
         "runner": runner.read_text(), "orchestrator": orchestrator.read_text()})
