@@ -76,6 +76,20 @@ test and impact on dates; never silently expand scope.
 7. No merge, paid invocation, secret/ruleset/permission changes or
    deployment without the applicable separate owner authorization.
 
+## D0/D1 authenticated read-only findings (2026-11-18)
+
+- **Confirmed:** legacy `openhands_live_runner.py` invokes `execute_authorized` through its `run` path. It does not import or acquire the durable `Controller`; GitHub Actions concurrency is not a global lease across Cursor/other dispatchers.
+- **Confirmed:** `github_ref_lease.py` describes a Cursor-oriented CAS lease; #164 OpenHands adoption remains unimplemented. No new lease store should be created.
+- **Confirmed:** `ai-eng-lease-writer` ruleset 26090757 is active with `update` restriction and Integration actor 5535339 bypass. Effective identity/token and all writers still unverified.
+- **Confirmed:** `ai-eng-lease-immutable` ruleset 26170483 is **disabled**, so deletion and non-fast-forward protections are not established by that ruleset. Branch metadata `protected:true` alone is insufficient.
+- **Confirmed:** lease ref `ai-eng-cursor-lease-v1` currently points to `b5371fa988a2a4ed0e63fc66489bbbc64dcc4373`; this is an observation, not a lock acquisition.
+- **Confirmed:** latest planning commit `8b63780f` has a successful GitHub Actions workflow. Offline CI does not close G2/G3.
+- **UNKNOWN:** full inventory of external model credential holders, effective integration bypass, and alternate entrypoints. D0 is **PARTIAL**, D1 is **BLOCKED**. No live GO.
+
+### Dependency decision
+
+**Do not wire model invocation to the lease yet.** First establish the effective writer and all launch routes; otherwise a locally passing lock can still be bypassed. Continue with read-only inventory and bounded evidence collection. Any ruleset or permission changes require separate owner approval.
+
 ## Immediate next deliverable
 
 **D0/D1 audit**, not more isolated validation helpers. Enumerate all
