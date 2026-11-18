@@ -33,6 +33,7 @@ on:
       - 'docs/initiatives/ai-engineering/DELIVERY_GOVERNANCE.md'
       - 'docs/initiatives/ai-engineering/DELIVERY_PLAN_164.md'
       - 'docs/initiatives/ai-engineering/REPOSITORY_ADOPTION_KIT.md'
+      - 'docs/initiatives/ai-engineering/GOVERNANCE_ADOPTION_REGISTER.md'
       - 'AGENTS.md'
       - 'docs/initiatives/ai-engineering/openhands_164_lease_preconditions.py'
       - '.github/workflows/ai-eng-openhands-readiness.yml'
