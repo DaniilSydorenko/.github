@@ -82,7 +82,7 @@ def inspect(fetch):
         body = pr.get("body")
         if body is not None and not isinstance(body, str):
             raise AdmissionStop("invalid_pr_body")
-        if isinstance(body, str) and any(re.search(r"(?<![\\w])#"+str(issue)+r"(?![\\d])", body) for issue, _ in EXPECTED):
+        if isinstance(body, str) and any(("#" + str(issue)) in body.split() for issue, _ in EXPECTED):
             raise AdmissionStop("active_pr_claims_pilot_issue_" + str(number))
         files = fetch("/pulls/" + str(number) + "/files?per_page=100&page=1")
         if not isinstance(files, list) or len(files) >= 100:
