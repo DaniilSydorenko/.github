@@ -56,6 +56,7 @@ def inspect(fetch):
     if not isinstance(sha, str) or not SHA.fullmatch(sha):
         raise AdmissionStop("default_head_unverified")
     issues = []
+    issue_bodies = {}
     for number, path in EXPECTED:
         issue = fetch("/issues/" + str(number))
         if (not isinstance(issue, dict) or issue.get("number") != number
@@ -64,6 +65,7 @@ def inspect(fetch):
                 or not isinstance(issue.get("body"), str)
                 or path not in issue["body"]):
             raise AdmissionStop("issue_scope_or_state_mismatch_" + str(number))
+        issue_bodies[number] = issue["body"]
         issues.append({"number": number, "target": path})
     prs = fetch("/pulls?state=open&per_page=100&page=1")
     if not isinstance(prs, list) or len(prs) >= 100:
@@ -109,7 +111,8 @@ def inspect(fetch):
                 or latest.get("state") != "open"
                 or latest.get("pull_request") is not None
                 or not isinstance(latest.get("body"), str)
-                or path not in latest["body"]):
+                or path not in latest["body"]
+                or latest["body"] != issue_bodies[number]):
             raise AdmissionStop("issue_changed_during_inventory_" + str(number))
     # Re-read the target base after the potentially long PR/issue inventory.
     # A moving base invalidates the snapshot; never return a coherent-looking
@@ -168,6 +171,20 @@ def self_test():
             assert str(error) == reason, (reason, error)
         else:
             raise AssertionError("unsafe evidence accepted: " + reason)
+    body_reads = [0]
+    def retargeted_issue(path):
+        if path == "/issues/217":
+            body_reads[0] += 1
+            if body_reads[0] == 2:
+                return {"number": 217, "state": "open",
+                        "body": EXPECTED[1][1] + " NEW INSTRUCTIONS"}
+        return fake(path)
+    try:
+        inspect(retargeted_issue)
+    except AdmissionStop as error:
+        assert str(error) == "issue_changed_during_inventory_217"
+    else:
+        raise AssertionError("changed issue body accepted")
     calls = [0]
     def moving_head(path):
         if path == "/git/ref/heads/master":
