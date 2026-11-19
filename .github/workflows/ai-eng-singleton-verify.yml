@@ -31,6 +31,8 @@ on:
       - 'docs/initiatives/ai-engineering/openhands_lease_admission_adapter.py'
       - 'docs/initiatives/ai-engineering/test_openhands_lease_admission_adapter.py'
       - 'docs/initiatives/ai-engineering/run_adapter_precondition_overlay_integration.py'
+      - 'docs/initiatives/ai-engineering/openhands_runner_admission_bridge.py'
+      - 'docs/initiatives/ai-engineering/test_openhands_runner_admission_bridge.py'
       - '.github/workflows/ai-eng-singleton-verify.yml'
   workflow_dispatch:
 

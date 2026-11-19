@@ -12,6 +12,10 @@ TESTS = (
     "test_full_shape_ok_still_not_live_authorization",
     "test_openhands_lease_admission_adapter.AdapterNegativeTests."
     "test_wrong_phase_stops_via_preconditions",
+    "test_openhands_runner_admission_bridge.BridgeIntegrationTests."
+    "test_trusted_shape_ok_still_blocks_model_handoff",
+    "test_openhands_runner_admission_bridge.BridgeIntegrationTests."
+    "test_bridge_delegates_precondition_denial",
 )
 
 
