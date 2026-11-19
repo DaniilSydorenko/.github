@@ -84,7 +84,12 @@ def inspect(fetch):
         body = pr.get("body")
         if body is not None and not isinstance(body, str):
             raise AdmissionStop("invalid_pr_body")
-        if isinstance(body, str) and any(re.search(r"(?<![A-Za-z0-9_])#{}(?![0-9])".format(issue), body) for issue, _ in EXPECTED):
+        title = pr.get("title")
+        if title is not None and not isinstance(title, str):
+            raise AdmissionStop("invalid_pr_title")
+        # Both PR title and body can claim a queue issue before any file is changed.
+        claim_text = "\n".join(part for part in (title, body) if isinstance(part, str))
+        if any(re.search(r"(?<![A-Za-z0-9_])#{}(?![0-9])".format(issue), claim_text) for issue, _ in EXPECTED):
             raise AdmissionStop("active_pr_claims_pilot_issue_" + str(number))
         files = fetch("/pulls/" + str(number) + "/files?per_page=100&page=1")
         if not isinstance(files, list) or len(files) >= 100:
@@ -155,6 +160,8 @@ def self_test():
         ("/pulls?state=open&per_page=100&page=1", [{"number": 224, "body": "Implements (#217), verified"}], "active_pr_claims_pilot_issue_224"),
         ("/pulls?state=open&per_page=100&page=1", [{"number": 224, "body": "Already addresses #216."}], "active_pr_claims_pilot_issue_224"),
         ("/pulls?state=open&per_page=100&page=1", [{"number": 224, "body": 7}], "invalid_pr_body"),
+        ("/pulls?state=open&per_page=100&page=1", [{"number": 224, "title": "Docs for #226"}], "active_pr_claims_pilot_issue_224"),
+        ("/pulls?state=open&per_page=100&page=1", [{"number": 224, "title": 17}], "invalid_pr_title"),
         ("/pulls/224/files?per_page=100&page=1",
          [{"filename": EXPECTED[1][1]}], "active_pr_overlaps_pilot_scope_224"),
         ("/pulls/224/files?per_page=100&page=1",
