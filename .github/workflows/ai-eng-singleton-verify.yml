@@ -53,6 +53,26 @@ jobs:
       - uses: actions/checkout@v6
         with:
           persist-credentials: false
+          fetch-depth: 1
+      # CI-only overlay of Draft PR #166 preconditions for adapter integration.
+      # Never merged into the branch artifact; main stays without the module until #166 merges.
+      - name: Overlay #166 lease preconditions for adapter integration (read-only)
+        working-directory: docs/initiatives/ai-engineering
+        run: |
+          set -euo pipefail
+          if [ ! -f test_openhands_lease_admission_adapter.py ]; then
+            echo "adapter_integration_overlay=skipped_no_adapter_tests"
+            exit 0
+          fi
+          git fetch --no-tags --depth=1 origin ai-eng/164-live-orchestrator \
+            || { echo "adapter_integration_overlay=fetch_failed"; exit 0; }
+          if git show FETCH_HEAD:docs/initiatives/ai-engineering/openhands_164_lease_preconditions.py \
+              > openhands_164_lease_preconditions.py; then
+            echo "adapter_integration_overlay=applied"
+            python3 -m unittest test_openhands_lease_admission_adapter.AdapterNegativeTests.test_full_shape_ok_still_not_live_authorization test_openhands_lease_admission_adapter.AdapterNegativeTests.test_wrong_phase_stops_via_preconditions -v
+          else
+            echo "adapter_integration_overlay=unavailable"
+          fi
       - name: Run deterministic fail-closed tests only
         run: python3 -m unittest discover -v -p 'test_*.py'
 

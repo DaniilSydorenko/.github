@@ -47,7 +47,11 @@ HQ_LEASE_REF = "ai-eng-cursor-lease-v1"
 
 @dataclass(frozen=True)
 class LeaseRefEvidence:
-    """Authenticated read of the durable CAS ref; caller must not forge flags."""
+    """Authenticated read of the durable CAS ref.
+
+    Boolean flags are workflow-attested shape inputs from a trusted verifier.
+    They are not independent live authorization and never set openhands_authorized.
+    """
 
     observed_ref_head_sha: str
     snapshot_commit_sha: str
@@ -91,7 +95,7 @@ class AdmissionRequest:
     lease: LeaseRefEvidence
     target_head: TargetHeadEvidence
     writer: WriterIdentityEvidence
-    ruleset: RulesetEvidence | None = None
+    ruleset: RulesetEvidence | None = None  # None is always STOP; never optional live path
 
 
 def _stop(reason: str, **extra: Any) -> dict[str, Any]:
@@ -118,7 +122,7 @@ def request_id_for(issue: int) -> str:
 
 def evaluate_ruleset_evidence(ruleset: RulesetEvidence | None) -> dict[str, Any] | None:
     if ruleset is None:
-        return None
+        return _stop("ruleset_evidence_missing")
     if not ruleset.inventory_complete:
         return _stop("ruleset_inventory_incomplete")
     audited = ruleset_audit(
@@ -211,26 +215,30 @@ def evaluate_preconditions(
         )
     except AdmissionDenied as exc:
         return _stop(str(exc))
+    except Exception:
+        return _stop("admission_precondition_error")
     return None
 
 
-def evaluate_admission(request: AdmissionRequest) -> dict[str, Any]:
-    """Fail-closed admission mapping; never authorizes OpenHands execution."""
+def _evaluate_admission_inner(request: AdmissionRequest) -> dict[str, Any]:
+    """Ordered, lazy evaluation: each gate runs only if earlier gates passed."""
     if request.issue not in ISSUES:
         return _stop("issue_out_of_scope")
-    for step in (
-        evaluate_ruleset_evidence(request.ruleset),
-        evaluate_target_head(request.target_head),
-        evaluate_lease_ref_alignment(request.lease, request.expected_lease_sha),
-        evaluate_writer_identity(request.lease, request.writer),
-        evaluate_preconditions(
+    loops = (
+        lambda: evaluate_ruleset_evidence(request.ruleset),
+        lambda: evaluate_target_head(request.target_head),
+        lambda: evaluate_lease_ref_alignment(request.lease, request.expected_lease_sha),
+        lambda: evaluate_writer_identity(request.lease, request.writer),
+        lambda: evaluate_preconditions(
             request.lease,
             request.issue,
             request.workflow_run_id,
             request.expected_lease_sha,
             request.target_head.pinned_target_sha,
         ),
-    ):
+    )
+    for run in loops:
+        step = run()
         if step is not None:
             return step
     return _stop(
@@ -239,6 +247,16 @@ def evaluate_admission(request: AdmissionRequest) -> dict[str, Any]:
         issue=request.issue,
         request_id=request_id_for(request.issue),
     )
+
+
+def evaluate_admission(request: AdmissionRequest) -> dict[str, Any]:
+    """Fail-closed admission mapping; never authorizes OpenHands execution."""
+    if not isinstance(request, AdmissionRequest):
+        return _stop("untrusted_admission_request")
+    try:
+        return _evaluate_admission_inner(request)
+    except Exception:
+        return _stop("admission_evaluation_failed")
 
 
 def self_test() -> None:

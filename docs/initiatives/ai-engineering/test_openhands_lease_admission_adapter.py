@@ -132,6 +132,23 @@ class AdapterNegativeTests(unittest.TestCase):
         bundle = replace(bundle, ruleset=RulesetEvidence(BRANCH, [UPDATE, GUARD], APP_ID, False))
         self.assertEqual(evaluate_admission(bundle)["reason"], "ruleset_inventory_incomplete")
 
+    def test_missing_ruleset_stops_before_deeper_checks(self):
+        bundle = good_bundle(self.store)
+        bundle = replace(bundle, ruleset=None)
+        with patch.object(adapter, "validate_lease_snapshot") as mock_validate:
+            verdict = evaluate_admission(bundle)
+        self.assertEqual(verdict["reason"], "ruleset_evidence_missing")
+        mock_validate.assert_not_called()
+
+    def test_fail_fast_target_head_before_lease_alignment(self):
+        bundle = good_bundle(self.store)
+        bundle = replace(
+            bundle,
+            target_head=TargetHeadEvidence("a" * 40, "a" * 40, "a" * 40, False),
+        )
+        with patch.object(adapter, "check_state", side_effect=AssertionError("must not run")):
+            self.assertEqual(evaluate_admission(bundle)["reason"], "target_head_not_authenticated")
+
     def test_operational_security_false_stops(self):
         bundle = good_bundle(self.store)
         bundle = replace(bundle, lease=replace(bundle.lease, exclusive_writer_verified=False))
@@ -158,17 +175,24 @@ class AdapterNegativeTests(unittest.TestCase):
         if HAS_PRECONDITIONS:
             self.skipTest("preconditions module present")
         bundle = good_bundle(self.store)
-        # Lease alignment and writer checks pass; preconditions import path fails closed.
-        bundle = replace(bundle, ruleset=None)
-        with patch.object(adapter, "validate_lease_snapshot", side_effect=RuntimeError("lease_preconditions_module_unavailable")):
-            verdict = evaluate_admission(bundle)
+        verdict = evaluate_admission(bundle)
         self.assertEqual(verdict["reason"], "lease_preconditions_module_unavailable")
 
     def test_dispatching_phase_with_mocked_preconditions(self):
         bundle = good_bundle(self.store)
-        bundle = replace(bundle, ruleset=None)
         with patch.object(adapter, "validate_lease_snapshot", side_effect=adapter.AdmissionDenied("lease_not_reserved")):
             self.assertEqual(evaluate_admission(bundle)["reason"], "lease_not_reserved")
+
+    def test_unexpected_precondition_exception_fails_closed(self):
+        bundle = good_bundle(self.store)
+        with patch.object(adapter, "validate_lease_snapshot", side_effect=ValueError("synthetic fault")):
+            verdict = evaluate_admission(bundle)
+        self.assertEqual(verdict["decision"], "STOP")
+        self.assertEqual(verdict["reason"], "admission_precondition_error")
+
+    def test_untrusted_request_object_stops(self):
+        verdict = evaluate_admission(None)  # type: ignore[arg-type]
+        self.assertEqual(verdict["reason"], "untrusted_admission_request")
 
 
 if __name__ == "__main__":
