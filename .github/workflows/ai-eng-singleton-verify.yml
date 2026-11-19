@@ -30,6 +30,7 @@ on:
       - 'docs/initiatives/ai-engineering/test_app_writer_provenance.py'
       - 'docs/initiatives/ai-engineering/openhands_lease_admission_adapter.py'
       - 'docs/initiatives/ai-engineering/test_openhands_lease_admission_adapter.py'
+      - 'docs/initiatives/ai-engineering/run_adapter_precondition_overlay_integration.py'
       - '.github/workflows/ai-eng-singleton-verify.yml'
   workflow_dispatch:
 
@@ -64,15 +65,12 @@ jobs:
             echo "adapter_integration_overlay=skipped_no_adapter_tests"
             exit 0
           fi
-          git fetch --no-tags --depth=1 origin ai-eng/164-live-orchestrator \
-            || { echo "adapter_integration_overlay=fetch_failed"; exit 0; }
-          if git show FETCH_HEAD:docs/initiatives/ai-engineering/openhands_164_lease_preconditions.py \
-              > openhands_164_lease_preconditions.py; then
-            echo "adapter_integration_overlay=applied"
-            python3 -m unittest test_openhands_lease_admission_adapter.AdapterNegativeTests.test_full_shape_ok_still_not_live_authorization test_openhands_lease_admission_adapter.AdapterNegativeTests.test_wrong_phase_stops_via_preconditions -v
-          else
-            echo "adapter_integration_overlay=unavailable"
-          fi
+          echo "adapter_integration_head=${GITHUB_SHA}"
+          git fetch --no-tags --depth=1 origin ai-eng/164-live-orchestrator
+          git show FETCH_HEAD:docs/initiatives/ai-engineering/openhands_164_lease_preconditions.py \
+              > openhands_164_lease_preconditions.py
+          echo "adapter_integration_overlay_source=$(git rev-parse FETCH_HEAD)"
+          python3 run_adapter_precondition_overlay_integration.py
       - name: Run deterministic fail-closed tests only
         run: python3 -m unittest discover -v -p 'test_*.py'
 

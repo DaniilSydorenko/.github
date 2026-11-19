@@ -127,6 +127,14 @@ class AdapterNegativeTests(unittest.TestCase):
         verdict = evaluate_admission(bundle)
         self.assertEqual(verdict["reason"], "immutable_ref_protection_unknown")
 
+    def test_ruleset_non_candidate_status_stops(self):
+        bundle = good_bundle(self.store)
+        with patch.object(adapter, "ruleset_audit", return_value={"status": "PREPARED"}):
+            self.assertEqual(
+                evaluate_admission(bundle)["reason"],
+                "ruleset_audit_status_not_candidate",
+            )
+
     def test_ruleset_inventory_incomplete_stops(self):
         bundle = good_bundle(self.store)
         bundle = replace(bundle, ruleset=RulesetEvidence(BRANCH, [UPDATE, GUARD], APP_ID, False))

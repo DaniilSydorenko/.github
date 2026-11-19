@@ -130,8 +130,11 @@ def evaluate_ruleset_evidence(ruleset: RulesetEvidence | None) -> dict[str, Any]
         ruleset.rulesets,
         approved_app_id=ruleset.approved_app_id,
     )
-    if audited.get("status") == "STOP":
+    status = audited.get("status")
+    if status == "STOP":
         return _stop("immutable_ref_protection_unknown", ruleset_audit=audited)
+    if status != "CANDIDATE":
+        return _stop("ruleset_audit_status_not_candidate", ruleset_audit=audited)
     return None
 
 
