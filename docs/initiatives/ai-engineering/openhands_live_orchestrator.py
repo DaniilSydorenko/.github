@@ -105,6 +105,8 @@ def inspect(fetch):
                 if not isinstance(previous, str) or not previous:
                     raise AdmissionStop("invalid_pr_rename")
                 paths.append(previous)
+        if len(paths) != len(set(paths)):
+            raise AdmissionStop("duplicate_pr_file_inventory_" + str(number))
         if set(paths).intersection(path for _, path in EXPECTED):
             raise AdmissionStop("active_pr_overlaps_pilot_scope_" + str(number))
         active.append(number)
@@ -164,6 +166,8 @@ def self_test():
         ("/pulls?state=open&per_page=100&page=1", [{"number": 224, "title": 17}], "invalid_pr_title"),
         ("/pulls/224/files?per_page=100&page=1",
          [{"filename": EXPECTED[1][1]}], "active_pr_overlaps_pilot_scope_224"),
+        ("/pulls/224/files?per_page=100&page=1",
+         [{"filename": "docs/other.md"}, {"filename": "docs/other.md"}], "duplicate_pr_file_inventory_224"),
         ("/pulls/224/files?per_page=100&page=1",
          [{"filename": "docs/other.md", "status": "renamed",
            "previous_filename": EXPECTED[0][1]}], "active_pr_overlaps_pilot_scope_224"),
