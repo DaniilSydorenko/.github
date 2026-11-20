@@ -28,6 +28,7 @@ on:
       - 'docs/initiatives/ai-engineering/openhands_sequential_simulation.py'
       - 'docs/initiatives/ai-engineering/openhands_three_issue_gate.py'
       - 'docs/initiatives/ai-engineering/openhands_live_orchestrator.py'
+      - 'docs/initiatives/ai-engineering/openhands_164_sequential_handoff.py'
       - 'docs/initiatives/ai-engineering/test_openhands_164_singleton.py'
       - 'docs/initiatives/ai-engineering/fast_readiness_gate.py'
       - 'docs/initiatives/ai-engineering/DELIVERY_GOVERNANCE.md'
@@ -162,6 +163,10 @@ jobs:
         run: |
           python3 -m py_compile docs/initiatives/ai-engineering/openhands_live_orchestrator.py
           python3 docs/initiatives/ai-engineering/openhands_live_orchestrator.py --self-test
+      - name: Verify #164 three-issue sequential handoff (offline, no agent)
+        run: |
+          python3 -m py_compile docs/initiatives/ai-engineering/openhands_164_sequential_handoff.py
+          python3 docs/initiatives/ai-engineering/openhands_164_sequential_handoff.py
       - name: Set up OpenHands SDK Python runtime
         uses: actions/setup-python@v6
         with:
