@@ -68,10 +68,18 @@ jobs:
             exit 0
           fi
           echo "adapter_integration_head=${GITHUB_SHA}"
+          # Pin the cross-PR overlay to a reviewed immutable commit.
+          # Fail closed if the source branch moves before review/repin.
+          expected_overlay_sha=1338bdde12a85764d77df0726b99a02162b5f099
           git fetch --no-tags --depth=1 origin ai-eng/164-live-orchestrator
-          git show FETCH_HEAD:docs/initiatives/ai-engineering/openhands_164_lease_preconditions.py \
+          actual_overlay_sha="$(git rev-parse FETCH_HEAD)"
+          if [ "$actual_overlay_sha" != "$expected_overlay_sha" ]; then
+            echo "::error::#166 overlay moved; review and repin explicitly"
+            exit 1
+          fi
+          git show "$expected_overlay_sha":docs/initiatives/ai-engineering/openhands_164_lease_preconditions.py \
               > openhands_164_lease_preconditions.py
-          echo "adapter_integration_overlay_source=$(git rev-parse FETCH_HEAD)"
+          echo "adapter_integration_overlay_source=$actual_overlay_sha"
           python3 run_adapter_precondition_overlay_integration.py
       - name: Run deterministic fail-closed tests only
         run: python3 -m unittest discover -v -p 'test_*.py'
