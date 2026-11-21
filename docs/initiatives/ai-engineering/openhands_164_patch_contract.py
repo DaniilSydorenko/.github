@@ -82,11 +82,21 @@ def prepare_verified_patch(workspace: str | pathlib.Path, base_sha: str,
     if output == root or root in output.parents:
         raise PatchContractError("patch_must_be_outside_checkout")
     target = verdict["target"]
-    tracked = _git(root, "ls-files", "--error-unmatch", "--", target)
+    tracked = _git(root, "ls-files", "--", target)
     if tracked:
         patch = _git(root, "diff", "--binary", base_sha, "--", target)
     else:
-        raise PatchContractError("target_tracking_unverified")
+        try:
+            result = subprocess.run(
+                ["git", "-C", str(root), "diff", "--no-index", "--binary",
+                 "--", "/dev/null", target],
+                cwd=root, capture_output=True, timeout=15,
+            )
+        except (OSError, subprocess.SubprocessError) as exc:
+            raise PatchContractError("patch_generation_failed") from exc
+        if result.returncode != 1:
+            raise PatchContractError("patch_generation_failed")
+        patch = result.stdout
     if not patch or b"diff --git a/" + target.encode() + b" b/" + target.encode() not in patch:
         raise PatchContractError("patch_not_generated")
     output.parent.mkdir(parents=True, exist_ok=True)
