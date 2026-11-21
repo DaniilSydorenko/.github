@@ -35,7 +35,7 @@ def collect_scheduled_smoke(fetch):
             raise ValueError("invalid_runs")
         matching = [run for run in runs if isinstance(run, dict)
                     and run.get("event") == "schedule"
-                    and run.get("path", "").endswith(SMOKE_WORKFLOW)]
+                    and str(run.get("path") or "").split("@", 1)[0].endswith(SMOKE_WORKFLOW)]
         if not matching:
             return {"decision": "UNKNOWN", "reason": "no_confirmed_scheduled_run"}
         latest = max(matching, key=lambda run: run.get("created_at") or "")
@@ -82,6 +82,9 @@ def collect(fetch):
 
 def github_get(url):
     headers = {"Accept": "application/vnd.github+json", "User-Agent": "ai-eng-autopilot-snapshot/1"}
+    token = os.environ.get("GITHUB_TOKEN")
+    if token:
+        headers["Authorization"] = "Bearer " + token
     request = urllib.request.Request(url, headers=headers, method="GET")
     with urllib.request.urlopen(request, timeout=12) as response:
         return json.load(response)
