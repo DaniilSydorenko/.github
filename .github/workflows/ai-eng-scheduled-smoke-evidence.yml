@@ -1,0 +1,36 @@
+name: AI Engineering Scheduled Smoke Evidence
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '20 * * * *'
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: ai-eng-scheduled-smoke-evidence
+  cancel-in-progress: false
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Verify collector offline
+        run: python3 docs/initiatives/ai-engineering/autopilot_snapshot.py --self-test
+      - name: Collect actual schedule evidence
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          python3 docs/initiatives/ai-engineering/autopilot_snapshot.py --scheduled-smoke | tee scheduled-smoke-evidence.json
+      - name: Upload evidence for review
+        uses: actions/upload-artifact@v4
+        with:
+          name: scheduled-smoke-evidence
+          path: scheduled-smoke-evidence.json
+          retention-days: 7
