@@ -38,7 +38,8 @@ on:
       - 'docs/initiatives/ai-engineering/HAVERSINE_ADOPTION_REVIEW.md'
       - 'AGENTS.md'
       - 'docs/initiatives/ai-engineering/openhands_164_lease_preconditions.py'
-      - 'docs/initiatives/ai-engineering/openhands_164_patch_contract.py'\n      - 'docs/initiatives/ai-engineering/openhands_164_publisher_handoff.py'
+      - 'docs/initiatives/ai-engineering/openhands_164_patch_contract.py'
+      - 'docs/initiatives/ai-engineering/openhands_164_publisher_handoff.py'
       - '.github/workflows/ai-eng-openhands-readiness.yml'
       - '.github/workflows/ai-eng-haversine220-protected-preflight.yml'
   workflow_dispatch:
@@ -162,7 +163,8 @@ jobs:
           python3 -m unittest discover -s docs/initiatives/ai-engineering -p 'test_openhands_164_singleton.py' -v
       - name: Verify #164 per-Issue documentation patch scope (offline)
         run: python3 docs/initiatives/ai-engineering/openhands_164_patch_contract.py --self-test
-      - name: Verify #164 patch-to-publisher handoff (offline)\n        run: python3 docs/initiatives/ai-engineering/openhands_164_publisher_handoff.py\n      - name: Verify #164 read-only live inventory adapter (offline)
+      - name: Verify #164 patch-to-publisher handoff (offline)
+        run: python3 docs/initiatives/ai-engineering/openhands_164_publisher_handoff.py\n      - name: Verify #164 read-only live inventory adapter (offline)
         run: |
           python3 -m py_compile docs/initiatives/ai-engineering/openhands_live_orchestrator.py
           python3 docs/initiatives/ai-engineering/openhands_live_orchestrator.py --self-test
