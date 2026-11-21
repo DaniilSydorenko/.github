@@ -21,6 +21,39 @@ BASE = "https://api.github.com/repos/DaniilSydorenko/.github"
 PR = 153
 
 
+
+SMOKE_WORKFLOW = "ai-eng-scheduled-hello-smoke.yml"
+
+
+def collect_scheduled_smoke(fetch):
+    """Read-only scheduled-run evidence; never equate a manual run with schedule."""
+    url = BASE + "/actions/workflows/" + SMOKE_WORKFLOW + "/runs?event=schedule&per_page=10"
+    try:
+        payload = fetch(url)
+        runs = payload.get("workflow_runs", [])
+        if not isinstance(runs, list):
+            raise ValueError("invalid_runs")
+        matching = [run for run in runs if isinstance(run, dict)
+                    and run.get("event") == "schedule"
+                    and run.get("path", "").endswith(SMOKE_WORKFLOW)]
+        if not matching:
+            return {"decision": "UNKNOWN", "reason": "no_confirmed_scheduled_run"}
+        latest = max(matching, key=lambda run: run.get("created_at") or "")
+        result = {"run_id": latest.get("id"), "event": "schedule",
+                  "created_at": latest.get("created_at"),
+                  "started_at": latest.get("run_started_at"),
+                  "status": latest.get("status"),
+                  "conclusion": latest.get("conclusion"),
+                  "head_sha": latest.get("head_sha"),
+                  "url": latest.get("html_url")}
+        result["decision"] = ("PASS" if result["status"] == "completed"
+                              and result["conclusion"] == "success" else
+                              "FAIL" if result["status"] == "completed" else "PENDING")
+        return result
+    except (urllib.error.URLError, TimeoutError, ValueError, TypeError,
+            KeyError, OSError, AttributeError):
+        return {"decision": "UNKNOWN", "reason": "github_evidence_unavailable"}
+
 def collect(fetch):
     snapshot = {key: "unknown" for key in
                 ("ci", "scope", "lease", "writer", "budget", "owner_go",
@@ -75,18 +108,34 @@ def self_test():
                  "name": "AI Engineering OpenHands Runner Readiness (read-only)",
                  "status": "completed", "conclusion": "failure"}]}
     assert collect(failed)["ci"] == "fail"
-    print("PASS: read-only snapshot fixtures; UNKNOWN remains UNKNOWN")
+    scheduled = {"workflow_runs": [
+        {"id": 10, "event": "workflow_dispatch", "path": ".github/workflows/" + SMOKE_WORKFLOW,
+         "status": "completed", "conclusion": "success", "created_at": "2026-11-21T12:00:00Z"},
+        {"id": 11, "event": "schedule", "path": ".github/workflows/" + SMOKE_WORKFLOW,
+         "status": "completed", "conclusion": "success", "created_at": "2026-11-21T13:05:00Z"}]}
+    assert collect_scheduled_smoke(lambda url: scheduled)["run_id"] == 11
+    assert collect_scheduled_smoke(lambda url: scheduled)["decision"] == "PASS"
+    assert collect_scheduled_smoke(lambda url: {"workflow_runs": []})["decision"] == "UNKNOWN"
+    assert collect_scheduled_smoke(lambda url: {"workflow_runs": [
+        scheduled["workflow_runs"][0]]})["decision"] == "UNKNOWN"
+    assert collect_scheduled_smoke(lambda url: {"workflow_runs": [
+        {**scheduled["workflow_runs"][1], "conclusion": "failure"}]})["decision"] == "FAIL"
+    print("PASS: read-only snapshot and scheduled smoke fixtures; UNKNOWN remains UNKNOWN")
 
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--self-test", action="store_true")
     parser.add_argument("--live", action="store_true")
+    parser.add_argument("--scheduled-smoke", action="store_true")
     args = parser.parse_args()
-    if args.self_test == args.live:
+    if sum((args.self_test, args.live, args.scheduled_smoke)) != 1:
         parser.error("choose exactly one mode")
     if args.self_test:
         self_test()
+        return 0
+    if args.scheduled_smoke:
+        print(json.dumps(collect_scheduled_smoke(github_get), sort_keys=True))
         return 0
     snapshot = collect(github_get)
     print(json.dumps({"snapshot": snapshot, "plan": plan(snapshot)}, sort_keys=True))
