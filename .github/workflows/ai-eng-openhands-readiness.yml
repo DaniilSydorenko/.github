@@ -164,7 +164,8 @@ jobs:
       - name: Verify #164 per-Issue documentation patch scope (offline)
         run: python3 docs/initiatives/ai-engineering/openhands_164_patch_contract.py --self-test
       - name: Verify #164 patch-to-publisher handoff (offline)
-        run: python3 docs/initiatives/ai-engineering/openhands_164_publisher_handoff.py\n      - name: Verify #164 read-only live inventory adapter (offline)
+        run: python3 docs/initiatives/ai-engineering/openhands_164_publisher_handoff.py
+      - name: Verify #164 read-only live inventory adapter (offline)
         run: |
           python3 -m py_compile docs/initiatives/ai-engineering/openhands_live_orchestrator.py
           python3 docs/initiatives/ai-engineering/openhands_live_orchestrator.py --self-test
