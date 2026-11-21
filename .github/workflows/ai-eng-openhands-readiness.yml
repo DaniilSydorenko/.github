@@ -27,6 +27,18 @@ on:
       - 'docs/initiatives/ai-engineering/openhands_pipeline.py'
       - 'docs/initiatives/ai-engineering/openhands_sequential_simulation.py'
       - 'docs/initiatives/ai-engineering/openhands_three_issue_gate.py'
+      - 'docs/initiatives/ai-engineering/openhands_live_orchestrator.py'
+      - 'docs/initiatives/ai-engineering/openhands_164_sequential_handoff.py'
+      - 'docs/initiatives/ai-engineering/test_openhands_164_singleton.py'
+      - 'docs/initiatives/ai-engineering/fast_readiness_gate.py'
+      - 'docs/initiatives/ai-engineering/DELIVERY_GOVERNANCE.md'
+      - 'docs/initiatives/ai-engineering/DELIVERY_PLAN_164.md'
+      - 'docs/initiatives/ai-engineering/REPOSITORY_ADOPTION_KIT.md'
+      - 'docs/initiatives/ai-engineering/GOVERNANCE_ADOPTION_REGISTER.md'
+      - 'docs/initiatives/ai-engineering/HAVERSINE_ADOPTION_REVIEW.md'
+      - 'AGENTS.md'
+      - 'docs/initiatives/ai-engineering/openhands_164_lease_preconditions.py'
+      - 'docs/initiatives/ai-engineering/openhands_164_patch_contract.py'
       - '.github/workflows/ai-eng-openhands-readiness.yml'
       - '.github/workflows/ai-eng-haversine220-protected-preflight.yml'
   workflow_dispatch:
@@ -59,6 +71,10 @@ jobs:
       - uses: actions/checkout@v6
         with:
           persist-credentials: false
+      - name: G0/G1 fast safety regression (no network or model)
+        run: |
+          python3 docs/initiatives/ai-engineering/fast_readiness_gate.py --self-test
+          python3 docs/initiatives/ai-engineering/fast_readiness_gate.py
       - name: Compile readiness probe
         run: python3 -m py_compile docs/initiatives/ai-engineering/runner_readiness.py
       - name: Fail-closed offline fixtures
@@ -141,6 +157,19 @@ jobs:
         run: |
           python3 -m py_compile docs/initiatives/ai-engineering/openhands_three_issue_gate.py
           python3 docs/initiatives/ai-engineering/openhands_three_issue_gate.py
+      - name: Verify #164 three-Issue singleton CAS regression (offline, no API)
+        run: |
+          python3 -m unittest discover -s docs/initiatives/ai-engineering -p 'test_openhands_164_singleton.py' -v
+      - name: Verify #164 per-Issue documentation patch scope (offline)
+        run: python3 docs/initiatives/ai-engineering/openhands_164_patch_contract.py --self-test
+      - name: Verify #164 read-only live inventory adapter (offline)
+        run: |
+          python3 -m py_compile docs/initiatives/ai-engineering/openhands_live_orchestrator.py
+          python3 docs/initiatives/ai-engineering/openhands_live_orchestrator.py --self-test
+      - name: Verify #164 three-issue sequential handoff (offline, no agent)
+        run: |
+          python3 -m py_compile docs/initiatives/ai-engineering/openhands_164_sequential_handoff.py
+          python3 docs/initiatives/ai-engineering/openhands_164_sequential_handoff.py
       - name: Set up OpenHands SDK Python runtime
         uses: actions/setup-python@v6
         with:
