@@ -117,6 +117,10 @@ def self_test() -> None:
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text("grounded documentation change\n", encoding="utf-8")
             assert verify_workspace_change(root, base, issue)["decision"] == "PATCH_SCOPE_VERIFIED"
+            patch = root.parent / ("issue-" + str(issue) + ".patch")
+            assert prepare_verified_patch(root, base, issue, patch)["patch_created"]
+            assert b"diff --git a/" + target.encode() + b" b/" + target.encode() in patch.read_bytes()
+            _git(root, "apply", "--check", str(patch))
             try:
                 verify_workspace_change(root, base, next(i for i in ALLOWED if i != issue))
             except PatchContractError as exc:
