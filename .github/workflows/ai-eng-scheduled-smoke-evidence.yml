@@ -22,13 +22,15 @@ jobs:
         with:
           persist-credentials: false
       - name: Verify collector offline
-        run: python3 docs/initiatives/ai-engineering/autopilot_snapshot.py --self-test
+        run: python3 docs/initiatives/ai-engineering/scheduled_evidence.py --self-test
       - name: Collect actual schedule evidence
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
-          python3 docs/initiatives/ai-engineering/autopilot_snapshot.py --scheduled-smoke | tee scheduled-smoke-evidence.json
+          set -o pipefail
+          python3 docs/initiatives/ai-engineering/scheduled_evidence.py | tee scheduled-smoke-evidence.json
       - name: Upload evidence for review
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: scheduled-smoke-evidence
