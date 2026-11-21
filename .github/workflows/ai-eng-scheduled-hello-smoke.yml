@@ -1,0 +1,34 @@
+name: AI Engineering Scheduled Hello Smoke
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '47 * * * *'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ai-eng-hello-smoke
+  cancel-in-progress: false
+
+jobs:
+  hello:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Print scheduler evidence
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          RUN_ID: ${{ github.run_id }}
+          SHA: ${{ github.sha }}
+        run: |
+          echo "Hello World from GitHub Actions"
+          echo "event=$EVENT_NAME run=$RUN_ID sha=$SHA"
+          date -u '+UTC=%Y-%m-%dT%H:%M:%SZ'
+      - name: Tiny Python assertion
+        run: |
+          python3 - <<'PY'
+          assert 2 + 2 == 4
+          print("PASS: hello-world smoke")
+          PY
