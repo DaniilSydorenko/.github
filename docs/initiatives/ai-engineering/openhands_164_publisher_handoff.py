@@ -18,8 +18,11 @@ def verify_patch_for_handoff(checkout, base_sha, issue, patch_path):
     if not isinstance(base_sha, str) or not SHA.fullmatch(base_sha):
         raise PatchContractError("invalid_base_sha")
     root = pathlib.Path(checkout).resolve(strict=True)
-    patch = pathlib.Path(patch_path).resolve(strict=True)
-    if patch.is_symlink() or not patch.is_file() or patch.stat().st_size > 50000:
+    original_patch = pathlib.Path(patch_path)
+    if original_patch.is_symlink():
+        raise PatchContractError("invalid_patch")
+    patch = original_patch.resolve(strict=True)
+    if not patch.is_file() or patch.stat().st_size > 50000:
         raise PatchContractError("invalid_patch")
     if patch == root or root in patch.parents:
         raise PatchContractError("patch_inside_checkout")
@@ -32,7 +35,8 @@ def verify_patch_for_handoff(checkout, base_sha, issue, patch_path):
     header = b"diff --git a/" + target + b" b/" + target + b"\n"
     if not data.startswith(header) or data.count(b"diff --git ") != 1:
         raise PatchContractError("unexpected_patch_scope")
-    if b"GIT binary patch" in data or b"Binary files " in data:
+    if (b"GIT binary patch" in data or b"Binary files " in data
+            or b"\\x00" in data or b"\\r" in data):
         raise PatchContractError("binary_patch_disallowed")
     try:
         subprocess.run(["git", "-C", str(root), "apply", "--check",
@@ -67,6 +71,24 @@ def self_test():
                 pass
             else:
                 raise AssertionError("cross-issue patch accepted")
+        symlink = base / "symlink.patch"
+        symlink.symlink_to(patch)
+        try:
+            verify_patch_for_handoff(root, sha, 216, symlink)
+        except PatchContractError as exc:
+            assert str(exc) == "invalid_patch"
+        else:
+            raise AssertionError("symlink patch accepted")
+        symlink.unlink()
+        original = patch.read_bytes()
+        patch.write_bytes(original + b"\\x00")
+        try:
+            verify_patch_for_handoff(root, sha, 216, patch)
+        except PatchContractError as exc:
+            assert str(exc) == "binary_patch_disallowed"
+        else:
+            raise AssertionError("NUL payload accepted")
+        patch.write_bytes(original)
         (root / "untracked").write_text("dirty")
         try:
             verify_patch_for_handoff(root, sha, 216, patch)
