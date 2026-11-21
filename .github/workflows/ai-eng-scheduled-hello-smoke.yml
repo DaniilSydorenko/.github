@@ -3,7 +3,7 @@ name: AI Engineering Scheduled Hello Smoke
 on:
   workflow_dispatch:
   schedule:
-    - cron: '47 * * * *'
+    - cron: '5 * * * *'
 
 permissions:
   contents: read
