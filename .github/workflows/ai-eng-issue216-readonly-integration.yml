@@ -1,0 +1,45 @@
+name: AI Engineering Issue 216 Readonly Integration
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  issue216-preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout Haversine master without writer credentials
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          repository: DaniilSydorenko/haversine-geolocation
+          ref: master
+          persist-credentials: false
+      - name: Verify actual issue, allowed path and base SHA
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 - <<'PY'
+          import json, os, pathlib, subprocess, urllib.request
+          issue_url = "https://api.github.com/repos/DaniilSydorenko/haversine-geolocation/issues/216"
+          request = urllib.request.Request(issue_url, headers={
+              "Accept": "application/vnd.github+json",
+              "User-Agent": "ai-eng-issue216-readonly",
+              "Authorization": "Bearer " + os.environ["GH_TOKEN"]})
+          with urllib.request.urlopen(request, timeout=15) as response:
+              issue = json.load(response)
+          assert issue.get("number") == 216 and issue.get("state") == "open", "issue not open"
+          assert "pull_request" not in issue, "not an issue"
+          body = issue.get("body") or ""
+          allowed = "docs/compatibility.md"
+          assert allowed in body and "Node" in body, "issue scope mismatch"
+          assert pathlib.Path(allowed).is_file(), "allowed file missing"
+          assert pathlib.Path("AGENTS.md").is_file(), "repo governance missing"
+          sha = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+          assert len(sha) == 40, "invalid base SHA"
+          print(json.dumps({"decision": "READ_ONLY_PASS", "issue": 216,
+              "base_sha": sha, "allowed_path": allowed, "run_id": os.environ["GITHUB_RUN_ID"],
+              "note": "NO_AGENT_NO_WRITES_NO_LIVE_AUTHORIZATION"}, sort_keys=True))
+          PY
