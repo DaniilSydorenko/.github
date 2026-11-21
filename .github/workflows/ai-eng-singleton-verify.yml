@@ -71,7 +71,7 @@ jobs:
           echo "adapter_integration_head=${GITHUB_SHA}"
           # Pin the cross-PR overlay to a reviewed immutable commit.
           # Fail closed if the source branch moves before review/repin.
-          expected_overlay_sha=1338bdde12a85764d77df0726b99a02162b5f099
+          expected_overlay_sha=78cb3bdecc12f2d5e05494c2f0f54d23c8e85e1f
           git fetch --no-tags --depth=1 origin ai-eng/164-live-orchestrator
           actual_overlay_sha="$(git rev-parse FETCH_HEAD)"
           if [ "$actual_overlay_sha" != "$expected_overlay_sha" ]; then
