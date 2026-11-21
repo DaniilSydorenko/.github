@@ -5,7 +5,7 @@ import re
 import unittest
 
 WORKFLOW = Path(__file__).resolve().parents[3] / ".github/workflows/ai-eng-singleton-verify.yml"
-REVIEWED_SHA = "1338bdde12a85764d77df0726b99a02162b5f099"
+REVIEWED_SHA = "78cb3bdecc12f2d5e05494c2f0f54d23c8e85e1f"
 
 
 class CrossPrOverlayPinTests(unittest.TestCase):
