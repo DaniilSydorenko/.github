@@ -159,7 +159,7 @@ jobs:
       - name: Verify #164 three-Issue singleton CAS regression (offline, no API)
         run: |
           python3 -m unittest discover -s docs/initiatives/ai-engineering -p 'test_openhands_164_singleton.py' -v
-      - name: Verify #164 read-only live inventory adapter (offline)
+      - name: Verify #164 per-Issue documentation patch scope (offline)\n        run: python3 docs/initiatives/ai-engineering/openhands_164_patch_contract.py --self-test\n      - name: Verify #164 read-only live inventory adapter (offline)
         run: |
           python3 -m py_compile docs/initiatives/ai-engineering/openhands_live_orchestrator.py
           python3 docs/initiatives/ai-engineering/openhands_live_orchestrator.py --self-test
