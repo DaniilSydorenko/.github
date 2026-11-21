@@ -133,6 +133,22 @@ def self_test() -> None:
             else:
                 raise AssertionError("wrong issue target accepted")
             path.unlink()
+        # Existing tracked documentation must also produce a valid patch.
+        tracked_path = root / ALLOWED[216]
+        tracked_path.write_text("original supported versions\\n", encoding="utf-8")
+        _git(root, "add", ALLOWED[216])
+        _git(root, "-c", "user.name=Test", "-c",
+             "user.email=test@example.invalid", "commit", "-qm", "tracked baseline")
+        tracked_base = _git(root, "rev-parse", "HEAD").decode().strip()
+        tracked_path.write_text("updated supported versions\\n", encoding="utf-8")
+        tracked_patch = root.parent / "tracked-216.patch"
+        assert prepare_verified_patch(root, tracked_base, 216, tracked_patch)["patch_created"]
+        assert b"new file mode" not in tracked_patch.read_bytes()
+        tracked_path.write_text("original supported versions\\n", encoding="utf-8")
+        _git(root, "apply", "--check", str(tracked_patch))
+        _git(root, "apply", str(tracked_patch))
+        assert tracked_path.read_text(encoding="utf-8") == "updated supported versions\\n"
+        _git(root, "reset", "--hard", tracked_base)
         for invalid in (0, 220, True):
             try:
                 verify_workspace_change(root, base, invalid)
