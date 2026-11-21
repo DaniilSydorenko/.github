@@ -72,6 +72,28 @@ def verify_workspace_change(workspace: str | pathlib.Path, base_sha: str, issue:
             "publish_authorized": False}
 
 
+
+def prepare_verified_patch(workspace: str | pathlib.Path, base_sha: str,
+                           issue: int, destination: str | pathlib.Path) -> dict:
+    """Produce a review artifact, not a GitHub publication capability."""
+    verdict = verify_workspace_change(workspace, base_sha, issue)
+    root = pathlib.Path(workspace).resolve(strict=True)
+    output = pathlib.Path(destination).resolve()
+    if output == root or root in output.parents:
+        raise PatchContractError("patch_must_be_outside_checkout")
+    target = verdict["target"]
+    tracked = _git(root, "ls-files", "--error-unmatch", "--", target)
+    if tracked:
+        patch = _git(root, "diff", "--binary", base_sha, "--", target)
+    else:
+        raise PatchContractError("target_tracking_unverified")
+    if not patch or b"diff --git a/" + target.encode() + b" b/" + target.encode() not in patch:
+        raise PatchContractError("patch_not_generated")
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_bytes(patch)
+    return {**verdict, "patch_created": True}
+
+
 def self_test() -> None:
     import tempfile
     with tempfile.TemporaryDirectory() as tmp:
