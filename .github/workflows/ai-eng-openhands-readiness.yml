@@ -38,6 +38,7 @@ on:
       - 'docs/initiatives/ai-engineering/HAVERSINE_ADOPTION_REVIEW.md'
       - 'AGENTS.md'
       - 'docs/initiatives/ai-engineering/openhands_164_lease_preconditions.py'
+      - 'docs/initiatives/ai-engineering/openhands_164_patch_contract.py'
       - '.github/workflows/ai-eng-openhands-readiness.yml'
       - '.github/workflows/ai-eng-haversine220-protected-preflight.yml'
   workflow_dispatch:
