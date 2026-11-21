@@ -1,0 +1,58 @@
+name: AI Engineering Haversine Real Test Smoke
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '5 * * * *'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ai-eng-haversine-real-test-smoke
+  cancel-in-progress: false
+
+jobs:
+  haversine-real-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Checkout real Haversine master
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          repository: DaniilSydorenko/haversine-geolocation
+          ref: master
+          persist-credentials: false
+      - name: Setup Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Record immutable source and trigger
+        run: |
+          echo "event=${{ github.event_name }} run=${{ github.run_id }}"
+          echo "haversine_sha=$(git rev-parse HEAD)"
+          echo "haversine_origin=$(git remote get-url origin)"
+          git status --porcelain
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Run actual Haversine tests
+        run: npm test
+      - name: Typecheck Haversine
+        run: npm run typecheck
+      - name: Save test evidence
+        if: always()
+        run: |
+          printf '{"run_id":"%s","event":"%s","haversine_sha":"%s","result":"%s","url":"%s"}\n' \
+            "${{ github.run_id }}" "${{ github.event_name }}" \
+            "$(git rev-parse HEAD)" "${{ job.status }}" \
+            "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+            > haversine-smoke-evidence.json
+          cat haversine-smoke-evidence.json
+      - name: Upload evidence artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: haversine-real-test-evidence
+          path: haversine-smoke-evidence.json
+          retention-days: 7
