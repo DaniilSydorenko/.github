@@ -107,7 +107,8 @@ def prepare_verified_patch(workspace: str | pathlib.Path, base_sha: str,
 def self_test() -> None:
     import tempfile
     with tempfile.TemporaryDirectory() as tmp:
-        root = pathlib.Path(tmp)
+        root = pathlib.Path(tmp) / "repo"
+        root.mkdir()
         _git(root, "init", "-q")
         _git(root, "-c", "user.name=Test", "-c",
              "user.email=test@example.invalid", "commit", "--allow-empty", "-qm", "base")
