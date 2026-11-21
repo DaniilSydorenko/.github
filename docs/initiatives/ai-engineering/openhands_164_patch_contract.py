@@ -120,7 +120,12 @@ def self_test() -> None:
             patch = root.parent / ("issue-" + str(issue) + ".patch")
             assert prepare_verified_patch(root, base, issue, patch)["patch_created"]
             assert b"diff --git a/" + target.encode() + b" b/" + target.encode() in patch.read_bytes()
-            _git(root, "apply", "--check", str(patch))
+            clean = root.parent / ("clean-" + str(issue))
+            clean.mkdir()
+            _git(clean, "init", "-q")
+            _git(clean, "apply", "--check", str(patch))
+            _git(clean, "apply", str(patch))
+            assert (clean / target).read_text(encoding="utf-8") == path.read_text(encoding="utf-8")
             try:
                 verify_workspace_change(root, base, next(i for i in ALLOWED if i != issue))
             except PatchContractError as exc:
