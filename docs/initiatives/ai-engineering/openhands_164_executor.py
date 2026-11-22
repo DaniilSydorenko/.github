@@ -102,6 +102,12 @@ def sdk_construction_test(issue: int = 216) -> None:
     with tempfile.TemporaryDirectory() as temp:
         root = pathlib.Path(temp)
         subprocess.run(["git", "init", "-q", str(root)], check=True, timeout=10)
+        subprocess.run(
+            ["git", "-C", str(root), "-c", "user.name=Test", "-c",
+             "user.email=test@example.invalid", "commit", "--allow-empty", "-qm", "base"],
+            check=True,
+            timeout=10,
+        )
         conversation = build_sdk_conversation(
             validate_workspace(root, issue), "offline-construction-test-only", MODEL_DEFAULT, issue
         )
