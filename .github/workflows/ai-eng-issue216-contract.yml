@@ -21,6 +21,9 @@ on:
       - 'docs/initiatives/ai-engineering/openhands_164_draft_publisher.py'
       - 'docs/initiatives/ai-engineering/openhands_164_live_wiring.py'
       - 'docs/initiatives/ai-engineering/test_openhands_164_live_wiring.py'
+      - 'docs/initiatives/ai-engineering/openhands_164_issue_preflight.py'
+      - 'docs/initiatives/ai-engineering/openhands_164_live_runner.py'
+      - '.github/workflows/ai-eng-164-protected-pilot.yml'
   workflow_dispatch:
 
 permissions:
@@ -49,3 +52,5 @@ jobs:
           python3 openhands_164_executor.py --self-test
           python3 openhands_164_draft_publisher.py
           python3 openhands_164_live_wiring.py
+          python3 openhands_164_issue_preflight.py
+          python3 openhands_164_live_runner.py --self-test
