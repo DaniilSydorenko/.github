@@ -14,24 +14,28 @@ import sys
 import urllib.error
 import urllib.request
 
-from github_ref_lease import Controller, GitHubRefStore
+from github_ref_lease import GitHubRefStore
+from openhands_164_budget_attestation import attest_shared_provider_cap
+from openhands_164_ci_evidence import exact_head_ci_from_check_runs, pr_number_from_url
 from openhands_164_executor import MODEL_DEFAULT
+from openhands_164_lease_session import ManagedLeaseSession
 from openhands_164_live_wiring import (
     APPROVED_OPERATION,
+    TERMINAL_CI_VERIFIED,
+    TERMINAL_PUBLISHED,
     LiveExecutionConfig,
     LiveWiringRequest,
     build_trusted_workflow_attestation,
     protected_context_from_env,
     run_protected_live_wiring,
 )
-from openhands_164_vertical_integration import CiEvidence
 from openhands_live_orchestrator import inspect as inventory_inspect
 from openhands_lease_admission_adapter import request_id_for
-from openrouter_budget_gate import probe as budget_probe
-from openhands_runner_admission_bridge import ProviderBudgetAttestation
 
 HAVERSINE = "DaniilSydorenko/haversine-geolocation"
 TARGET_REPO = HAVERSINE
+EXACT_HEAD_CI_PENDING = "exact_head_ci_pending"
+HQ_REPO = "DaniilSydorenko/.github"
 
 
 def _github_transport(method: str, url: str, token: str, payload=None):
@@ -52,12 +56,11 @@ def _github_transport(method: str, url: str, token: str, payload=None):
         return json.loads(raw) if raw else {}
 
 
-def _budget_attestation(key: str) -> ProviderBudgetAttestation:
-    verdict = budget_probe(key)
-    return ProviderBudgetAttestation(
-        verified_within_shared_cap=verdict.get("decision") == "PASS",
-        attestation_source="trusted_workflow_budget_probe",
-    )
+def _require_lease_writer_token() -> tuple[str | None, dict | None]:
+    token = os.environ.get("AI_ENG_LEASE_WRITER_TOKEN") or os.environ.get("AI_ENG_LEASE_TOKEN")
+    if not isinstance(token, str) or not token.strip():
+        return None, {"decision": "STOP", "reason": "lease_writer_token_missing"}
+    return token.strip(), None
 
 
 def _validate_target_workspace(workspace: pathlib.Path, base_sha: str) -> None:
@@ -90,6 +93,40 @@ def _validate_target_workspace(workspace: pathlib.Path, base_sha: str) -> None:
         raise PermissionError("stale_target_base")
 
 
+def _augment_with_lease_cleanup(result: dict, cleanup) -> dict:
+    if cleanup is None:
+        return result
+    payload = dict(result)
+    payload["lease_cleanup"] = {
+        "attempted": cleanup.attempted,
+        "released": cleanup.released,
+        "outcome": cleanup.outcome,
+    }
+    return payload
+
+
+def _attach_exact_head_ci(result: dict, *, read_token: str) -> dict:
+    pr_url = result.get("pr_url")
+    if not isinstance(pr_url, str):
+        return result
+    pr_number = pr_number_from_url(pr_url)
+    if pr_number is None:
+        return {**result, "reason": "published_pr_url_unparseable", "ci_verified": False}
+    ci, err = exact_head_ci_from_check_runs(pr_number, transport=_github_transport, token=read_token)
+    if err is not None:
+        return {**result, **err, "ci_verified": False, "pr_url": pr_url}
+    if ci is None:
+        return {**result, "reason": EXACT_HEAD_CI_PENDING, "ci_verified": False, "pr_url": pr_url}
+    out = {**result, "ci_verified": ci.verified(), "ci_aggregate": ci.aggregate, "ci_security": ci.security}
+    if not ci.verified():
+        out["reason"] = EXACT_HEAD_CI_PENDING
+        out["pilot_complete"] = False
+        return out
+    out["reason"] = TERMINAL_CI_VERIFIED
+    out["pilot_complete"] = True
+    return out
+
+
 def run_pilot(workspace: str | pathlib.Path, issue: int = 216, *, live_attested: bool) -> dict:
     protected = protected_context_from_env()
     if protected is None:
@@ -101,8 +138,14 @@ def run_pilot(workspace: str | pathlib.Path, issue: int = 216, *, live_attested:
     if not read_token:
         return {"decision": "STOP", "reason": "github_read_token_missing"}
 
+    lease_token, lease_err = _require_lease_writer_token()
+    if lease_err is not None:
+        return lease_err
+
     try:
-        inventory = inventory_inspect(lambda path: _github_transport("GET", f"https://api.github.com/repos/{HAVERSINE}{path}", read_token))
+        inventory = inventory_inspect(
+            lambda path: _github_transport("GET", f"https://api.github.com/repos/{HAVERSINE}{path}", read_token)
+        )
     except Exception as exc:
         return {"decision": "STOP", "reason": "inventory_failed", "detail": type(exc).__name__}
 
@@ -112,61 +155,86 @@ def run_pilot(workspace: str | pathlib.Path, issue: int = 216, *, live_attested:
     base_sha = inventory["default_head"]
     root = pathlib.Path(workspace).resolve(strict=True)
 
-    lease_token = os.environ.get("AI_ENG_LEASE_TOKEN", "") or read_token
-    lease_store = GitHubRefStore("DaniilSydorenko/.github", lease_token)
-    rid = request_id_for(issue)
-    issue_url = f"https://github.com/{HAVERSINE}/issues/{issue}"
-    acquired = Controller(lease_store).acquire(rid, issue_url)
-    if acquired not in ("ACQUIRED", "ALREADY_OWNED"):
-        return {"decision": "STOP", "reason": "lease_contention", "lease_outcome": acquired}
-
-    trusted = build_trusted_workflow_attestation(lease_store, issue, base_sha)
     api_key = os.environ.get("OPENROUTER_API_KEY", "")
-    budget = _budget_attestation(api_key)
+    budget, budget_stop = attest_shared_provider_cap(api_key)
+    if budget_stop is not None:
+        return budget_stop
+
     publish_token = os.environ.get("HAVERSINE_PUBLISH_TOKEN", "")
 
+    lease_store = GitHubRefStore(HQ_REPO, lease_token)
+    rid = request_id_for(issue)
+    issue_url = f"https://github.com/{HAVERSINE}/issues/{issue}"
+    session = ManagedLeaseSession(lease_store, rid, issue_url)
+    acquire_outcome = session.acquire()
+    if acquire_outcome not in ("ACQUIRED", "ALREADY_OWNED"):
+        return {"decision": "STOP", "reason": "lease_contention", "lease_outcome": acquire_outcome}
+
+    result: dict = {"decision": "STOP", "reason": "pilot_aborted"}
+    cleanup = None
     try:
-        _validate_target_workspace(root, base_sha)
-    except PermissionError as exc:
-        return {"decision": "STOP", "reason": str(exc)}
+        trusted = build_trusted_workflow_attestation(lease_store, issue, base_sha)
 
-    run_id = os.environ.get("GITHUB_RUN_ID", "0")
-    open_prs = []
-    # Branch-scoped pilot PR collision for this issue only.
-    branch = f"ai-eng/issue-{issue}-openhands-164"
-    existing = _github_transport(
-        "GET",
-        f"https://api.github.com/repos/{HAVERSINE}/pulls?state=open&head=DaniilSydorenko:{branch}",
-        read_token,
-    )
-    if isinstance(existing, list) and existing:
-        open_prs = [existing[0].get("number", 0)]
-
-    live = LiveExecutionConfig(
-        live_attested=live_attested and os.environ.get("AI_ENG_LIVE_164_EXECUTE") == "1",
-        api_key=api_key if live_attested else None,
-        model=MODEL_DEFAULT,
-        publisher_token=publish_token if live_attested else None,
-    )
-
-    return run_protected_live_wiring(
-        LiveWiringRequest(
-            issue,
-            run_id,
-            inventory,
-            trusted=trusted,
-            budget=budget,
-            protected=protected,
-            open_prs_for_target=open_prs,
-            ci_after_publish=None,
-        ),
-        lease_store=lease_store,
-        workspace=root,
-        base_sha=base_sha,
-        wiring_mode="live_execute" if live_attested else "live_gates_only",
-        live_config=live,
-        publisher_transport=_github_transport if live_attested else None,
-    )
+        try:
+            _validate_target_workspace(root, base_sha)
+        except PermissionError as exc:
+            result = {"decision": "STOP", "reason": str(exc)}
+        else:
+            run_id = os.environ.get("GITHUB_RUN_ID", "0")
+            open_prs: list[int] = []
+            branch = f"ai-eng/issue-{issue}-openhands-164"
+            try:
+                existing = _github_transport(
+                    "GET",
+                    f"https://api.github.com/repos/{HAVERSINE}/pulls?state=open&head=DaniilSydorenko:{branch}",
+                    read_token,
+                )
+                if isinstance(existing, list) and existing:
+                    open_prs = [existing[0].get("number", 0)]
+            except (urllib.error.URLError, OSError, ValueError, json.JSONDecodeError):
+                result = {"decision": "STOP", "reason": "collision_query_failed"}
+            else:
+                live = LiveExecutionConfig(
+                    live_attested=live_attested and os.environ.get("AI_ENG_LIVE_164_EXECUTE") == "1",
+                    api_key=api_key if live_attested else None,
+                    model=MODEL_DEFAULT,
+                    publisher_token=publish_token if live_attested else None,
+                )
+                if live.live_attested and not publish_token:
+                    result = {"decision": "STOP", "reason": "live_publisher_token_missing"}
+                else:
+                    result = run_protected_live_wiring(
+                        LiveWiringRequest(
+                            issue,
+                            run_id,
+                            inventory,
+                            trusted=trusted,
+                            budget=budget,
+                            protected=protected,
+                            open_prs_for_target=open_prs,
+                            ci_after_publish=None,
+                        ),
+                        lease_store=lease_store,
+                        workspace=root,
+                        base_sha=base_sha,
+                        wiring_mode="live_execute" if live_attested else "live_gates_only",
+                        live_config=live,
+                        publisher_transport=_github_transport if live_attested else None,
+                    )
+                    if result.get("reason") == TERMINAL_PUBLISHED:
+                        result = _attach_exact_head_ci(result, read_token=read_token)
+                    elif result.get("reason") == TERMINAL_CI_VERIFIED:
+                        result = {**result, "ci_verified": True, "pilot_complete": True}
+    finally:
+        if result.get("reason") not in (
+            TERMINAL_PUBLISHED,
+            TERMINAL_CI_VERIFIED,
+            EXACT_HEAD_CI_PENDING,
+            "ALREADY_SATISFIED",
+        ):
+            cleanup = session.release_reserved_if_still_owned()
+            result = _augment_with_lease_cleanup(result, cleanup)
+    return result
 
 
 def self_test() -> None:
@@ -185,11 +253,7 @@ if __name__ == "__main__":
         try:
             result = run_pilot(workspace, issue=issue, live_attested=True)
             print(json.dumps(result, sort_keys=True))
-            sys.exit(0 if result.get("reason") in (
-                "live_164_draft_pr_published_pending_ci",
-                "live_164_pilot_complete_ci_verified",
-                "ALREADY_SATISFIED",
-            ) else 1)
+            sys.exit(0 if result.get("pilot_complete") is True or result.get("reason") == "ALREADY_SATISFIED" else 1)
         except Exception as error:
             print(json.dumps({"decision": "STOP", "reason": type(error).__name__}))
             sys.exit(1)
@@ -198,6 +262,7 @@ if __name__ == "__main__":
         issue = int(sys.argv[3]) if len(sys.argv) > 3 else 216
         result = run_pilot(workspace, issue=issue, live_attested=False)
         print(json.dumps(result, sort_keys=True))
-        sys.exit(0 if result.get("live_execute_path") or result.get("reason") == "ALREADY_SATISFIED" else 1)
+        ok = result.get("reason") in ("ALREADY_SATISFIED", "live_164_vertical_wiring_verified_owner_gated")
+        sys.exit(0 if ok and not result.get("model_invoked") and not result.get("github_write") else 1)
     else:
         sys.exit("Usage: --self-test | --gates-only WORKSPACE [ISSUE] | --live WORKSPACE [ISSUE]")

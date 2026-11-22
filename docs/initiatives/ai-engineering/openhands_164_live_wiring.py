@@ -427,6 +427,8 @@ def run_protected_live_wiring(
         "github_write": True,
         "publish_authorized": True,
         "live_openhands_authorized": True,
+        "ci_verified": False,
+        "pilot_complete": False,
     }
 
     if request.ci_after_publish is not None:
