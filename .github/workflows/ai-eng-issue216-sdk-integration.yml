@@ -9,6 +9,8 @@ on:
       - 'docs/initiatives/ai-engineering/openhands_executor.py'
       - 'docs/initiatives/ai-engineering/openhands_164_patch_contract.py'
       - 'docs/initiatives/ai-engineering/openhands_runner_admission_bridge.py'
+      - 'docs/initiatives/ai-engineering/openhands_164_vertical_integration.py'
+      - 'docs/initiatives/ai-engineering/test_openhands_164_vertical_integration.py'
 
 permissions:
   contents: read

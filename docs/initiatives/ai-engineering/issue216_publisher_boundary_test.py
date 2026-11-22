@@ -8,6 +8,7 @@ from __future__ import annotations
 import json
 from issue216_integration_contract import integration_gate
 from openhands_164_sequential_handoff import next_issue
+from openhands_164_vertical_integration import TERMINAL_OFFLINE
 from openhands_live_orchestrator import EXPECTED
 from openhands_164_patch_contract import ALLOWED
 from openhands_runner_admission_bridge import evaluate_before_model_handoff
@@ -23,6 +24,11 @@ def run():
     verdict = integration_gate(216, inventory, patch, admission)
     assert verdict["decision"] == "STOP"
     assert verdict["reason"] == "protected_lease_and_publisher_not_integrated"
+    vertical_gate = integration_gate(
+        216, inventory, patch, admission,
+        vertical={"reason": TERMINAL_OFFLINE, "publisher_handoff_ready": True},
+    )
+    assert vertical_gate["reason"] == TERMINAL_OFFLINE
     assert verdict["model_invoked"] is False and verdict["github_write"] is False
     queue = next_issue([])
     assert queue["next_issue"] == 216 and queue["dispatch_authorized"] is False

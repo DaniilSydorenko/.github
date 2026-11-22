@@ -1,18 +1,24 @@
 #!/usr/bin/env python3
-"""Offline integration contract: issue -> inventory -> patch -> publisher STOP.
+"""Offline integration contract: issue → inventory → patch → publisher STOP.
 
 No GitHub writes, no credentials, no model calls, no live admission.
 """
 from __future__ import annotations
 import json
 import pathlib
+import subprocess
 import tempfile
+
 from openhands_live_orchestrator import EXPECTED
 from openhands_164_patch_contract import ALLOWED, verify_workspace_change
 from openhands_runner_admission_bridge import evaluate_before_model_handoff
+from openhands_164_vertical_integration import TERMINAL_OFFLINE, VerticalRequest, run_offline_vertical
+from test_github_ref_lease import MemoryGitRef
+from test_openhands_runner_admission_bridge import BUDGET_OK, trusted_bundle
 
 
-def integration_gate(issue, inventory, patch_verdict, admission):
+def integration_gate(issue, inventory, patch_verdict, admission, *, vertical=None):
+    """Legacy gate plus optional full vertical replay when ``vertical`` is supplied."""
     if type(issue) is not int or issue != 216:
         return {"decision": "STOP", "reason": "unexpected_issue"}
     if inventory.get("reason") != "live_authorization_not_integrated":
@@ -28,13 +34,25 @@ def integration_gate(issue, inventory, patch_verdict, admission):
             or admission.get("openhands_authorized") is not False
             or admission.get("reason") != "missing_trusted_workflow_attestation"):
         return {"decision": "STOP", "reason": "admission_not_fail_closed"}
-    return {"decision": "STOP", "reason": "protected_lease_and_publisher_not_integrated",
-            "issue": 216, "patch_scope_verified": True, "model_invoked": False,
-            "github_write": False, "publish_authorized": False}
+    if vertical is None:
+        return {"decision": "STOP", "reason": "protected_lease_and_publisher_not_integrated",
+                "issue": 216, "patch_scope_verified": True, "model_invoked": False,
+                "github_write": False, "publish_authorized": False}
+    if vertical.get("reason") != TERMINAL_OFFLINE:
+        return {"decision": "STOP", "reason": "vertical_chain_incomplete", "detail": vertical.get("reason")}
+    return {
+        "decision": "STOP",
+        "reason": TERMINAL_OFFLINE,
+        "issue": 216,
+        "patch_scope_verified": True,
+        "publisher_handoff_ready": vertical.get("publisher_handoff_ready"),
+        "model_invoked": False,
+        "github_write": False,
+        "publish_authorized": False,
+    }
 
 
 def self_test():
-    import subprocess
     with tempfile.TemporaryDirectory() as tmp:
         root = pathlib.Path(tmp)
         subprocess.run(["git", "init", "-q", str(root)], check=True)
@@ -53,6 +71,20 @@ def self_test():
         result = integration_gate(216, inventory, patch, admission)
         assert result["reason"] == "protected_lease_and_publisher_not_integrated"
         assert not result["model_invoked"] and not result["github_write"]
+        store = MemoryGitRef()
+        vertical = run_offline_vertical(
+            VerticalRequest(216, "777001", inventory, trusted=trusted_bundle(store), budget=BUDGET_OK),
+            lease_store=store,
+            workspace=root,
+            base_sha=sha,
+            apply_agent_change=lambda ws, _: target.write_text(
+                "Supported Node 22 and 24; Node 26 forward smoke is not minimum support.\n",
+                encoding="utf-8",
+            ),
+        )
+        wired = integration_gate(216, inventory, patch, admission, vertical=vertical)
+        assert wired["reason"] == TERMINAL_OFFLINE
+        assert wired["publisher_handoff_ready"]
         assert integration_gate(217, inventory, patch, admission)["reason"] == "unexpected_issue"
         assert integration_gate(216, inventory, {**patch, "base_sha": "b" * 40}, admission)["reason"] == "base_sha_mismatch"
         assert integration_gate(216, inventory, {**patch, "target": ALLOWED[217]}, admission)["reason"] == "patch_scope_unverified"
@@ -60,6 +92,7 @@ def self_test():
         assert integration_gate(216, inventory, patch, {"decision": "STOP", "model_credential_handoff": False, "openhands_authorized": False, "reason": "arbitrary"})["reason"] == "admission_not_fail_closed"
         assert integration_gate(216, {**inventory, "issues": []}, patch, admission)["reason"] == "queue_mismatch"
         print(json.dumps({"test": "issue216_integration_contract", "decision": "PASS",
+                          "vertical_offline": TERMINAL_OFFLINE,
                           "live_admission": "BLOCKED", "model_invoked": False,
                           "github_write": False}, sort_keys=True))
 

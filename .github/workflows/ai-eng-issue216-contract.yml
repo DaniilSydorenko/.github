@@ -15,6 +15,8 @@ on:
       - 'docs/initiatives/ai-engineering/openhands_live_orchestrator.py'
       - 'docs/initiatives/ai-engineering/github_ref_lease.py'
       - 'docs/initiatives/ai-engineering/lease_ruleset_candidate.py'
+      - 'docs/initiatives/ai-engineering/openhands_164_vertical_integration.py'
+      - 'docs/initiatives/ai-engineering/test_openhands_164_vertical_integration.py'
   workflow_dispatch:
 
 permissions:
@@ -33,3 +35,5 @@ jobs:
         run: |
           python3 docs/initiatives/ai-engineering/issue216_integration_contract.py
           python3 docs/initiatives/ai-engineering/issue216_publisher_boundary_test.py
+          python3 -m unittest -q docs/initiatives/ai-engineering/test_openhands_164_vertical_integration.py
+          python3 docs/initiatives/ai-engineering/openhands_164_vertical_integration.py
