@@ -4,6 +4,8 @@ on:
   pull_request:
     paths:
       - 'docs/initiatives/ai-engineering/issue216_integration_contract.py'
+      - 'docs/initiatives/ai-engineering/issue216_publisher_boundary_test.py'
+      - 'docs/initiatives/ai-engineering/openhands_draft_publisher.py'
       - '.github/workflows/ai-eng-issue216-contract.yml'
       - 'docs/initiatives/ai-engineering/openhands_164_patch_contract.py'
       - 'docs/initiatives/ai-engineering/openhands_runner_admission_bridge.py'
@@ -28,4 +30,6 @@ jobs:
         with:
           persist-credentials: false
       - name: Offline integration contract
-        run: python3 docs/initiatives/ai-engineering/issue216_integration_contract.py
+        run: |
+          python3 docs/initiatives/ai-engineering/issue216_integration_contract.py
+          python3 docs/initiatives/ai-engineering/issue216_publisher_boundary_test.py
