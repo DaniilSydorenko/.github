@@ -36,7 +36,7 @@ def verify_patch_for_handoff(checkout, base_sha, issue, patch_path):
     if not data.startswith(header) or data.count(b"diff --git ") != 1:
         raise PatchContractError("unexpected_patch_scope")
     if (b"GIT binary patch" in data or b"Binary files " in data
-            or b"\\x00" in data or b"\\r" in data):
+            or bytes([0]) in data or bytes([13]) in data):
         raise PatchContractError("binary_patch_disallowed")
     try:
         subprocess.run(["git", "-C", str(root), "apply", "--check",
@@ -81,7 +81,7 @@ def self_test():
             raise AssertionError("symlink patch accepted")
         symlink.unlink()
         original = patch.read_bytes()
-        patch.write_bytes(original + b"\\x00")
+        patch.write_bytes(original + bytes([0]))
         try:
             verify_patch_for_handoff(root, sha, 216, patch)
         except PatchContractError as exc:
