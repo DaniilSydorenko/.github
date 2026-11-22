@@ -26,6 +26,9 @@ jobs:
   contract:
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    defaults:
+      run:
+        working-directory: docs/initiatives/ai-engineering
     steps:
       - name: Checkout HQ
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
@@ -33,7 +36,8 @@ jobs:
           persist-credentials: false
       - name: Offline integration contract
         run: |
-          python3 docs/initiatives/ai-engineering/issue216_integration_contract.py
-          python3 docs/initiatives/ai-engineering/issue216_publisher_boundary_test.py
-          python3 -m unittest -q docs/initiatives/ai-engineering/test_openhands_164_vertical_integration.py
-          python3 docs/initiatives/ai-engineering/openhands_164_vertical_integration.py
+          set -euo pipefail
+          python3 issue216_integration_contract.py
+          python3 issue216_publisher_boundary_test.py
+          python3 -m unittest -q test_openhands_164_vertical_integration.py
+          python3 openhands_164_vertical_integration.py
