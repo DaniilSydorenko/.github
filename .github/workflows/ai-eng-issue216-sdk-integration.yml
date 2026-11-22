@@ -1,0 +1,99 @@
+name: AI Engineering Issue 216 SDK Integration (No Model)
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - '.github/workflows/ai-eng-issue216-sdk-integration.yml'
+      - 'docs/initiatives/ai-engineering/issue216_integration_contract.py'
+      - 'docs/initiatives/ai-engineering/openhands_executor.py'
+      - 'docs/initiatives/ai-engineering/openhands_164_patch_contract.py'
+      - 'docs/initiatives/ai-engineering/openhands_runner_admission_bridge.py'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ai-eng-issue216-sdk-integration-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  issue216-sdk-integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout control plane (no persisted credentials)
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - name: Checkout real Haversine master
+        uses: actions/checkout@v6
+        with:
+          repository: DaniilSydorenko/haversine-geolocation
+          ref: master
+          path: issue216-target
+          persist-credentials: false
+      - name: Verify offline fail-closed integration and patch contracts
+        run: |
+          set -euo pipefail
+          python3 docs/initiatives/ai-engineering/issue216_integration_contract.py
+          python3 docs/initiatives/ai-engineering/openhands_164_patch_contract.py --self-test
+      - name: Check real Issue 216 and PR collision inventory
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 - <<'PY'
+          import json, os, pathlib, subprocess, urllib.request
+          base = "https://api.github.com/repos/DaniilSydorenko/haversine-geolocation"
+          def get(path):
+              request = urllib.request.Request(base + path, headers={
+                  "Accept": "application/vnd.github+json",
+                  "User-Agent": "ai-eng-issue216-sdk-integration",
+                  "Authorization": "Bearer " + os.environ["GH_TOKEN"]})
+              with urllib.request.urlopen(request, timeout=20) as response:
+                  return json.load(response)
+          repo = get("")
+          assert repo["default_branch"] == "master", "unexpected_default_branch"
+          issue = get("/issues/216")
+          assert issue["number"] == 216 and issue["state"] == "open" and "pull_request" not in issue, "issue_unavailable"
+          target = "docs/compatibility.md"
+          assert target in (issue.get("body") or ""), "scope_mismatch"
+          prs = get("/pulls?state=open&per_page=100")
+          assert isinstance(prs, list) and len(prs) < 100, "incomplete_pr_inventory"
+          for pr in prs:
+              assert isinstance(pr.get("number"), int), "invalid_pr_inventory"
+              if "#216" in (pr.get("body") or ""):
+                  raise RuntimeError("existing_issue216_pr")
+              files = get("/pulls/" + str(pr["number"]) + "/files?per_page=100")
+              assert isinstance(files, list) and len(files) < 100, "incomplete_pr_files"
+              if any(f.get("filename") == target or f.get("previous_filename") == target for f in files):
+                  raise RuntimeError("overlapping_issue216_path")
+          checkout = pathlib.Path("issue216-target")
+          assert (checkout / target).is_file() and not (checkout / target).is_symlink(), "target_missing"
+          assert (checkout / "AGENTS.md").is_file(), "governance_missing"
+          sha = subprocess.check_output(["git", "-C", str(checkout), "rev-parse", "HEAD"], text=True).strip()
+          print(json.dumps({"decision": "ISSUE216_SCOPE_PASS", "issue": 216, "target": target,
+                            "base_sha": sha, "model_invoked": False, "github_write": False}, sort_keys=True))
+          PY
+      - name: Set up pinned OpenHands SDK runtime
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: docs/initiatives/ai-engineering/openhands-smoke-requirements.txt
+      - name: Install pinned SDK without model invocation
+        run: python -m pip install -r docs/initiatives/ai-engineering/openhands-smoke-requirements.txt
+      - name: Construct actual SDK and verify executor remains blocked
+        run: |
+          set -euo pipefail
+          python3 docs/initiatives/ai-engineering/openhands_executor.py --sdk-construction-test
+          python3 docs/initiatives/ai-engineering/openhands_executor.py --dry-run --workspace issue216-target > /tmp/issue216-sdk-verdict.json
+          python3 - <<'PY'
+          import json
+          with open("/tmp/issue216-sdk-verdict.json", encoding="utf-8") as f:
+              result = json.load(f)
+          assert result["decision"] == "STOP"
+          assert result["reason"] == "live_authorization_not_integrated"
+          assert result["sdk_invocation"] is False
+          print("PASS: Issue #216 real checkout + actual SDK construction; no model, no write")
+          PY
