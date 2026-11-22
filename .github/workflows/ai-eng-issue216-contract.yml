@@ -5,6 +5,14 @@ on:
     paths:
       - 'docs/initiatives/ai-engineering/issue216_integration_contract.py'
       - '.github/workflows/ai-eng-issue216-contract.yml'
+      - 'docs/initiatives/ai-engineering/openhands_164_patch_contract.py'
+      - 'docs/initiatives/ai-engineering/openhands_runner_admission_bridge.py'
+      - 'docs/initiatives/ai-engineering/openhands_lease_admission_adapter.py'
+      - 'docs/initiatives/ai-engineering/openhands_164_lease_preconditions.py'
+      - 'docs/initiatives/ai-engineering/openhands_164_sequential_handoff.py'
+      - 'docs/initiatives/ai-engineering/openhands_live_orchestrator.py'
+      - 'docs/initiatives/ai-engineering/github_ref_lease.py'
+      - 'docs/initiatives/ai-engineering/lease_ruleset_candidate.py'
   workflow_dispatch:
 
 permissions:
