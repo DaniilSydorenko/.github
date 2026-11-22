@@ -12,6 +12,7 @@ from openhands_164_vertical_integration import TERMINAL_OFFLINE
 from openhands_live_orchestrator import EXPECTED
 from openhands_164_patch_contract import ALLOWED
 from openhands_runner_admission_bridge import evaluate_before_model_handoff
+from openhands_164_draft_publisher import publish_verified_patch
 from openhands_draft_publisher import publish_verified_proof
 
 def run():
@@ -45,6 +46,22 @@ def run():
     else:
         raise AssertionError("legacy publisher accepted Issue 216")
     assert not requests
+    patch_requests = []
+
+    def patch_transport(*args, **kwargs):
+        patch_requests.append(args)
+        raise AssertionError("unauthorized GitHub network request")
+
+    try:
+        publish_verified_patch(
+            issue=216, token="never", base_sha=sha, content_path="/nonexistent",
+            authority=None, transport=patch_transport,
+        )
+    except PermissionError:
+        pass
+    else:
+        raise AssertionError("164 publisher accepted without authority")
+    assert not patch_requests
     print(json.dumps({"decision": "PASS", "issue": 216,
                       "integration": "fail_closed", "publisher": "blocked",
                       "next_issue": queue["next_issue"],

@@ -12,12 +12,13 @@ import tempfile
 from openhands_live_orchestrator import EXPECTED
 from openhands_164_patch_contract import ALLOWED, verify_workspace_change
 from openhands_runner_admission_bridge import evaluate_before_model_handoff
+from openhands_164_live_wiring import TERMINAL_WIRED, LiveWiringRequest, run_protected_live_wiring
 from openhands_164_vertical_integration import TERMINAL_OFFLINE, VerticalRequest, run_offline_vertical
 from test_github_ref_lease import MemoryGitRef
 from test_openhands_runner_admission_bridge import BUDGET_OK, trusted_bundle
 
 
-def integration_gate(issue, inventory, patch_verdict, admission, *, vertical=None):
+def integration_gate(issue, inventory, patch_verdict, admission, *, vertical=None, live_wiring=None):
     """Legacy gate plus optional full vertical replay when ``vertical`` is supplied."""
     if type(issue) is not int or issue != 216:
         return {"decision": "STOP", "reason": "unexpected_issue"}
@@ -34,18 +35,35 @@ def integration_gate(issue, inventory, patch_verdict, admission, *, vertical=Non
             or admission.get("openhands_authorized") is not False
             or admission.get("reason") != "missing_trusted_workflow_attestation"):
         return {"decision": "STOP", "reason": "admission_not_fail_closed"}
-    if vertical is None:
+    if vertical is None and live_wiring is None:
         return {"decision": "STOP", "reason": "protected_lease_and_publisher_not_integrated",
                 "issue": 216, "patch_scope_verified": True, "model_invoked": False,
                 "github_write": False, "publish_authorized": False}
-    if vertical.get("reason") != TERMINAL_OFFLINE:
-        return {"decision": "STOP", "reason": "vertical_chain_incomplete", "detail": vertical.get("reason")}
+    if vertical is not None:
+        if vertical.get("reason") != TERMINAL_OFFLINE:
+            return {"decision": "STOP", "reason": "vertical_chain_incomplete", "detail": vertical.get("reason")}
+        if live_wiring is None:
+            return {
+                "decision": "STOP",
+                "reason": TERMINAL_OFFLINE,
+                "issue": 216,
+                "patch_scope_verified": True,
+                "publisher_handoff_ready": vertical.get("publisher_handoff_ready"),
+                "model_invoked": False,
+                "github_write": False,
+                "publish_authorized": False,
+            }
+    if live_wiring is None:
+        return {"decision": "STOP", "reason": "live_wiring_not_integrated"}
+    if live_wiring.get("reason") != TERMINAL_WIRED:
+        return {"decision": "STOP", "reason": "live_wiring_incomplete", "detail": live_wiring.get("reason")}
     return {
         "decision": "STOP",
-        "reason": TERMINAL_OFFLINE,
+        "reason": TERMINAL_WIRED,
         "issue": 216,
         "patch_scope_verified": True,
-        "publisher_handoff_ready": vertical.get("publisher_handoff_ready"),
+        "publisher_handoff_ready": live_wiring.get("publisher_handoff_ready"),
+        "live_wiring_verified": True,
         "model_invoked": False,
         "github_write": False,
         "publish_authorized": False,
@@ -85,6 +103,28 @@ def self_test():
         wired = integration_gate(216, inventory, patch, admission, vertical=vertical)
         assert wired["reason"] == TERMINAL_OFFLINE
         assert wired["publisher_handoff_ready"]
+        from openhands_164_live_wiring import ProtectedWorkflowContext, APPROVED_OPERATION, CONTROL_ACTOR, CONTROL_REPO
+        live_store = MemoryGitRef()
+        live = run_protected_live_wiring(
+            LiveWiringRequest(
+                216, "777002", inventory,
+                trusted=trusted_bundle(live_store), budget=BUDGET_OK,
+                protected=ProtectedWorkflowContext(
+                    CONTROL_REPO, CONTROL_ACTOR, "refs/heads/main", "workflow_dispatch",
+                    "1", APPROVED_OPERATION, 216,
+                ),
+            ),
+            lease_store=live_store,
+            workspace=root,
+            base_sha=sha,
+            apply_agent_change=lambda ws, _: target.write_text(
+                "Supported Node 22 and 24; Node 26 forward smoke is not minimum support.\n",
+                encoding="utf-8",
+            ),
+        )
+        finish = integration_gate(216, inventory, patch, admission, vertical=vertical, live_wiring=live)
+        assert finish["reason"] == TERMINAL_WIRED
+        assert finish["live_wiring_verified"]
         assert integration_gate(217, inventory, patch, admission)["reason"] == "unexpected_issue"
         assert integration_gate(216, inventory, {**patch, "base_sha": "b" * 40}, admission)["reason"] == "base_sha_mismatch"
         assert integration_gate(216, inventory, {**patch, "target": ALLOWED[217]}, admission)["reason"] == "patch_scope_unverified"

@@ -11,6 +11,8 @@ on:
       - 'docs/initiatives/ai-engineering/openhands_runner_admission_bridge.py'
       - 'docs/initiatives/ai-engineering/openhands_164_vertical_integration.py'
       - 'docs/initiatives/ai-engineering/test_openhands_164_vertical_integration.py'
+      - 'docs/initiatives/ai-engineering/openhands_164_executor.py'
+      - 'docs/initiatives/ai-engineering/openhands_164_live_wiring.py'
 
 permissions:
   contents: read
@@ -89,13 +91,19 @@ jobs:
         run: |
           set -euo pipefail
           python3 docs/initiatives/ai-engineering/openhands_executor.py --sdk-construction-test
-          python3 docs/initiatives/ai-engineering/openhands_executor.py --dry-run --workspace issue216-target > /tmp/issue216-sdk-verdict.json
+          python3 docs/initiatives/ai-engineering/openhands_executor.py --dry-run --workspace issue216-target > /tmp/issue216-legacy-sdk.json
+          python3 docs/initiatives/ai-engineering/openhands_164_executor.py --sdk-construction-test --issue 216
+          python3 docs/initiatives/ai-engineering/openhands_164_executor.py --dry-run --workspace issue216-target --issue 216 > /tmp/issue216-164-sdk.json
           python3 - <<'PY'
           import json
-          with open("/tmp/issue216-sdk-verdict.json", encoding="utf-8") as f:
-              result = json.load(f)
-          assert result["decision"] == "STOP"
-          assert result["reason"] == "live_authorization_not_integrated"
-          assert result["sdk_invocation"] is False
-          print("PASS: Issue #216 real checkout + actual SDK construction; no model, no write")
+          with open("/tmp/issue216-legacy-sdk.json", encoding="utf-8") as f:
+              legacy = json.load(f)
+          assert legacy["decision"] == "STOP"
+          assert legacy["reason"] == "live_authorization_not_integrated"
+          with open("/tmp/issue216-164-sdk.json", encoding="utf-8") as f:
+              wired = json.load(f)
+          assert wired["decision"] == "STOP"
+          assert wired["reason"] == "live_164_wiring_integrated_owner_go_required"
+          assert wired["issue"] == 216 and wired["sdk_invocation"] is False
+          print("PASS: Issue #216 real checkout; legacy #220 blocked, #164 wiring dry-run only")
           PY

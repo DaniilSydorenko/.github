@@ -17,6 +17,10 @@ on:
       - 'docs/initiatives/ai-engineering/lease_ruleset_candidate.py'
       - 'docs/initiatives/ai-engineering/openhands_164_vertical_integration.py'
       - 'docs/initiatives/ai-engineering/test_openhands_164_vertical_integration.py'
+      - 'docs/initiatives/ai-engineering/openhands_164_executor.py'
+      - 'docs/initiatives/ai-engineering/openhands_164_draft_publisher.py'
+      - 'docs/initiatives/ai-engineering/openhands_164_live_wiring.py'
+      - 'docs/initiatives/ai-engineering/test_openhands_164_live_wiring.py'
   workflow_dispatch:
 
 permissions:
@@ -40,4 +44,8 @@ jobs:
           python3 issue216_integration_contract.py
           python3 issue216_publisher_boundary_test.py
           python3 -m unittest -q test_openhands_164_vertical_integration.py
+          python3 -m unittest -q test_openhands_164_live_wiring.py
           python3 openhands_164_vertical_integration.py
+          python3 openhands_164_executor.py --self-test
+          python3 openhands_164_draft_publisher.py
+          python3 openhands_164_live_wiring.py
