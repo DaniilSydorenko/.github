@@ -180,6 +180,8 @@ def run_pilot(workspace: str | pathlib.Path, issue: int = 216, *, live_attested:
 
     root = pathlib.Path(workspace).resolve(strict=True)
 
+    # Remove the privileged audit credential before any executor is constructed.
+    audit_token = os.environ.pop("AI_ENG_RULESET_AUDIT_TOKEN", "")
     read_token = os.environ.get("GH_TOKEN", "") or os.environ.get("GITHUB_TOKEN", "")
     if not read_token:
         return {"decision": "STOP", "reason": "github_read_token_missing"}
@@ -206,7 +208,12 @@ def run_pilot(workspace: str | pathlib.Path, issue: int = 216, *, live_attested:
             return pinned
 
     if live_attested:
-        denied = verify_g3_lease_ruleset(read_token, transport=_github_transport)
+        if not audit_token or audit_token == read_token:
+            return {"decision": "STOP", "reason": "separate_ruleset_audit_token_required"}
+        try:
+            denied = verify_g3_lease_ruleset(audit_token, transport=_github_transport)
+        finally:
+            audit_token = ""
         if denied is not None:
             return denied
 
