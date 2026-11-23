@@ -1,15 +1,15 @@
 name: AI Engineering OpenHands #164 Protected Pilot
 
-# Owner workflow_dispatch only. Issue #216 first; #217/#226 require separate owner GO.
+# Owner workflow_dispatch only. #216 verified ALREADY_SATISFIED; #217 is explicitly selected by owner for the next pilot. #226 remains blocked.
 on:
   workflow_dispatch:
     inputs:
       issue:
-        description: 'Haversine pilot issue (216 only until prior issue verified)'
+        description: 'Haversine pilot issue (217 only; #216 verified, #226 blocked)'
         required: true
         type: choice
         options:
-          - '216'
+          - '217'
       execute_model:
         description: 'When true, invoke OpenHands after all gates pass'
         required: true
@@ -31,7 +31,7 @@ jobs:
       github.actor == 'DaniilSydorenko' &&
       github.ref == 'refs/heads/main' &&
       github.run_attempt == 1 &&
-      inputs.issue == '216'
+      inputs.issue == '217'
     runs-on: ubuntu-latest
     environment: ai-eng-lease-owner
     timeout-minutes: 15
@@ -54,7 +54,7 @@ jobs:
         with:
           repository: DaniilSydorenko/haversine-geolocation
           ref: master
-          path: issue216-target
+          path: issue217-target
           persist-credentials: false
       - name: Shared provider cap attestation (live execute only)
         if: inputs.execute_model
@@ -81,7 +81,7 @@ jobs:
         run: |
           set -euo pipefail
           if [[ "${{ inputs.execute_model }}" == "true" ]]; then
-            python3 docs/initiatives/ai-engineering/openhands_164_live_runner.py --live issue216-target 216
+            python3 docs/initiatives/ai-engineering/openhands_164_live_runner.py --live issue217-target 217
           else
-            python3 docs/initiatives/ai-engineering/openhands_164_live_runner.py --gates-only issue216-target 216
+            python3 docs/initiatives/ai-engineering/openhands_164_live_runner.py --gates-only issue217-target 217
           fi
