@@ -11,13 +11,30 @@ def _normalized(text: str) -> str:
     return " ".join(text.lower().split())
 
 
-def early_readonly_satisfaction(workspace: str | pathlib.Path, issue: int = 216) -> dict | None:
-    """Local file check only; no network, lease, secrets, or budget."""
+def early_readonly_satisfaction_pinned(
+    workspace: str | pathlib.Path,
+    issue: int,
+    *,
+    pinned_base_sha: str,
+    workspace_validator,
+) -> dict | None:
+    """Doc satisfaction only when checkout equals authenticated Haversine master SHA."""
+    try:
+        workspace_validator(pathlib.Path(workspace), pinned_base_sha)
+    except (PermissionError, OSError, ValueError) as exc:
+        return {
+            "decision": "STOP",
+            "reason": "satisfaction_workspace_not_pinned_to_master",
+            "detail": str(exc),
+            "pinned_base_sha": pinned_base_sha,
+        }
     verdict = evaluate_issue_satisfaction(issue, workspace)
     if verdict.get("reason") != "ALREADY_SATISFIED":
         return None
     return {
         **verdict,
+        "base_sha": pinned_base_sha,
+        "satisfaction_pinned_to_remote_master": True,
         "preflight_mode": "read_only_before_lease_and_budget",
         "lease_acquired": False,
         "provider_spend_attested": False,

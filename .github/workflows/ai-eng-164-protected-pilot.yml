@@ -68,8 +68,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           AI_ENG_LEASE_WRITER_TOKEN: ${{ secrets.AI_ENG_LEASE_WRITER_TOKEN }}
           AI_ENG_LEASE_TOKEN: ${{ secrets.AI_ENG_LEASE_WRITER_TOKEN }}
-          AI_ENG_PROVIDER_CAP_STEP_OK: ${{ inputs.execute_model && '1' || '' }}
-          AI_ENG_G3_RULESET_ATTESTED: '0'
+          AI_ENG_WRITER_APP_ID: ${{ vars.AI_ENG_WRITER_APP_ID }}
           AI_ENG_APPROVED_OPERATION: pilot-live-164-execute
           AI_ENG_OWNER_GO_ISSUE: ${{ inputs.issue }}
           AI_ENG_LIVE_164_EXECUTE: ${{ inputs.execute_model && '1' || '0' }}

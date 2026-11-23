@@ -15,10 +15,10 @@ import urllib.error
 import urllib.request
 
 from github_ref_lease import GitHubRefStore
-from openhands_164_budget_attestation import attest_shared_provider_cap, gates_only_budget_attestation
+from openhands_164_budget_attestation import gates_only_budget_attestation
 from openhands_164_ci_evidence import exact_head_ci_from_check_runs, pr_number_from_url
 from openhands_164_executor import MODEL_DEFAULT
-from openhands_164_issue_preflight import early_readonly_satisfaction
+from openhands_164_issue_preflight import early_readonly_satisfaction_pinned
 from openhands_164_lease_session import ManagedLeaseSession
 from openhands_164_live_wiring import (
     APPROVED_OPERATION,
@@ -30,10 +30,7 @@ from openhands_164_live_wiring import (
     protected_context_from_env,
     run_protected_live_wiring,
 )
-from openhands_164_production_gates import (
-    require_g3_ruleset_workflow_attestation,
-    require_live_provider_cap_workflow_attestation,
-)
+from openhands_164_production_gates import verify_g3_lease_ruleset, verify_provider_hard_cap
 from openhands_live_orchestrator import inspect as inventory_inspect
 from openhands_lease_admission_adapter import request_id_for
 from openhands_runner_admission_bridge import ProviderBudgetAttestation
@@ -75,14 +72,22 @@ def _require_lease_writer_token() -> tuple[str | None, dict | None]:
     return token.strip(), None
 
 
+def _canonical_github_remote(url: str) -> str:
+    normalized = url.strip()
+    if "github.com/" in normalized:
+        suffix = normalized.split("github.com/", 1)[1]
+        if suffix.endswith(".git"):
+            suffix = suffix[:-4]
+        return "https://github.com/" + suffix
+    return normalized
+
+
 def _validate_target_workspace(workspace: pathlib.Path, base_sha: str) -> None:
     remote = subprocess.check_output(
         ["git", "-C", str(workspace), "remote", "get-url", "origin"], text=True, timeout=10
     ).strip()
-    if remote not in (
-        "https://github.com/" + TARGET_REPO,
-        "https://github.com/" + TARGET_REPO + ".git",
-    ):
+    expected = "https://github.com/" + TARGET_REPO
+    if _canonical_github_remote(remote).rstrip("/") != expected:
         raise PermissionError("unexpected_target_remote")
     branch = subprocess.check_output(
         ["git", "-C", str(workspace), "symbolic-ref", "--short", "HEAD"],
@@ -175,24 +180,9 @@ def run_pilot(workspace: str | pathlib.Path, issue: int = 216, *, live_attested:
 
     root = pathlib.Path(workspace).resolve(strict=True)
 
-    if not live_attested:
-        early = early_readonly_satisfaction(root, issue)
-        if early is not None:
-            return {**early, "decision": "STOP", "model_invoked": False, "github_write": False}
-
     read_token = os.environ.get("GH_TOKEN", "") or os.environ.get("GITHUB_TOKEN", "")
     if not read_token:
         return {"decision": "STOP", "reason": "github_read_token_missing"}
-
-    if live_attested:
-        for gate in (require_live_provider_cap_workflow_attestation, require_g3_ruleset_workflow_attestation):
-            denied = gate()
-            if denied is not None:
-                return denied
-
-    lease_token, lease_err = _require_lease_writer_token()
-    if lease_err is not None:
-        return lease_err
 
     try:
         inventory = inventory_inspect(
@@ -206,13 +196,31 @@ def run_pilot(workspace: str | pathlib.Path, issue: int = 216, *, live_attested:
 
     base_sha = inventory["default_head"]
 
+    if not live_attested:
+        pinned = early_readonly_satisfaction_pinned(
+            root, issue, pinned_base_sha=base_sha, workspace_validator=_validate_target_workspace,
+        )
+        if pinned is not None:
+            if pinned.get("reason") == "ALREADY_SATISFIED":
+                return {**pinned, "decision": "STOP", "model_invoked": False, "github_write": False}
+            return pinned
+
+    if live_attested:
+        denied = verify_g3_lease_ruleset(read_token, transport=_github_transport)
+        if denied is not None:
+            return denied
+
+    lease_token, lease_err = _require_lease_writer_token()
+    if lease_err is not None:
+        return lease_err
+
     if live_attested:
         api_key = os.environ.get("OPENROUTER_API_KEY", "")
-        budget, budget_stop = attest_shared_provider_cap(api_key)
+        budget, budget_stop, _probe_evidence = verify_provider_hard_cap(api_key)
         if budget_stop is not None:
             return budget_stop
     else:
-        budget: ProviderBudgetAttestation | None = gates_only_budget_attestation()
+        budget = gates_only_budget_attestation()
 
     publish_token = os.environ.get("HAVERSINE_PUBLISH_TOKEN", "")
 
