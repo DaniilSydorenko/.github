@@ -117,14 +117,29 @@ class LiveRunnerRegressionTests(unittest.TestCase):
             "default_head": "a" * 40,
             "issues": [{"number": 216, "target": "docs/compatibility.md"}],
         }
-        with patch.dict(os.environ, _env(AI_ENG_WRITER_APP_ID="5535339"), clear=True), patch(
+        with patch.dict(os.environ, _env(AI_ENG_WRITER_APP_ID="5535339", AI_ENG_RULESET_AUDIT_TOKEN="audit-token"), clear=True), patch(
             "openhands_164_live_runner.inventory_inspect", return_value=inv
         ), patch(
             "openhands_164_live_runner.verify_g3_lease_ruleset",
             return_value={"decision": "STOP", "reason": "g3_immutable_ruleset_not_proven"},
-        ):
+        ) as audit:
             out = run_pilot(".", live_attested=True)
+            self.assertNotIn("AI_ENG_RULESET_AUDIT_TOKEN", os.environ)
+            self.assertEqual(audit.call_args.args[0], "audit-token")
         self.assertEqual(out["reason"], "g3_immutable_ruleset_not_proven")
+
+    def test_missing_or_shared_audit_token_stops_before_lease(self):
+        inv = {"reason": "live_authorization_not_integrated", "default_head": "a" * 40}
+        for token in ("", "read-token"):
+            with self.subTest(token=token), patch.dict(os.environ, _env(AI_ENG_RULESET_AUDIT_TOKEN=token), clear=True), patch(
+                "openhands_164_live_runner.inventory_inspect", return_value=inv
+            ), patch("openhands_164_live_runner.verify_g3_lease_ruleset") as audit, patch(
+                "openhands_164_live_runner.GitHubRefStore"
+            ) as store:
+                out = run_pilot(".", live_attested=True)
+                self.assertEqual(out["reason"], "separate_ruleset_audit_token_required")
+                audit.assert_not_called()
+                store.assert_not_called()
 
     def test_stale_workspace_releases_lease(self):
         from openhands_runner_admission_bridge import ProviderBudgetAttestation
