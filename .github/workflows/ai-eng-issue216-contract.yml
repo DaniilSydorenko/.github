@@ -27,6 +27,9 @@ on:
       - 'docs/initiatives/ai-engineering/openhands_164_budget_attestation.py'
       - 'docs/initiatives/ai-engineering/openhands_164_ci_evidence.py'
       - 'docs/initiatives/ai-engineering/test_openhands_164_live_runner.py'
+      - 'docs/initiatives/ai-engineering/openhands_164_production_gates.py'
+      - 'docs/initiatives/ai-engineering/test_openhands_164_ci_evidence.py'
+      - 'docs/initiatives/ai-engineering/openhands_runner_admission_bridge.py'
       - '.github/workflows/ai-eng-164-protected-pilot.yml'
   workflow_dispatch:
 
@@ -60,4 +63,5 @@ jobs:
           python3 openhands_164_live_runner.py --self-test
           python3 openhands_164_budget_attestation.py
           python3 openhands_164_ci_evidence.py
-          python3 -m unittest -q test_openhands_164_live_runner.py
+          python3 -m unittest -q test_openhands_164_live_runner.py test_openhands_164_ci_evidence.py
+          python3 openhands_164_production_gates.py

@@ -379,10 +379,25 @@ def run_protected_live_wiring(
         executor(validated, config.api_key, config.model, issue, authorization=protected_authority)
         model_invoked = True
     except (PermissionError, ValueError, RuntimeError, OSError) as exc:
-        return _stop("executor_failed", detail=type(exc).__name__, model_invoked=model_invoked)
+        try:
+            controller.transition(rid, "RUNNING", "BLOCKED")
+            lease_phase = "BLOCKED"
+        except Exception:
+            lease_phase = "RUNNING"
+        return _stop(
+            "executor_failed",
+            detail=type(exc).__name__,
+            model_invoked=model_invoked,
+            lease_phase=lease_phase,
+        )
 
     denied_patch, content_path = _complete_patch_pipeline(root, base_sha, issue)
     if denied_patch is not None:
+        try:
+            controller.transition(rid, "RUNNING", "BLOCKED")
+            denied_patch = {**denied_patch, "lease_phase": "BLOCKED"}
+        except Exception:
+            denied_patch = {**denied_patch, "lease_phase": "RUNNING"}
         return {**denied_patch, "model_invoked": model_invoked}
 
     assert content_path is not None
@@ -399,7 +414,17 @@ def run_protected_live_wiring(
             transport=publisher_transport,
         )
     except (PermissionError, ValueError, RuntimeError) as exc:
-        return _stop("publisher_failed", detail=type(exc).__name__, model_invoked=model_invoked)
+        try:
+            controller.transition(rid, "RUNNING", "BLOCKED")
+            lease_phase = "BLOCKED"
+        except Exception:
+            lease_phase = "RUNNING"
+        return _stop(
+            "publisher_failed",
+            detail=type(exc).__name__,
+            model_invoked=model_invoked,
+            lease_phase=lease_phase,
+        )
 
     pr_url = pr.get("html_url") if isinstance(pr, dict) else None
     if not isinstance(pr_url, str) or not pr_url.startswith("https://"):
@@ -429,6 +454,8 @@ def run_protected_live_wiring(
         "live_openhands_authorized": True,
         "ci_verified": False,
         "pilot_complete": False,
+        "lease_phase": "VERIFYING",
+        "lease_handoff": "durable_until_owner_ci_and_release",
     }
 
     if request.ci_after_publish is not None:

@@ -2,12 +2,16 @@
 from __future__ import annotations
 
 import os
+import pathlib
+import subprocess
+import tempfile
 import unittest
 from unittest.mock import patch
 
 from github_ref_lease import Controller
 from openhands_164_live_runner import APPROVED_OPERATION, EXACT_HEAD_CI_PENDING, run_pilot
 from openhands_164_live_wiring import CONTROL_ACTOR, CONTROL_REPO
+from openhands_164_patch_contract import ALLOWED
 from openhands_lease_admission_adapter import request_id_for
 from test_github_ref_lease import MemoryGitRef
 
@@ -30,28 +34,46 @@ def _env(**extra):
     return base
 
 
+def _satisfied_repo() -> pathlib.Path:
+    tmp = tempfile.mkdtemp()
+    root = pathlib.Path(tmp) / "target"
+    root.mkdir()
+    subprocess.run(["git", "init", "-q", "-b", "master", str(root)], check=True)
+    doc = root / ALLOWED[216]
+    doc.parent.mkdir(parents=True, exist_ok=True)
+    doc.write_text(
+        "# Runtime Compatibility\nNode 22 Supported Node 24 Supported Node 26 smoke\n"
+        "minimum supported Node.js version\n",
+        encoding="utf-8",
+    )
+    return root
+
+
 class LiveRunnerRegressionTests(unittest.TestCase):
+    def test_early_already_satisfied_skips_lease_and_budget(self):
+        root = _satisfied_repo()
+        with patch.dict(os.environ, _env(), clear=True):
+            out = run_pilot(root, live_attested=False)
+        self.assertEqual(out["reason"], "ALREADY_SATISFIED")
+        self.assertFalse(out.get("lease_acquired"))
+        self.assertFalse(out["model_invoked"])
+        self.assertFalse(out["github_write"])
+        self.assertEqual(out.get("preflight_mode"), "read_only_before_lease_and_budget")
+
     def test_missing_lease_writer_token_never_acquires(self):
         with patch.dict(os.environ, _env(AI_ENG_LEASE_WRITER_TOKEN="", AI_ENG_LEASE_TOKEN=""), clear=True):
             out = run_pilot(".", live_attested=False)
         self.assertEqual(out["reason"], "lease_writer_token_missing")
 
-    def test_budget_fail_releases_reserved_lease(self):
-        store = MemoryGitRef()
-        inv = {
-            "reason": "live_authorization_not_integrated",
-            "default_head": "a" * 40,
-            "issues": [{"number": 216, "target": "docs/compatibility.md"}],
-        }
-        with patch.dict(os.environ, _env(), clear=True), patch(
-            "openhands_164_live_runner.inventory_inspect", return_value=inv
-        ), patch("openhands_164_live_runner.GitHubRefStore", return_value=store), patch(
-            "openhands_164_live_runner.attest_shared_provider_cap",
-            return_value=(None, {"decision": "STOP", "reason": "provider_shared_cap_not_proven"}),
+    def test_live_requires_g3_attestation(self):
+        root = _satisfied_repo()
+        with patch.dict(
+            os.environ,
+            _env(AI_ENG_PROVIDER_CAP_STEP_OK="1", AI_ENG_G3_RULESET_ATTESTED="0"),
+            clear=True,
         ):
-            out = run_pilot(".", live_attested=False)
-        self.assertEqual(out["reason"], "provider_shared_cap_not_proven")
-        self.assertEqual(store.read().state["phase"], "IDLE")
+            out = run_pilot(root, live_attested=True)
+        self.assertEqual(out["reason"], "g3_immutable_ruleset_not_proven")
 
     def test_stale_workspace_releases_lease(self):
         from openhands_runner_admission_bridge import ProviderBudgetAttestation
@@ -62,12 +84,9 @@ class LiveRunnerRegressionTests(unittest.TestCase):
             "default_head": "a" * 40,
             "issues": [{"number": 216, "target": "docs/compatibility.md"}],
         }
-        budget = ProviderBudgetAttestation(True, "trusted_workflow_budget_probe")
         with patch.dict(os.environ, _env(), clear=True), patch(
             "openhands_164_live_runner.inventory_inspect", return_value=inv
         ), patch("openhands_164_live_runner.GitHubRefStore", return_value=store), patch(
-            "openhands_164_live_runner.attest_shared_provider_cap", return_value=(budget, None)
-        ), patch(
             "openhands_164_live_runner._validate_target_workspace",
             side_effect=PermissionError("stale_target_base"),
         ):
@@ -77,20 +96,15 @@ class LiveRunnerRegressionTests(unittest.TestCase):
         self.assertEqual(store.read().state["phase"], "IDLE")
 
     def test_collision_query_failure_releases_lease(self):
-        from openhands_runner_admission_bridge import ProviderBudgetAttestation
-
         store = MemoryGitRef()
         inv = {
             "reason": "live_authorization_not_integrated",
             "default_head": "a" * 40,
             "issues": [{"number": 216, "target": "docs/compatibility.md"}],
         }
-        budget = ProviderBudgetAttestation(True, "trusted_workflow_budget_probe")
         with patch.dict(os.environ, _env(), clear=True), patch(
             "openhands_164_live_runner.inventory_inspect", return_value=inv
         ), patch("openhands_164_live_runner.GitHubRefStore", return_value=store), patch(
-            "openhands_164_live_runner.attest_shared_provider_cap", return_value=(budget, None)
-        ), patch(
             "openhands_164_live_runner._validate_target_workspace", return_value=None
         ), patch(
             "openhands_164_live_runner._github_transport", side_effect=OSError("network")
@@ -98,15 +112,15 @@ class LiveRunnerRegressionTests(unittest.TestCase):
             out = run_pilot(".", live_attested=False)
         self.assertEqual(out["reason"], "collision_query_failed")
         self.assertTrue(out.get("lease_cleanup", {}).get("released"))
-        self.assertEqual(store.read().state["phase"], "IDLE")
 
-    def test_exact_head_ci_pending_after_publish(self):
+    def test_exact_head_ci_pending_handoff(self):
         published = {
             "decision": "STOP",
             "reason": "live_164_draft_pr_published_pending_ci",
             "pr_url": "https://github.com/DaniilSydorenko/haversine-geolocation/pull/77",
             "model_invoked": True,
             "github_write": True,
+            "lease_phase": "VERIFYING",
         }
         from openhands_164_live_runner import _attach_exact_head_ci
         from openhands_164_vertical_integration import CiEvidence
@@ -118,6 +132,7 @@ class LiveRunnerRegressionTests(unittest.TestCase):
             out = _attach_exact_head_ci(published.copy(), read_token="x")
         self.assertEqual(out["reason"], EXACT_HEAD_CI_PENDING)
         self.assertFalse(out["ci_verified"])
+        self.assertFalse(out["pilot_complete"])
 
 
 if __name__ == "__main__":

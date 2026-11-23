@@ -11,6 +11,21 @@ def _normalized(text: str) -> str:
     return " ".join(text.lower().split())
 
 
+def early_readonly_satisfaction(workspace: str | pathlib.Path, issue: int = 216) -> dict | None:
+    """Local file check only; no network, lease, secrets, or budget."""
+    verdict = evaluate_issue_satisfaction(issue, workspace)
+    if verdict.get("reason") != "ALREADY_SATISFIED":
+        return None
+    return {
+        **verdict,
+        "preflight_mode": "read_only_before_lease_and_budget",
+        "lease_acquired": False,
+        "provider_spend_attested": False,
+        "publish_authorized": False,
+        "next_action": "owner_go_for_issue_217_when_sequential_chain_authorized",
+    }
+
+
 def evaluate_issue_satisfaction(issue: int, workspace: str | pathlib.Path) -> dict:
     """Return ALREADY_SATISFIED when the allowed doc already meets pilot goals."""
     if type(issue) is not int or issue not in ALLOWED:

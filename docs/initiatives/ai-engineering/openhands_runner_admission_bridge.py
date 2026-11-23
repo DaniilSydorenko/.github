@@ -140,9 +140,12 @@ def evaluate_before_model_handoff(
         return _stop("missing_trusted_workflow_attestation")
     if budget_attestation is None:
         return _stop("missing_provider_budget_attestation")
-    if not budget_attestation.verified_within_shared_cap:
+    if budget_attestation.attestation_source == "gates_only_no_provider_spend":
+        if budget_attestation.verified_within_shared_cap:
+            return _stop("invalid_gates_only_budget_attestation")
+    elif not budget_attestation.verified_within_shared_cap:
         return _stop("provider_budget_not_verified")
-    if budget_attestation.attestation_source != "trusted_workflow_budget_probe":
+    elif budget_attestation.attestation_source != "trusted_workflow_budget_probe":
         return _stop("provider_budget_attestation_source_untrusted")
     request = to_admission_request(issue, workflow_run_id, trusted_attestation)
     return finalize_pre_model_handoff(evaluate_admission(request))

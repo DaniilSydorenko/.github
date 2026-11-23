@@ -216,6 +216,30 @@ class LiveWiringTests(unittest.TestCase):
         self.assertEqual(out["reason"], TERMINAL_WIRED)
         self.assertFalse(out["model_invoked"])
 
+    def test_publisher_failure_blocks_lease(self):
+        store = MemoryGitRef()
+
+        def fake_executor(root, key, model, issue, *, authorization):
+            _write(root, issue)
+
+        def bad_publish(**_kwargs):
+            raise RuntimeError("publish_failed")
+
+        out = self._run(
+            live_mode=True,
+            store=store,
+            executor=fake_executor,
+            publisher=bad_publish,
+            publisher_transport=lambda *a, **k: {},
+            extra_config=LiveExecutionConfig(
+                live_attested=True,
+                api_key="sk-or-test",
+                publisher_token="ghp_test",
+            ),
+        )
+        self.assertEqual(out["reason"], "publisher_failed")
+        self.assertEqual(store.read().state["phase"], "BLOCKED")
+
     def test_already_satisfied_skips_model(self):
         satisfied = """# Runtime Compatibility
 Node 22 Supported Node 24 Supported Node 26 smoke

@@ -56,7 +56,8 @@ jobs:
           ref: master
           path: issue216-target
           persist-credentials: false
-      - name: Shared provider cap attestation (no model when execute_model=false)
+      - name: Shared provider cap attestation (live execute only)
+        if: inputs.execute_model
         env:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
         run: python3 docs/initiatives/ai-engineering/openrouter_budget_gate.py --live
@@ -67,6 +68,8 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           AI_ENG_LEASE_WRITER_TOKEN: ${{ secrets.AI_ENG_LEASE_WRITER_TOKEN }}
           AI_ENG_LEASE_TOKEN: ${{ secrets.AI_ENG_LEASE_WRITER_TOKEN }}
+          AI_ENG_PROVIDER_CAP_STEP_OK: ${{ inputs.execute_model && '1' || '' }}
+          AI_ENG_G3_RULESET_ATTESTED: '0'
           AI_ENG_APPROVED_OPERATION: pilot-live-164-execute
           AI_ENG_OWNER_GO_ISSUE: ${{ inputs.issue }}
           AI_ENG_LIVE_164_EXECUTE: ${{ inputs.execute_model && '1' || '0' }}

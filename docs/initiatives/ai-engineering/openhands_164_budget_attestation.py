@@ -8,6 +8,15 @@ from openrouter_budget_gate import probe as default_probe
 from openhands_runner_admission_bridge import ProviderBudgetAttestation
 
 REQUIRED_PROBE_REASON = "provider_key_limit_verified"
+GATES_ONLY_NO_SPEND_SOURCE = "gates_only_no_provider_spend"
+
+
+def gates_only_budget_attestation() -> ProviderBudgetAttestation:
+    """Explicit non-attestation for provider spend; never authorizes live execution."""
+    return ProviderBudgetAttestation(
+        verified_within_shared_cap=False,
+        attestation_source=GATES_ONLY_NO_SPEND_SOURCE,
+    )
 
 
 def attest_shared_provider_cap(
@@ -15,7 +24,7 @@ def attest_shared_provider_cap(
     *,
     probe: Callable[[str], dict[str, Any]] = default_probe,
 ) -> tuple[ProviderBudgetAttestation | None, dict[str, Any] | None]:
-    """Re-probe OpenRouter; never treat workflow-only or cached probes as PASS."""
+    """Re-probe OpenRouter key limit; does NOT prove global aggregate experiment cap."""
     if not isinstance(api_key, str) or not api_key.startswith("sk-or-"):
         return None, {"decision": "STOP", "reason": "missing_or_unexpected_provider_key"}
     verdict = probe(api_key)
@@ -49,6 +58,8 @@ def self_test() -> None:
     assert sem["reason"] == "provider_cap_semantics_unverified"
     _, miss = attest_shared_provider_cap("")
     assert miss["reason"] == "missing_or_unexpected_provider_key"
+    g = gates_only_budget_attestation()
+    assert not g.verified_within_shared_cap and g.attestation_source == GATES_ONLY_NO_SPEND_SOURCE
     print("PASS: #164 strict provider cap attestation")
 
 

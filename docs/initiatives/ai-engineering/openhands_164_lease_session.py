@@ -29,6 +29,15 @@ class ManagedLeaseSession:
         self._active = self.acquire_outcome in ("ACQUIRED", "ALREADY_OWNED")
         return self.acquire_outcome
 
+    def current_phase(self) -> str | None:
+        if not self._active:
+            return None
+        state = self.store.read().state
+        if state.get("request_id") != self.request_id:
+            return None
+        phase = state.get("phase")
+        return phase if isinstance(phase, str) else None
+
     def release_reserved_if_still_owned(self) -> LeaseCleanupOutcome:
         if not self._active:
             return LeaseCleanupOutcome(False, False, None)
@@ -42,3 +51,25 @@ class ManagedLeaseSession:
             return LeaseCleanupOutcome(True, True, "RELEASED_RESERVED")
         except Exception as exc:
             return LeaseCleanupOutcome(True, False, type(exc).__name__)
+
+    def block_failed_run_if_owned(self) -> LeaseCleanupOutcome:
+        if not self._active:
+            return LeaseCleanupOutcome(False, False, None)
+        state = self.store.read().state
+        if state.get("request_id") != self.request_id:
+            return LeaseCleanupOutcome(True, False, "request_id_mismatch")
+        phase = state.get("phase")
+        controller = Controller(self.store)
+        try:
+            if phase == "RUNNING":
+                controller.transition(self.request_id, "RUNNING", "BLOCKED")
+                return LeaseCleanupOutcome(True, True, "BLOCKED_RUNNING")
+            if phase == "DISPATCHING":
+                controller.transition(self.request_id, "DISPATCHING", "BLOCKED")
+                return LeaseCleanupOutcome(True, True, "BLOCKED_DISPATCHING")
+            if phase == "RESERVED":
+                controller.transition(self.request_id, "RESERVED", "IDLE")
+                return LeaseCleanupOutcome(True, True, "RELEASED_RESERVED")
+        except Exception as exc:
+            return LeaseCleanupOutcome(True, False, type(exc).__name__)
+        return LeaseCleanupOutcome(True, False, f"phase_{phase}_retained")

@@ -15,9 +15,10 @@ import urllib.error
 import urllib.request
 
 from github_ref_lease import GitHubRefStore
-from openhands_164_budget_attestation import attest_shared_provider_cap
+from openhands_164_budget_attestation import attest_shared_provider_cap, gates_only_budget_attestation
 from openhands_164_ci_evidence import exact_head_ci_from_check_runs, pr_number_from_url
 from openhands_164_executor import MODEL_DEFAULT
+from openhands_164_issue_preflight import early_readonly_satisfaction
 from openhands_164_lease_session import ManagedLeaseSession
 from openhands_164_live_wiring import (
     APPROVED_OPERATION,
@@ -29,13 +30,24 @@ from openhands_164_live_wiring import (
     protected_context_from_env,
     run_protected_live_wiring,
 )
+from openhands_164_production_gates import (
+    require_g3_ruleset_workflow_attestation,
+    require_live_provider_cap_workflow_attestation,
+)
 from openhands_live_orchestrator import inspect as inventory_inspect
 from openhands_lease_admission_adapter import request_id_for
+from openhands_runner_admission_bridge import ProviderBudgetAttestation
 
 HAVERSINE = "DaniilSydorenko/haversine-geolocation"
 TARGET_REPO = HAVERSINE
 EXACT_HEAD_CI_PENDING = "exact_head_ci_pending"
 HQ_REPO = "DaniilSydorenko/.github"
+_HANDOFF_RETAIN = frozenset({
+    TERMINAL_PUBLISHED,
+    TERMINAL_CI_VERIFIED,
+    EXACT_HEAD_CI_PENDING,
+    "ALREADY_SATISFIED",
+})
 
 
 def _github_transport(method: str, url: str, token: str, payload=None):
@@ -105,6 +117,19 @@ def _augment_with_lease_cleanup(result: dict, cleanup) -> dict:
     return payload
 
 
+def _attach_lease_handoff(result: dict, session: ManagedLeaseSession | None) -> dict:
+    if session is None:
+        return result
+    phase = session.current_phase()
+    if phase is None:
+        return result
+    out = dict(result)
+    out["lease_phase"] = phase
+    if result.get("reason") == EXACT_HEAD_CI_PENDING:
+        out["lease_handoff"] = "durable_until_owner_ci_and_release"
+    return out
+
+
 def _attach_exact_head_ci(result: dict, *, read_token: str) -> dict:
     pr_url = result.get("pr_url")
     if not isinstance(pr_url, str):
@@ -114,9 +139,9 @@ def _attach_exact_head_ci(result: dict, *, read_token: str) -> dict:
         return {**result, "reason": "published_pr_url_unparseable", "ci_verified": False}
     ci, err = exact_head_ci_from_check_runs(pr_number, transport=_github_transport, token=read_token)
     if err is not None:
-        return {**result, **err, "ci_verified": False, "pr_url": pr_url}
+        return {**result, **err, "ci_verified": False, "pr_url": pr_url, "pilot_complete": False}
     if ci is None:
-        return {**result, "reason": EXACT_HEAD_CI_PENDING, "ci_verified": False, "pr_url": pr_url}
+        return {**result, "reason": EXACT_HEAD_CI_PENDING, "ci_verified": False, "pilot_complete": False, "pr_url": pr_url}
     out = {**result, "ci_verified": ci.verified(), "ci_aggregate": ci.aggregate, "ci_security": ci.security}
     if not ci.verified():
         out["reason"] = EXACT_HEAD_CI_PENDING
@@ -127,6 +152,20 @@ def _attach_exact_head_ci(result: dict, *, read_token: str) -> dict:
     return out
 
 
+def _finalize_lease(session: ManagedLeaseSession, result: dict) -> tuple[dict, object | None]:
+    if result.get("reason") in _HANDOFF_RETAIN and result.get("lease_phase") in ("VERIFYING", None):
+        phase = session.current_phase()
+        if phase == "VERIFYING" or result.get("reason") == "ALREADY_SATISFIED":
+            return _attach_lease_handoff(result, session), None
+    if result.get("lease_phase") in ("BLOCKED", "RUNNING"):
+        cleanup = session.block_failed_run_if_owned()
+        return _augment_with_lease_cleanup(result, cleanup), cleanup
+    cleanup = session.release_reserved_if_still_owned()
+    if cleanup.released is False and session.current_phase() not in ("IDLE", None):
+        cleanup = session.block_failed_run_if_owned()
+    return _augment_with_lease_cleanup(result, cleanup), cleanup
+
+
 def run_pilot(workspace: str | pathlib.Path, issue: int = 216, *, live_attested: bool) -> dict:
     protected = protected_context_from_env()
     if protected is None:
@@ -134,9 +173,22 @@ def run_pilot(workspace: str | pathlib.Path, issue: int = 216, *, live_attested:
     if protected.operation != APPROVED_OPERATION:
         return {"decision": "STOP", "reason": "wrong_operation"}
 
+    root = pathlib.Path(workspace).resolve(strict=True)
+
+    if not live_attested:
+        early = early_readonly_satisfaction(root, issue)
+        if early is not None:
+            return {**early, "decision": "STOP", "model_invoked": False, "github_write": False}
+
     read_token = os.environ.get("GH_TOKEN", "") or os.environ.get("GITHUB_TOKEN", "")
     if not read_token:
         return {"decision": "STOP", "reason": "github_read_token_missing"}
+
+    if live_attested:
+        for gate in (require_live_provider_cap_workflow_attestation, require_g3_ruleset_workflow_attestation):
+            denied = gate()
+            if denied is not None:
+                return denied
 
     lease_token, lease_err = _require_lease_writer_token()
     if lease_err is not None:
@@ -153,12 +205,14 @@ def run_pilot(workspace: str | pathlib.Path, issue: int = 216, *, live_attested:
         return {"decision": "STOP", "reason": "inventory_not_verified", "detail": inventory.get("reason")}
 
     base_sha = inventory["default_head"]
-    root = pathlib.Path(workspace).resolve(strict=True)
 
-    api_key = os.environ.get("OPENROUTER_API_KEY", "")
-    budget, budget_stop = attest_shared_provider_cap(api_key)
-    if budget_stop is not None:
-        return budget_stop
+    if live_attested:
+        api_key = os.environ.get("OPENROUTER_API_KEY", "")
+        budget, budget_stop = attest_shared_provider_cap(api_key)
+        if budget_stop is not None:
+            return budget_stop
+    else:
+        budget: ProviderBudgetAttestation | None = gates_only_budget_attestation()
 
     publish_token = os.environ.get("HAVERSINE_PUBLISH_TOKEN", "")
 
@@ -171,10 +225,8 @@ def run_pilot(workspace: str | pathlib.Path, issue: int = 216, *, live_attested:
         return {"decision": "STOP", "reason": "lease_contention", "lease_outcome": acquire_outcome}
 
     result: dict = {"decision": "STOP", "reason": "pilot_aborted"}
-    cleanup = None
     try:
         trusted = build_trusted_workflow_attestation(lease_store, issue, base_sha)
-
         try:
             _validate_target_workspace(root, base_sha)
         except PermissionError as exc:
@@ -196,7 +248,7 @@ def run_pilot(workspace: str | pathlib.Path, issue: int = 216, *, live_attested:
             else:
                 live = LiveExecutionConfig(
                     live_attested=live_attested and os.environ.get("AI_ENG_LIVE_164_EXECUTE") == "1",
-                    api_key=api_key if live_attested else None,
+                    api_key=os.environ.get("OPENROUTER_API_KEY", "") if live_attested else None,
                     model=MODEL_DEFAULT,
                     publisher_token=publish_token if live_attested else None,
                 )
@@ -225,15 +277,10 @@ def run_pilot(workspace: str | pathlib.Path, issue: int = 216, *, live_attested:
                         result = _attach_exact_head_ci(result, read_token=read_token)
                     elif result.get("reason") == TERMINAL_CI_VERIFIED:
                         result = {**result, "ci_verified": True, "pilot_complete": True}
+    except Exception as exc:
+        result = {"decision": "STOP", "reason": "pilot_exception", "detail": type(exc).__name__}
     finally:
-        if result.get("reason") not in (
-            TERMINAL_PUBLISHED,
-            TERMINAL_CI_VERIFIED,
-            EXACT_HEAD_CI_PENDING,
-            "ALREADY_SATISFIED",
-        ):
-            cleanup = session.release_reserved_if_still_owned()
-            result = _augment_with_lease_cleanup(result, cleanup)
+        result, _ = _finalize_lease(session, result)
     return result
 
 
