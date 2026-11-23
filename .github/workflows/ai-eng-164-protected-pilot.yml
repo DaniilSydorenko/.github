@@ -78,8 +78,8 @@ jobs:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           HAVERSINE_PUBLISH_TOKEN: ${{ secrets.HAVERSINE_PUBLISH_TOKEN }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          AI_ENG_LEASE_WRITER_TOKEN: ${{ inputs.execute_model && steps.lease-app.outputs.token || secrets.AI_ENG_LEASE_WRITER_TOKEN }}
-          AI_ENG_LEASE_TOKEN: ${{ inputs.execute_model && steps.lease-app.outputs.token || secrets.AI_ENG_LEASE_WRITER_TOKEN }}
+          AI_ENG_LEASE_WRITER_TOKEN: ${{ steps.lease-app.outputs.token }}
+          AI_ENG_LEASE_TOKEN: ${{ steps.lease-app.outputs.token }}
           AI_ENG_WRITER_APP_ID: ${{ vars.AI_ENG_WRITER_APP_ID }}
           AI_ENG_APPROVED_OPERATION: pilot-live-164-execute
           AI_ENG_OWNER_GO_ISSUE: ${{ inputs.issue }}
