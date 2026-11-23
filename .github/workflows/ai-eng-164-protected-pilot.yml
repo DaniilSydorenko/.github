@@ -47,6 +47,13 @@ jobs:
           python-version: '3.12'
           cache: pip
           cache-dependency-path: docs/initiatives/ai-engineering/openhands-smoke-requirements.txt
+      # Fail before installing the SDK or minting writer credentials if G3 cannot be read.
+      - name: Isolated G3 ruleset preflight (live only)
+        if: inputs.execute_model
+        env:
+          GITHUB_TOKEN: ${{ secrets.AI_ENG_RULESET_AUDIT_TOKEN }}
+          AI_ENG_APPROVED_WRITER_APP_ID: ${{ vars.AI_ENG_WRITER_APP_ID }}
+        run: python3 docs/initiatives/ai-engineering/lease_ruleset_candidate.py
       - name: Install pinned OpenHands SDK (construction + live only)
         if: inputs.execute_model
         run: python -m pip install -r docs/initiatives/ai-engineering/openhands-smoke-requirements.txt
