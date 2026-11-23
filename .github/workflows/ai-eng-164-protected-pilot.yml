@@ -68,18 +68,6 @@ jobs:
           owner: DaniilSydorenko
           repositories: .github
           permission-contents: write
-      # Separate read-only admin token for authenticated repository ruleset details.
-      # Keep it isolated from the lease-writer token and the agent executor.
-      - name: Mint HQ ruleset-auditor GitHub App token (live only)
-        if: inputs.execute_model
-        id: ruleset-audit-app
-        uses: actions/create-github-app-token@v2
-        with:
-          app-id: ${{ vars.AI_ENG_WRITER_APP_ID }}
-          private-key: ${{ secrets.AI_ENG_WRITER_APP_PRIVATE_KEY }}
-          owner: DaniilSydorenko
-          repositories: .github
-          permission-administration: read
       - name: Shared provider cap attestation (live execute only)
         if: inputs.execute_model
         env:
@@ -89,7 +77,8 @@ jobs:
         env:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           HAVERSINE_PUBLISH_TOKEN: ${{ secrets.HAVERSINE_PUBLISH_TOKEN }}
-          GH_TOKEN: ${{ steps.ruleset-audit-app.outputs.token }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          AI_ENG_RULESET_AUDIT_TOKEN: ${{ secrets.AI_ENG_RULESET_AUDIT_TOKEN }}
           AI_ENG_LEASE_WRITER_TOKEN: ${{ steps.lease-app.outputs.token }}
           AI_ENG_LEASE_TOKEN: ${{ steps.lease-app.outputs.token }}
           AI_ENG_WRITER_APP_ID: ${{ vars.AI_ENG_WRITER_APP_ID }}
