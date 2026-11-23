@@ -11,14 +11,17 @@ from openhands_164_live_wiring import (
     APPROVED_OPERATION,
     CONTROL_ACTOR,
     CONTROL_REPO,
+    LiveExecutionConfig,
     LiveWiringRequest,
     ProtectedWorkflowContext,
+    TERMINAL_PUBLISHED,
     TERMINAL_WIRED,
     evaluate_ci_evidence,
     protected_context_from_env,
     run_protected_live_wiring,
     verify_protected_context,
 )
+from openhands_164_executor import _TRUSTED_AUTHORIZATION
 from openhands_164_patch_contract import ALLOWED
 from openhands_164_sequential_handoff import IssueProof
 from openhands_164_vertical_integration import CiEvidence
@@ -81,6 +84,12 @@ class LiveWiringTests(unittest.TestCase):
         ci: CiEvidence | None = None,
         base_sha: str | None = None,
         apply=None,
+        live_mode: bool = False,
+        wiring_mode: str | None = None,
+        extra_config: LiveExecutionConfig | None = None,
+        executor=None,
+        publisher=None,
+        publisher_transport=None,
     ):
         with tempfile.TemporaryDirectory() as tmp:
             root, sha = _repo(pathlib.Path(tmp))
@@ -96,12 +105,18 @@ class LiveWiringTests(unittest.TestCase):
                 protected=protected, prior_proofs=prior_proofs,
                 open_prs_for_target=open_prs, ci_after_publish=ci,
             )
+            mode = wiring_mode or ("live_execute" if live_mode else "offline_replay")
             return run_protected_live_wiring(
                 req,
                 lease_store=lease_store,
                 workspace=root,
                 base_sha=base_sha or sha,
-                apply_agent_change=apply or _write,
+                apply_agent_change=apply or (_write if not live_mode else None),
+                wiring_mode=mode,
+                live_config=extra_config,
+                executor=executor,
+                publisher=publisher,
+                publisher_transport=publisher_transport,
             )
 
     def test_issue216_wiring_terminal_stop(self):
@@ -166,6 +181,91 @@ class LiveWiringTests(unittest.TestCase):
             trusted=trusted_attestation_from_store(store, 217),
         )
         self.assertEqual(out["reason"], "lease_contention")
+
+    def test_live_execute_mocked_executor_publisher(self):
+        calls = {"model": 0, "publish": 0}
+
+        def fake_executor(root, key, model, issue, *, authorization):
+            calls["model"] += 1
+            assert authorization is _TRUSTED_AUTHORIZATION
+            _write(root, issue)
+
+        def fake_publish(**kwargs):
+            calls["publish"] += 1
+            return {"html_url": "https://github.com/DaniilSydorenko/haversine-geolocation/pull/901"}
+
+        out = self._run(
+            live_mode=True,
+            executor=fake_executor,
+            publisher=fake_publish,
+            publisher_transport=lambda *a, **k: {},
+            extra_config=LiveExecutionConfig(
+                live_attested=True,
+                api_key="sk-or-test",
+                publisher_token="ghp_test",
+            ),
+        )
+        self.assertEqual(out["reason"], TERMINAL_PUBLISHED)
+        self.assertTrue(out["model_invoked"])
+        self.assertTrue(out["github_write"])
+        self.assertEqual(calls["model"], 1)
+        self.assertEqual(calls["publish"], 1)
+
+    def test_live_not_attested_stops_before_model(self):
+        out = self._run(live_mode=True, extra_config=LiveExecutionConfig(live_attested=False))
+        self.assertEqual(out["reason"], TERMINAL_WIRED)
+        self.assertFalse(out["model_invoked"])
+
+    def test_publisher_failure_blocks_lease(self):
+        store = MemoryGitRef()
+
+        def fake_executor(root, key, model, issue, *, authorization):
+            _write(root, issue)
+
+        def bad_publish(**_kwargs):
+            raise RuntimeError("publish_failed")
+
+        out = self._run(
+            live_mode=True,
+            store=store,
+            executor=fake_executor,
+            publisher=bad_publish,
+            publisher_transport=lambda *a, **k: {},
+            extra_config=LiveExecutionConfig(
+                live_attested=True,
+                api_key="sk-or-test",
+                publisher_token="ghp_test",
+            ),
+        )
+        self.assertEqual(out["reason"], "publisher_failed")
+        self.assertEqual(store.read().state["phase"], "BLOCKED")
+
+    def test_already_satisfied_skips_model(self):
+        satisfied = """# Runtime Compatibility
+Node 22 Supported Node 24 Supported Node 26 smoke
+minimum supported Node.js version
+"""
+        with tempfile.TemporaryDirectory() as tmp:
+            root, sha = _repo(pathlib.Path(tmp))
+            doc = root / ALLOWED[216]
+            doc.parent.mkdir(parents=True, exist_ok=True)
+            doc.write_text(satisfied, encoding="utf-8")
+            store = MemoryGitRef()
+            out = run_protected_live_wiring(
+                LiveWiringRequest(
+                    216, "556", _inventory(sha),
+                    trusted=trusted_bundle(store),
+                    budget=BUDGET_OK,
+                    protected=_good_ctx(216),
+                ),
+                lease_store=store,
+                workspace=root,
+                base_sha=sha,
+                wiring_mode="live_gates_only",
+                live_config=LiveExecutionConfig(live_attested=True, api_key="x", publisher_token="y"),
+            )
+        self.assertEqual(out["reason"], "ALREADY_SATISFIED")
+        self.assertFalse(out["model_invoked"])
 
 
 if __name__ == "__main__":

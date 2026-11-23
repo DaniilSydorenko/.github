@@ -112,15 +112,8 @@ def publisher_precheck(*, base_sha: str, issue: int, existing_branch_pr: bool) -
     return {"decision": "PRECHECK_PASS", "issue": issue, "base_sha": base_sha}
 
 
-def run_offline_vertical(
-    request: VerticalRequest,
-    *,
-    lease_store,
-    workspace: pathlib.Path,
-    base_sha: str,
-    apply_agent_change: Callable[[pathlib.Path, int], None] | None = None,
-) -> dict[str, Any]:
-    """Execute the wired chain without live OpenHands or GitHub mutation."""
+def run_vertical_pregates(request: VerticalRequest, *, lease_store, base_sha: str) -> dict[str, Any]:
+    """Inventory through exclusive lease and admission; stops before agent execution."""
     issue = request.issue
     if type(issue) is not int or issue not in ALLOWED:
         return _stop("unexpected_issue")
@@ -159,9 +152,50 @@ def run_offline_vertical(
     if admission.get("reason") not in _PRE_EXECUTOR_ADMISSION:
         return _stop(admission.get("reason", "admission_denied"))
 
+    precheck = publisher_precheck(
+        base_sha=base_sha,
+        issue=issue,
+        existing_branch_pr=bool(request.open_prs_for_target),
+    )
+    if precheck.get("decision") != "PRECHECK_PASS":
+        return precheck
+
+    return {
+        "decision": "PREGATES_PASS",
+        "issue": issue,
+        "target": ALLOWED[issue],
+        "base_sha": base_sha,
+        "request_id": rid,
+        "admission_reason": admission.get("reason"),
+        "lease_outcome": acquired,
+        "model_invoked": False,
+        "github_write": False,
+        "publish_authorized": False,
+        "live_openhands_authorized": False,
+    }
+
+
+def run_offline_vertical(
+    request: VerticalRequest,
+    *,
+    lease_store,
+    workspace: pathlib.Path,
+    base_sha: str,
+    apply_agent_change: Callable[[pathlib.Path, int], None] | None = None,
+) -> dict[str, Any]:
+    """Execute the wired chain without live OpenHands or GitHub mutation."""
+    issue = request.issue
+    if type(issue) is not int or issue not in ALLOWED:
+        return _stop("unexpected_issue")
+
+    pre = run_vertical_pregates(request, lease_store=lease_store, base_sha=base_sha)
+    if pre.get("decision") != "PREGATES_PASS":
+        return pre
+    admission_reason = pre.get("admission_reason", "model_handoff_blocked")
+
     if apply_agent_change is None:
         return _stop(
-            admission.get("reason", "model_handoff_blocked"),
+            admission_reason,
             stage="pre_executor",
             patch_scope_verified=False,
         )
@@ -217,7 +251,7 @@ def run_offline_vertical(
         "base_sha": base_sha,
         "patch_scope_verified": True,
         "publisher_handoff_ready": handoff.get("decision") == "READY_FOR_PROTECTED_PUBLISHER_REVIEW",
-        "admission_reason": admission.get("reason"),
+        "admission_reason": admission_reason,
         "model_invoked": False,
         "github_write": False,
         "publish_authorized": False,

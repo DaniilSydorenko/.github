@@ -1,0 +1,87 @@
+name: AI Engineering OpenHands #164 Protected Pilot
+
+# Owner workflow_dispatch only. Issue #216 first; #217/#226 require separate owner GO.
+on:
+  workflow_dispatch:
+    inputs:
+      issue:
+        description: 'Haversine pilot issue (216 only until prior issue verified)'
+        required: true
+        type: choice
+        options:
+          - '216'
+      execute_model:
+        description: 'When true, invoke OpenHands after all gates pass'
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ai-eng-164-single-live-executor
+  cancel-in-progress: false
+
+jobs:
+  protected-pilot:
+    if: >-
+      github.event_name == 'workflow_dispatch' &&
+      github.repository == 'DaniilSydorenko/.github' &&
+      github.actor == 'DaniilSydorenko' &&
+      github.ref == 'refs/heads/main' &&
+      github.run_attempt == 1 &&
+      inputs.issue == '216'
+    runs-on: ubuntu-latest
+    environment: ai-eng-lease-owner
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: main
+          persist-credentials: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: docs/initiatives/ai-engineering/openhands-smoke-requirements.txt
+      - name: Install pinned OpenHands SDK (construction + live only)
+        if: inputs.execute_model
+        run: python -m pip install -r docs/initiatives/ai-engineering/openhands-smoke-requirements.txt
+      - uses: actions/checkout@v6
+        with:
+          repository: DaniilSydorenko/haversine-geolocation
+          ref: master
+          path: issue216-target
+          persist-credentials: false
+      - name: Shared provider cap attestation (live execute only)
+        if: inputs.execute_model
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+        run: python3 docs/initiatives/ai-engineering/openrouter_budget_gate.py --live
+      - name: Protected #164 inventory, lease, admission, optional live execution
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          HAVERSINE_PUBLISH_TOKEN: ${{ secrets.HAVERSINE_PUBLISH_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          AI_ENG_LEASE_WRITER_TOKEN: ${{ secrets.AI_ENG_LEASE_WRITER_TOKEN }}
+          AI_ENG_LEASE_TOKEN: ${{ secrets.AI_ENG_LEASE_WRITER_TOKEN }}
+          AI_ENG_WRITER_APP_ID: ${{ vars.AI_ENG_WRITER_APP_ID }}
+          AI_ENG_APPROVED_OPERATION: pilot-live-164-execute
+          AI_ENG_OWNER_GO_ISSUE: ${{ inputs.issue }}
+          AI_ENG_LIVE_164_EXECUTE: ${{ inputs.execute_model && '1' || '0' }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_REF: ${{ github.ref }}
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
+          GITHUB_RUN_ATTEMPT: ${{ github.run_attempt }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          if [[ "${{ inputs.execute_model }}" == "true" ]]; then
+            python3 docs/initiatives/ai-engineering/openhands_164_live_runner.py --live issue216-target 216
+          else
+            python3 docs/initiatives/ai-engineering/openhands_164_live_runner.py --gates-only issue216-target 216
+          fi
