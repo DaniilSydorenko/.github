@@ -56,6 +56,18 @@ jobs:
           ref: master
           path: issue216-target
           persist-credentials: false
+      # Mint a short-lived installation token; never use the App private key as a GitHub API token.
+      # Only the live path needs writer credentials. Missing installation/permissions fails closed.
+      - name: Mint HQ lease-writer GitHub App token (live only)
+        if: inputs.execute_model
+        id: lease-app
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ vars.AI_ENG_WRITER_APP_ID }}
+          private-key: ${{ secrets.AI_ENG_WRITER_APP_PRIVATE_KEY }}
+          owner: DaniilSydorenko
+          repositories: .github
+          permission-contents: write
       - name: Shared provider cap attestation (live execute only)
         if: inputs.execute_model
         env:
@@ -66,8 +78,8 @@ jobs:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           HAVERSINE_PUBLISH_TOKEN: ${{ secrets.HAVERSINE_PUBLISH_TOKEN }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          AI_ENG_LEASE_WRITER_TOKEN: ${{ secrets.AI_ENG_LEASE_WRITER_TOKEN }}
-          AI_ENG_LEASE_TOKEN: ${{ secrets.AI_ENG_LEASE_WRITER_TOKEN }}
+          AI_ENG_LEASE_WRITER_TOKEN: ${{ steps.lease-app.outputs.token }}
+          AI_ENG_LEASE_TOKEN: ${{ steps.lease-app.outputs.token }}
           AI_ENG_WRITER_APP_ID: ${{ vars.AI_ENG_WRITER_APP_ID }}
           AI_ENG_APPROVED_OPERATION: pilot-live-164-execute
           AI_ENG_OWNER_GO_ISSUE: ${{ inputs.issue }}
