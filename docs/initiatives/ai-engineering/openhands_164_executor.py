@@ -25,12 +25,19 @@ _TRUSTED_AUTHORIZATION = object()
 
 def _prompt(issue: int) -> str:
     target = ALLOWED[issue]
+    task = ""
+    if issue == 217:
+        task = (" Add exactly one compact TypeScript example adjacent to existing TypeScript guidance. "
+                "Import isCoordinate and distance from haversine-geolocation; accept unknown input, "
+                "guard it with isCoordinate before calling distance with latitude/longitude coordinates. "
+                "Preserve all existing text, headings and code fences. Use a unique surrounding anchor "
+                "for insertion. If an edit fails, inspect the anchor rather than repeating the same edit.")
     return (
         f"Work on GitHub issue #{issue} only. Read the repository and change ONLY "
         f"{target}. Ground the documentation in real source files listed in the issue "
         f"and repository AGENTS.md. Do not change library behavior or any other "
         f"tracked/untracked file. Do not commit, push, open PRs, install packages, "
-        f"or access secrets. Stop after writing the single scoped documentation file."
+        f"or access secrets. Stop after writing the single scoped documentation file." + task
     )
 
 
@@ -118,6 +125,9 @@ def sdk_construction_test(issue: int = 216) -> None:
 def self_test() -> None:
     for issue in ALLOWED:
         assert f"#{issue}" in _prompt(issue) and ALLOWED[issue] in _prompt(issue)
+    for requirement in ("isCoordinate", "unknown input", "before calling distance", "Preserve all existing", "unique surrounding anchor"):
+        assert requirement in _prompt(217)
+        assert requirement not in _prompt(216)
     try:
         execute_authorized(None, None, None, 216, authorization=None)
     except PermissionError:
