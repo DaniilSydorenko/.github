@@ -246,6 +246,7 @@ def run_protected_live_wiring(
     executor=execute_authorized,
     publisher=publish_verified_patch,
     publisher_transport=None,
+    revalidate_target: Callable | None = None,
     protected_authority=EXECUTOR_AUTHORITY,
     publisher_authority=PUBLISHER_AUTHORITY,
 ) -> dict[str, Any]:
@@ -366,6 +367,11 @@ def run_protected_live_wiring(
     if not config.publisher_token:
         return _stop("live_publisher_token_missing")
 
+    if revalidate_target is not None:
+        try:
+            revalidate_target()
+        except (PermissionError, OSError, subprocess.SubprocessError):
+            return _stop('target_changed_before_dispatch')
     rid = request.trusted.lease.state['request_id']
     if lease_store.read().sha != request.trusted.expected_lease_sha:
         return _stop('lease_changed_before_dispatch')

@@ -312,6 +312,7 @@ def run_pilot(workspace: str | pathlib.Path, issue: int = 216, *, live_attested:
                         wiring_mode="live_execute" if live_attested else "live_gates_only",
                         live_config=live,
                         publisher_transport=_github_transport if live_attested else None,
+                        revalidate_target=lambda: _validate_target_workspace(root, base_sha),
                     )
                     if result.get("reason") == TERMINAL_PUBLISHED:
                         result = _attach_exact_head_ci(result, read_token=read_token)
