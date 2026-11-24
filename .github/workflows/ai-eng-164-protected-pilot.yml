@@ -10,6 +10,10 @@ on:
         type: choice
         options:
           - '217'
+      recover_run9:
+        description: 'Release rejected Run 9 only; no model execution'
+        type: boolean
+        default: false
       execute_model:
         description: 'False: isolated audit only; true: audit then live pilot'
         required: true
@@ -54,7 +58,7 @@ jobs:
   protected-pilot:
     needs: protected-audit
     if: >-
-      inputs.execute_model &&
+      inputs.execute_model && !inputs.recover_run9 &&
       github.event_name == 'workflow_dispatch' &&
       github.repository == 'DaniilSydorenko/.github' &&
       github.actor == 'DaniilSydorenko' &&
@@ -127,3 +131,40 @@ jobs:
           else
             python3 docs/initiatives/ai-engineering/openhands_164_live_runner.py --gates-only issue217-target 217
           fi
+  protected-recovery:
+    needs: protected-audit
+    if: >-
+      inputs.recover_run9 && !inputs.execute_model &&
+      github.event_name == 'workflow_dispatch' &&
+      github.repository == 'DaniilSydorenko/.github' &&
+      github.actor == 'DaniilSydorenko' &&
+      github.ref == 'refs/heads/main' &&
+      github.run_attempt == 1 &&
+      inputs.issue == '217'
+    runs-on: ubuntu-latest
+    environment: ai-eng-lease-owner
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/create-github-app-token@v2
+        id: lease-app
+        with:
+          app-id: ${{ vars.AI_ENG_WRITER_APP_ID }}
+          private-key: ${{ secrets.AI_ENG_WRITER_APP_PRIVATE_KEY }}
+          owner: DaniilSydorenko
+          repositories: .github
+          permission-contents: write
+      - name: Verify rejected result and release exact lease
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          AI_ENG_LEASE_WRITER_TOKEN: ${{ steps.lease-app.outputs.token }}
+          AI_ENG_G3_EVIDENCE: ${{ needs.protected-audit.outputs.evidence }}
+          AI_ENG_WRITER_APP_ID: ${{ vars.AI_ENG_WRITER_APP_ID }}
+          AI_ENG_OWNER_GO_ISSUE: '217'
+        run: python3 docs/initiatives/ai-engineering/openhands_164_recover_run9.py
