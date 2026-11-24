@@ -197,6 +197,29 @@ def _release_lease_without_spend(lease_store, request_id: str) -> None:
         pass
 
 
+def _verify_issue217_example(before: str, after: str) -> None:
+    """Conservative pilot-specific shape gate; human review still required."""
+    old = before.splitlines(keepends=True)
+    new = after.splitlines(keepends=True)
+    start = 0
+    while start < min(len(old), len(new)) and old[start] == new[start]:
+        start += 1
+    count = len(new) - len(old)
+    if count <= 0 or count > 30 or new[start + count:] != old[start:]:
+        raise PatchContractError("issue217_requires_single_insertion")
+    added = "".join(new[start:start + count])
+    blocks = re.findall(r"^```(?:ts|typescript)\s*\n(.*?)^```\s*$", added, re.M | re.S)
+    if len(blocks) != 1:
+        raise PatchContractError("issue217_requires_typescript_example")
+    code = blocks[0]
+    if not (re.search(r"import\s*\{[^}]*\bisCoordinate\b[^}]*\}\s*from\s*['\"]haversine-geolocation['\"]", code, re.S)
+            and re.search(r"import\s*\{[^}]*\bdistance\b[^}]*\}\s*from\s*['\"]haversine-geolocation['\"]", code, re.S)
+            and re.search(r":\s*unknown\b", code)
+            and re.search(r"\bisCoordinate\s*\([^)]*\)[\s\S]*\bdistance\s*\(", code)
+            and "latitude" in code and "longitude" in code):
+        raise PatchContractError("issue217_validation_example_missing")
+
+
 def _complete_patch_pipeline(
     workspace: pathlib.Path,
     base_sha: str,
@@ -208,6 +231,16 @@ def _complete_patch_pipeline(
         return _stop("patch_scope_unverified", detail=str(exc)), None
     if patch_verdict.get("decision") != "PATCH_SCOPE_VERIFIED":
         return _stop("patch_scope_unverified"), None
+
+    if issue == 217:
+        try:
+            before = subprocess.check_output(
+                ["git", "-C", str(workspace), "show", f"{base_sha}:{ALLOWED[issue]}"],
+                text=True, timeout=15,
+            )
+            _verify_issue217_example(before, (workspace / ALLOWED[issue]).read_text(encoding="utf-8"))
+        except (PatchContractError, OSError, ValueError, subprocess.SubprocessError) as exc:
+            return _stop("issue217_acceptance_unverified", detail=str(exc)), None
 
     tmp = tempfile.TemporaryDirectory()
     patch_file = pathlib.Path(tmp.name) / f"issue-{issue}.patch"
@@ -487,6 +520,19 @@ def self_test() -> None:
     import pathlib
     import subprocess
     import tempfile
+
+    before = "## TypeScript\n\nExisting guidance.\n"
+    example = "\n```ts\nimport { isCoordinate, distance } from 'haversine-geolocation';\nfunction safe(input: unknown) {\n  if (!isCoordinate(input)) return undefined;\n  return distance(input, { latitude: 0, longitude: 0 });\n}\n```\n"
+    _verify_issue217_example(before, before + example)
+    for bad in (before + "\nMore prose about isCoordinate().\n",
+                before.replace("Existing", "Rewritten") + example,
+                before + example.replace("isCoordinate(input)", "Boolean(input)")):
+        try:
+            _verify_issue217_example(before, bad)
+        except PatchContractError:
+            pass
+        else:
+            raise AssertionError("incomplete issue217 patch accepted")
 
     from test_github_ref_lease import MemoryGitRef
     from test_openhands_runner_admission_bridge import BUDGET_OK, trusted_bundle
