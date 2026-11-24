@@ -130,6 +130,8 @@ class LiveRunnerRegressionTests(unittest.TestCase):
                 "status": "CANDIDATE", "reason": _G3_REASON, "candidate_only": True,
                 "cursor_launch_authorized": False, "model_runs_started": 0,
                 "github_mutated": False}}
+            from test_lease_ruleset_candidate import BRANCH, UPDATE, GUARD
+            evidence.update(branch=BRANCH, rulesets=[{**UPDATE, "bypass_actors": [{"actor_type": "Integration", "actor_id": 5535339, "bypass_mode": "always"}]}, GUARD])
             os.environ["AI_ENG_G3_EVIDENCE"] = json.dumps(evidence)
             self.assertIsNone(verify_isolated_g3_evidence(217))
             for key, value in (("run_id", "999"), ("attempt", 2), ("sha", "b" * 40),
@@ -165,10 +167,15 @@ class LiveRunnerRegressionTests(unittest.TestCase):
                                return_value=verdict):
                         self.assertEqual(emit_g3_evidence(), 2)
                         self.assertFalse(output.exists())
-                with patch("openhands_164_production_gates.public_readonly_probe",
-                           return_value=candidate) as probe:
+                from test_lease_ruleset_candidate import BRANCH, UPDATE, GUARD
+                responses = {
+                    "/branches/ai-eng-cursor-lease-v1": BRANCH,
+                    "/rulesets?includes_parents=false&per_page=100": [{"id": 1}, {"id": 2}],
+                    "/rulesets/1": {**UPDATE, "bypass_actors": [{"actor_type": "Integration", "actor_id": 5535339, "bypass_mode": "always"}]},
+                    "/rulesets/2": GUARD,
+                }
+                with patch("lease_ruleset_candidate.ReadOnly.get", side_effect=responses.__getitem__):
                     self.assertEqual(emit_g3_evidence(), 0)
-                    self.assertEqual(probe.call_args.args[1], 5535339)
                 raw = output.read_text().strip().removeprefix("evidence=")
                 self.assertNotIn("audit-fixture", raw)
                 os.environ["AI_ENG_G3_EVIDENCE"] = raw

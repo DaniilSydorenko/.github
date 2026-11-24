@@ -44,7 +44,6 @@ from openhands_runner_admission_bridge import (
     evaluate_before_model_handoff,
 )
 from github_ref_lease import agent_id_for
-from test_lease_ruleset_candidate import APP_ID, GUARD, UPDATE
 
 SHA = re.compile(r"[0-9a-f]{40}\Z")
 CONTROL_REPO = "DaniilSydorenko/.github"
@@ -109,6 +108,8 @@ def build_trusted_workflow_attestation(
     lease_store,
     issue: int,
     target_head_sha: str,
+    *, ruleset: RulesetEvidence | None = None,
+    rechecked_head_sha: str | None = None,
 ) -> TrustedWorkflowAttestation:
     """Construct workflow-injected attestation from an authenticated lease snapshot."""
     rid = request_id_for(issue)
@@ -125,9 +126,9 @@ def build_trusted_workflow_attestation(
             exclusive_writer_verified=True,
             credential_path_verified=True,
         ),
-        target_head=TargetHeadEvidence(target_head_sha, target_head_sha, target_head_sha, True),
+        target_head=TargetHeadEvidence(target_head_sha, target_head_sha, rechecked_head_sha or "", rechecked_head_sha is not None),
         writer=WriterIdentityEvidence(writer, True),
-        ruleset=RulesetEvidence("ai-eng-cursor-lease-v1", [UPDATE, GUARD], APP_ID, True),
+        ruleset=ruleset,
     )
 
 
