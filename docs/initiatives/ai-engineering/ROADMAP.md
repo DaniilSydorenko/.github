@@ -1,5 +1,7 @@
 # AI Engineering Ecosystem — Nine-Phase Roadmap v2
 
+> **Current status (2026-11-24):** [DELIVERY_PLAN_164.md](DELIVERY_PLAN_164.md) is the operational source for the OpenHands pilot. The dated research snapshots below are historical evidence, not current configuration instructions or authorization. Existing security boundaries remain in force.
+
 **Status:** OWNER RESEARCH INITIATIVE / NON-ENFORCING / PILOTS 01–03 ACCEPTED / EXECUTION READINESS UNPROVEN  
 **As of:** 2026-10-30 (saved lease ruleset readback; launch still blocked)  
 **Owner:** Daniil (personal engineering initiative; not GitHub HQ or a scheduled Autopilot worker)  

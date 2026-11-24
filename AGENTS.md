@@ -1,6 +1,6 @@
 # GitHub HQ — agent entry point
 
-## Mandatory AI engineering delivery bootstrap (proposed in #166)
+## AI engineering delivery bootstrap
 
 For work in `docs/initiatives/ai-engineering/**` or `ai-eng-*` workflows, first read [Delivery Governance](docs/initiatives/ai-engineering/DELIVERY_GOVERNANCE.md), then the initiative's canonical delivery plan (currently [#164](docs/initiatives/ai-engineering/DELIVERY_PLAN_164.md)), tracking issue and active PR exact-head CI. Treat these as the **working source of truth across new chats**. Keep owner interaction brief; use bounded AI sessions rather than eight-hour workday estimates. This is process guidance, **not** permission to launch models, alter security or operate other repositories. Existing owner/security/domain gates prevail.
 
@@ -17,11 +17,11 @@ GitHub HQ is **infrastructure steward**, not a manager of other repositories' PR
 
 ## Engineering chat delegation discovery
 
-For an owner-requested engineering implementation, fix, test or code review, **explicitly evaluate GitHub Issue → `@cursor` before defaulting to GitHub Connector-only edits**. Connector is the coordination/evidence tool; a bounded Cursor run is a candidate executor, **not** an automatic entitlement. Follow [Delegation discovery](docs/initiatives/ai-engineering/OPERATING_RULES.md#delegation-discovery--default-for-engineering-chats-manual-owner-gated), local domain authorization, active-writer/provider/budget gates and one-shot dispatch rules. If any gate is unknown, STOP rather than launch. A posted `@cursor` comment is only a request, not proof of agent start. This does not activate unattended Cursor or give HQ authority over product repositories.
+For owner-requested engineering work, select the smallest authorized executor using [Delegation discovery](docs/initiatives/ai-engineering/OPERATING_RULES.md#delegation-discovery--default-for-engineering-chats-manual-owner-gated). Direct connector edits are appropriate for bounded code and tests. OpenHands is the current protected pilot; Cursor is optional and separately gated. No duplicate writer or paid dispatch without admission.
 
-## Low-Burn agent work (owner-approved Cursor/Issue tasks)
+## Low-Burn engineering work
 
-- Use **one Issue = one coherent, verifiable outcome**. Fetch current default-branch SHA and relevant Issue/PR; read mandatory local rules plus only task-relevant files initially. Expand context only for a proved dependency; do not default to whole-repo or full-chat ingestion.
+- Use **one Issue = one coherent, verifiable outcome; one bounded round = one atomic change where needed**. Fetch current default-branch SHA and relevant Issue/PR; read mandatory local rules plus only task-relevant files initially. Expand context only for a proved dependency; do not default to whole-repo or full-chat ingestion.
 - Scope one branch/active writer; preserve others' work. No surprise subagents, duplicate agent launches, unrelated refactors, or open-ended retries. Initial implementation + at most **two evidence-based corrections**, then STOP/BLOCKED if no new evidence.
 - Require focused tests and all existing exact-head CI/security/quality gates; cost never permits weakening a local 12-step process, review, ownership, safety, privacy, or release approval.
 - Keep completion to outcome, PR/HEAD, changed files, CI evidence, blocker/next action. Report **provider-measured** input/output/cache/total tokens and charged cost **only when authorized data is accessible**; otherwise `UNKNOWN`. Do not launch an extra agent just to calculate usage or expose credentials/billing details.

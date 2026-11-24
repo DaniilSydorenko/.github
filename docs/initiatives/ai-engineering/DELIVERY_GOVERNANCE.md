@@ -1,5 +1,7 @@
 # AI Engineering Delivery Governance — v1 (2026-11-18)
 
+**Execution simplification (2026-11-24):** one bounded round should produce one coherent atomic change with verification when a change is needed. A merge, operational test or genuine owner gate is a valid outcome without a filler commit. Use the current delivery plan rather than duplicating status across documents. This does not change any authorization or security gate.
+
 **Status:** proposed in AI-ENG Draft PR #166; not organization-wide enforcement until merged and adopted. **Owner:** Daniil. This contract governs the *way* engineering work is planned and reported; it never grants execution, merge, billing, security or cross-repository authority.
 
 ## Owner-time budget and operating mode
