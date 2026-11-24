@@ -121,6 +121,12 @@ def _g3_binding(issue: int) -> dict | None:
             "attempt": 1, "issue": issue, "writer_app_id": app_id}
 
 
+def _expected_g3_audit() -> dict:
+    return {"status": "CANDIDATE", "reason": _G3_REASON,
+                      "candidate_only": True, "cursor_launch_authorized": False,
+                      "model_runs_started": 0, "github_mutated": False}
+
+
 def emit_g3_evidence() -> int:
     from lease_ruleset_candidate import ReadOnly
     binding = _g3_binding(217)
@@ -131,7 +137,7 @@ def emit_g3_evidence() -> int:
         return 2
     audit = public_readonly_probe(ReadOnly(token), binding["writer_app_id"])
     print(json.dumps(audit, sort_keys=True))
-    if audit.get("status") != "CANDIDATE" or audit.get("reason") != _G3_REASON:
+    if json.dumps(audit, sort_keys=True) != json.dumps(_expected_g3_audit(), sort_keys=True):
         return 2
     evidence = {**binding, "audit": audit}
     with open(output, "a", encoding="utf-8") as stream:
@@ -152,10 +158,7 @@ def verify_isolated_g3_evidence(issue: int) -> dict | None:
         evidence = json.loads(raw) if len(raw) <= 4096 else None
     except (ValueError, TypeError):
         evidence = None
-    expected_audit = {"status": "CANDIDATE", "reason": _G3_REASON,
-                      "candidate_only": True, "cursor_launch_authorized": False,
-                      "model_runs_started": 0, "github_mutated": False}
-    expected = {**binding, "audit": expected_audit} if binding else None
+    expected = {**binding, "audit": _expected_g3_audit()} if binding else None
     # Canonical JSON comparison also rejects bool/int type confusion.
     if expected is None or json.dumps(evidence, sort_keys=True) != json.dumps(expected, sort_keys=True):
         return {"decision": "STOP", "reason": "g3_isolated_evidence_invalid"}

@@ -147,6 +147,33 @@ class LiveRunnerRegressionTests(unittest.TestCase):
             self.assertEqual(verify_isolated_g3_evidence(217)["reason"],
                              "privileged_audit_token_in_live_runner")
 
+    def test_g3_producer_only_emits_complete_candidate(self):
+        from openhands_164_production_gates import emit_g3_evidence, verify_isolated_g3_evidence
+        from lease_ruleset_candidate import result
+        from openhands_164_production_gates import _G3_REASON
+        with tempfile.TemporaryDirectory() as tmp:
+            output = pathlib.Path(tmp) / "output"
+            env = _env(AI_ENG_WRITER_APP_ID="5535339", AI_ENG_OWNER_GO_ISSUE="217",
+                       GITHUB_SHA="a" * 40, GITHUB_TOKEN="audit-fixture",
+                       GITHUB_OUTPUT=str(output))
+            candidate = result("CANDIDATE", _G3_REASON)
+            with patch.dict(os.environ, env, clear=True):
+                for verdict in (result("STOP", "rule_details_or_bypass_inventory_hidden"),
+                                {**candidate, "github_mutated": True},
+                                {"status": "CANDIDATE", "reason": _G3_REASON}):
+                    with patch("openhands_164_production_gates.public_readonly_probe",
+                               return_value=verdict):
+                        self.assertEqual(emit_g3_evidence(), 2)
+                        self.assertFalse(output.exists())
+                with patch("openhands_164_production_gates.public_readonly_probe",
+                           return_value=candidate) as probe:
+                    self.assertEqual(emit_g3_evidence(), 0)
+                    self.assertEqual(probe.call_args.args[1], 5535339)
+                raw = output.read_text().strip().removeprefix("evidence=")
+                self.assertNotIn("audit-fixture", raw)
+                os.environ["AI_ENG_G3_EVIDENCE"] = raw
+                self.assertIsNone(verify_isolated_g3_evidence(217))
+
     def test_stale_workspace_releases_lease(self):
         from openhands_runner_admission_bridge import ProviderBudgetAttestation
 
