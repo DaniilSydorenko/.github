@@ -465,15 +465,9 @@ def run_protected_live_wiring(
             return {**result, **ci_denied, "pr_url": pr_url, "model_invoked": True, "github_write": True}
 
     if request.ci_after_publish is not None and request.ci_after_publish.verified():
-        try:
-            controller.release_verified(
-                rid,
-                provider_terminal=True,
-                integration_accepted=False,
-                manual_approval=True,
-            )
-        except Exception as exc:
-            return _stop("lease_release_failed", detail=type(exc).__name__, pr_url=pr_url, model_invoked=True)
+        # CI is evidence, not owner acceptance. Keep the durable VERIFYING lease.
+        result["ci_verified"] = True
+        result["pilot_complete"] = True
         result["reason"] = TERMINAL_CI_VERIFIED
         result["ci_aggregate"] = request.ci_after_publish.aggregate
         result["ci_security"] = request.ci_after_publish.security
