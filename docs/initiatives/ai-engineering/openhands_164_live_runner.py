@@ -30,7 +30,7 @@ from openhands_164_live_wiring import (
     protected_context_from_env,
     run_protected_live_wiring,
 )
-from openhands_164_production_gates import verify_g3_lease_ruleset, verify_provider_hard_cap
+from openhands_164_production_gates import verify_isolated_g3_evidence, verify_provider_hard_cap
 from openhands_live_orchestrator import inspect as inventory_inspect
 from openhands_lease_admission_adapter import request_id_for
 from openhands_runner_admission_bridge import ProviderBudgetAttestation
@@ -180,8 +180,6 @@ def run_pilot(workspace: str | pathlib.Path, issue: int = 216, *, live_attested:
 
     root = pathlib.Path(workspace).resolve(strict=True)
 
-    # Remove the privileged audit credential before any executor is constructed.
-    audit_token = os.environ.pop("AI_ENG_RULESET_AUDIT_TOKEN", "")
     read_token = os.environ.get("GH_TOKEN", "") or os.environ.get("GITHUB_TOKEN", "")
     if not read_token:
         return {"decision": "STOP", "reason": "github_read_token_missing"}
@@ -208,12 +206,7 @@ def run_pilot(workspace: str | pathlib.Path, issue: int = 216, *, live_attested:
             return pinned
 
     if live_attested:
-        if not audit_token or audit_token == read_token:
-            return {"decision": "STOP", "reason": "separate_ruleset_audit_token_required"}
-        try:
-            denied = verify_g3_lease_ruleset(audit_token, transport=_github_transport)
-        finally:
-            audit_token = ""
+        denied = verify_isolated_g3_evidence(issue)
         if denied is not None:
             return denied
 

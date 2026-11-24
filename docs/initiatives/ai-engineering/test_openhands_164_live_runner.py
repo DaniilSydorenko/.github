@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import os
+import json
 import pathlib
 import subprocess
 import tempfile
@@ -112,34 +113,39 @@ class LiveRunnerRegressionTests(unittest.TestCase):
         self.assertEqual(out["reason"], "lease_writer_token_missing")
 
     def test_live_requires_g3_attestation(self):
-        inv = {
-            "reason": "live_authorization_not_integrated",
-            "default_head": "a" * 40,
-            "issues": [{"number": 216, "target": "docs/compatibility.md"}],
-        }
-        with patch.dict(os.environ, _env(AI_ENG_WRITER_APP_ID="5535339", AI_ENG_RULESET_AUDIT_TOKEN="audit-token"), clear=True), patch(
-            "openhands_164_live_runner.inventory_inspect", return_value=inv
-        ), patch(
-            "openhands_164_live_runner.verify_g3_lease_ruleset",
-            return_value={"decision": "STOP", "reason": "g3_immutable_ruleset_not_proven"},
-        ) as audit:
-            out = run_pilot(".", live_attested=True)
-            self.assertNotIn("AI_ENG_RULESET_AUDIT_TOKEN", os.environ)
-            self.assertEqual(audit.call_args.args[0], "audit-token")
-        self.assertEqual(out["reason"], "g3_immutable_ruleset_not_proven")
-
-    def test_missing_or_shared_audit_token_stops_before_lease(self):
         inv = {"reason": "live_authorization_not_integrated", "default_head": "a" * 40}
-        for token in ("", "read-token"):
-            with self.subTest(token=token), patch.dict(os.environ, _env(AI_ENG_RULESET_AUDIT_TOKEN=token), clear=True), patch(
-                "openhands_164_live_runner.inventory_inspect", return_value=inv
-            ), patch("openhands_164_live_runner.verify_g3_lease_ruleset") as audit, patch(
-                "openhands_164_live_runner.GitHubRefStore"
-            ) as store:
-                out = run_pilot(".", live_attested=True)
-                self.assertEqual(out["reason"], "separate_ruleset_audit_token_required")
-                audit.assert_not_called()
-                store.assert_not_called()
+        with patch.dict(os.environ, _env(), clear=True), patch(
+            "openhands_164_live_runner.inventory_inspect", return_value=inv
+        ), patch("openhands_164_live_runner.GitHubRefStore") as store:
+            out = run_pilot(".", live_attested=True)
+            self.assertEqual(out["reason"], "g3_isolated_evidence_invalid")
+            store.assert_not_called()
+
+    def test_isolated_g3_binding_and_credential_rejection(self):
+        from openhands_164_production_gates import verify_isolated_g3_evidence, _g3_binding, _G3_REASON
+        env = _env(AI_ENG_WRITER_APP_ID="5535339", AI_ENG_OWNER_GO_ISSUE="217",
+                   GITHUB_SHA="a" * 40)
+        with patch.dict(os.environ, env, clear=True):
+            evidence = {**_g3_binding(217), "audit": {
+                "status": "CANDIDATE", "reason": _G3_REASON, "candidate_only": True,
+                "cursor_launch_authorized": False, "model_runs_started": 0,
+                "github_mutated": False}}
+            os.environ["AI_ENG_G3_EVIDENCE"] = json.dumps(evidence)
+            self.assertIsNone(verify_isolated_g3_evidence(217))
+            for key, value in (("run_id", "999"), ("attempt", 2), ("sha", "b" * 40),
+                               ("repository", "other/repo"), ("issue", 226),
+                               ("writer_app_id", 1), ("audit", True)):
+                with self.subTest(key=key):
+                    os.environ["AI_ENG_G3_EVIDENCE"] = json.dumps({**evidence, key: value})
+                    self.assertEqual(verify_isolated_g3_evidence(217)["reason"],
+                                     "g3_isolated_evidence_invalid")
+            for raw in ("", "{", "true"):
+                os.environ["AI_ENG_G3_EVIDENCE"] = raw
+                self.assertIsNotNone(verify_isolated_g3_evidence(217))
+            os.environ["AI_ENG_G3_EVIDENCE"] = json.dumps(evidence)
+            os.environ["AI_ENG_RULESET_AUDIT_TOKEN"] = "must-not-be-present"
+            self.assertEqual(verify_isolated_g3_evidence(217)["reason"],
+                             "privileged_audit_token_in_live_runner")
 
     def test_stale_workspace_releases_lease(self):
         from openhands_runner_admission_bridge import ProviderBudgetAttestation
