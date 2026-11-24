@@ -14,7 +14,7 @@ import sys
 import urllib.error
 import urllib.request
 
-from github_ref_lease import GitHubRefStore
+from github_ref_lease import GitHubRefStore, fingerprint
 from openhands_164_budget_attestation import gates_only_budget_attestation
 from openhands_164_ci_evidence import exact_head_ci_from_check_runs, pr_number_from_url
 from openhands_164_executor import MODEL_DEFAULT
@@ -172,6 +172,23 @@ def _finalize_lease(session: ManagedLeaseSession, result: dict) -> tuple[dict, o
     return _augment_with_lease_cleanup(result, cleanup), cleanup
 
 
+# One bounded recovery for the audited Run #8 pre-dispatch release.
+RECOVERY_HEAD = "47670c33fe97b7f32aeb2e97bceb0b2947153478"
+RECOVERY_REQUEST = "openhands-164-issue-217-recovery-8"
+
+
+def recovery_request_id(store, issue: int) -> str:
+    original = request_id_for(issue)
+    snap = store.read()
+    if (issue == 217 and snap.sha == RECOVERY_HEAD
+            and snap.state["phase"] == "IDLE"
+            and snap.state["revision"] == 5
+            and fingerprint(original) in snap.state["consumed_request_hashes"]
+            and fingerprint(RECOVERY_REQUEST) not in snap.state["consumed_request_hashes"]):
+        return RECOVERY_REQUEST
+    return original
+
+
 def run_pilot(workspace: str | pathlib.Path, issue: int = 216, *, live_attested: bool) -> dict:
     protected = protected_context_from_env()
     if protected is None:
@@ -235,11 +252,11 @@ def run_pilot(workspace: str | pathlib.Path, issue: int = 216, *, live_attested:
     publish_token = os.environ.get("HAVERSINE_PUBLISH_TOKEN", "")
 
     lease_store = GitHubRefStore(HQ_REPO, lease_token)
-    rid = request_id_for(issue)
+    rid = recovery_request_id(lease_store, issue) if live_attested else request_id_for(issue)
     issue_url = f"https://github.com/{HAVERSINE}/issues/{issue}"
     session = ManagedLeaseSession(lease_store, rid, issue_url)
     acquire_outcome = session.acquire()
-    if acquire_outcome not in ("ACQUIRED", "ALREADY_OWNED"):
+    if acquire_outcome not in (("ACQUIRED",) if live_attested else ("ACQUIRED", "ALREADY_OWNED")):
         return {"decision": "STOP", "reason": "lease_contention", "lease_outcome": acquire_outcome}
 
     if live_attested and session.current_phase() != "RESERVED":

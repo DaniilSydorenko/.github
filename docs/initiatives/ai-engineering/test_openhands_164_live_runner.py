@@ -234,6 +234,23 @@ class LiveRunnerRegressionTests(unittest.TestCase):
             self.assertEqual(out["reason"], "prior_issue216_satisfaction_unverified")
             store.assert_not_called()
 
+    def test_recovery_is_pinned_and_one_time(self):
+        from types import SimpleNamespace
+        from openhands_164_live_runner import recovery_request_id, RECOVERY_HEAD, RECOVERY_REQUEST
+        from github_ref_lease import fingerprint, initial_state
+        original = request_id_for(217)
+        state = {**initial_state(), "revision": 5, "consumed_request_hashes": [fingerprint(original)]}
+        class Store:
+            def read(self):
+                return SimpleNamespace(sha=RECOVERY_HEAD, state=state)
+        self.assertEqual(recovery_request_id(Store(), 217), RECOVERY_REQUEST)
+        self.assertEqual(recovery_request_id(Store(), 216), request_id_for(216))
+        state["consumed_request_hashes"].append(fingerprint(RECOVERY_REQUEST))
+        self.assertEqual(recovery_request_id(Store(), 217), original)
+        state["consumed_request_hashes"].pop()
+        state["phase"] = "BLOCKED"
+        self.assertEqual(recovery_request_id(Store(), 217), original)
+
     def test_exact_head_ci_pending_handoff(self):
         published = {
             "decision": "STOP",

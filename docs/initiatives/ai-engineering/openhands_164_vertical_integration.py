@@ -131,7 +131,7 @@ def run_vertical_pregates(request: VerticalRequest, *, lease_store, base_sha: st
     if base_sha != head:
         return _stop("base_sha_mismatch", inventory_head=head, workspace_base=base_sha)
 
-    rid = request_id_for(issue)
+    rid = request.trusted.lease.state.get('request_id') if request.trusted else request_id_for(issue)
     lease = Controller(lease_store)
     acquired = lease.acquire(rid, f"https://github.com/DaniilSydorenko/haversine-geolocation/issues/{issue}")
     if acquired not in ("ACQUIRED", "ALREADY_OWNED"):

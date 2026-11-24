@@ -202,7 +202,7 @@ def evaluate_preconditions(
 ) -> dict[str, Any] | None:
     ctx = Context(
         issue=issue,
-        request_id=request_id_for(issue),
+        request_id=lease.state.get('request_id'),
         target_sha=target_sha,
         workflow_run_id=workflow_run_id,
         expected_lease_sha=expected_lease_sha,
@@ -248,7 +248,7 @@ def _evaluate_admission_inner(request: AdmissionRequest) -> dict[str, Any]:
         "openhands_admission_preconditions_shape_ok_not_live_authorization",
         lease_ref=HQ_LEASE_REF,
         issue=request.issue,
-        request_id=request_id_for(request.issue),
+        request_id=request.lease.state.get('request_id'),
     )
 
 

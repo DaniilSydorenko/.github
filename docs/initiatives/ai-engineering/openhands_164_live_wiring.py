@@ -112,8 +112,8 @@ def build_trusted_workflow_attestation(
     rechecked_head_sha: str | None = None,
 ) -> TrustedWorkflowAttestation:
     """Construct workflow-injected attestation from an authenticated lease snapshot."""
-    rid = request_id_for(issue)
     snap = lease_store.read()
+    rid = snap.state['request_id']
     writer = agent_id_for(rid)
     head = snap.sha
     return TrustedWorkflowAttestation(
@@ -341,7 +341,7 @@ def run_protected_live_wiring(
 
     satisfaction = evaluate_issue_satisfaction(issue, root)
     if satisfaction.get("reason") == "ALREADY_SATISFIED":
-        _release_lease_without_spend(lease_store, request_id_for(issue))
+        _release_lease_without_spend(lease_store, request.trusted.lease.state['request_id'])
         return {**satisfaction, "base_sha": base_sha, "publish_authorized": False}
 
     config = live_config or LiveExecutionConfig(live_attested=False)
@@ -366,7 +366,9 @@ def run_protected_live_wiring(
     if not config.publisher_token:
         return _stop("live_publisher_token_missing")
 
-    rid = request_id_for(issue)
+    rid = request.trusted.lease.state['request_id']
+    if lease_store.read().sha != request.trusted.expected_lease_sha:
+        return _stop('lease_changed_before_dispatch')
     controller = Controller(lease_store)
     try:
         controller.transition(rid, "RESERVED", "DISPATCHING")
