@@ -216,6 +216,17 @@ class LiveRunnerRegressionTests(unittest.TestCase):
         self.assertEqual(out["reason"], "collision_query_failed")
         self.assertTrue(out.get("lease_cleanup", {}).get("released"))
 
+    def test_live_217_requires_pinned_prior_satisfaction(self):
+        inv = {"reason": "live_authorization_not_integrated", "default_head": "a" * 40}
+        with patch.dict(os.environ, _env(AI_ENG_OWNER_GO_ISSUE="217"), clear=True), patch(
+            "openhands_164_live_runner.inventory_inspect", return_value=inv
+        ), patch("openhands_164_live_runner.verify_isolated_g3_evidence", return_value=None), patch(
+            "openhands_164_live_runner.early_readonly_satisfaction_pinned", return_value=None
+        ), patch("openhands_164_live_runner.GitHubRefStore") as store:
+            out = run_pilot(".", issue=217, live_attested=True)
+            self.assertEqual(out["reason"], "prior_issue216_satisfaction_unverified")
+            store.assert_not_called()
+
     def test_exact_head_ci_pending_handoff(self):
         published = {
             "decision": "STOP",

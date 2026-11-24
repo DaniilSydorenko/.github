@@ -22,7 +22,7 @@ from typing import Any, Callable, Mapping, Sequence
 from github_ref_lease import Controller
 from openhands_164_patch_contract import ALLOWED, PatchContractError, prepare_verified_patch, verify_workspace_change
 from openhands_164_publisher_handoff import verify_patch_for_handoff
-from openhands_164_sequential_handoff import IssueProof, next_issue
+from openhands_164_sequential_handoff import IssueProof, SatisfiedIssueProof, next_issue
 from openhands_live_orchestrator import EXPECTED
 from openhands_runner_admission_bridge import (
     ProviderBudgetAttestation,
@@ -55,7 +55,7 @@ class VerticalRequest:
     inventory: Mapping[str, Any]
     trusted: TrustedWorkflowAttestation | None
     budget: ProviderBudgetAttestation | None
-    prior_proofs: Sequence[IssueProof] = ()
+    prior_proofs: Sequence[IssueProof | SatisfiedIssueProof] = ()
     open_prs_for_target: Sequence[int] = ()
     ci_after_publish: CiEvidence | None = None
 
@@ -87,8 +87,8 @@ def _validate_inventory(inventory: Mapping[str, Any], issue: int) -> dict[str, A
     return None
 
 
-def _sequential_gate(issue: int, proofs: Sequence[IssueProof]) -> dict[str, Any] | None:
-    slot = next_issue(tuple(proofs))
+def _sequential_gate(issue: int, proofs: Sequence[IssueProof | SatisfiedIssueProof], base_sha: str) -> dict[str, Any] | None:
+    slot = next_issue(tuple(proofs), pinned_base_sha=base_sha)
     if slot.get("reason") != "next_issue_candidate_not_live_authorization":
         return _stop(slot.get("reason", "sequential_gate_denied"))
     if slot.get("next_issue") != issue:
@@ -120,7 +120,7 @@ def run_vertical_pregates(request: VerticalRequest, *, lease_store, base_sha: st
 
     for gate in (
         lambda: _validate_inventory(request.inventory, issue),
-        lambda: _sequential_gate(issue, request.prior_proofs),
+        lambda: _sequential_gate(issue, request.prior_proofs, base_sha),
         lambda: _collision_gate(issue, request.open_prs_for_target),
     ):
         denied = gate()

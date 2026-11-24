@@ -288,14 +288,14 @@ class GitHubRefStore:
         # One immutable Issue-origin identifier; never rewrite it while active.
         source = observed.state.get("source_issue_url")
         updated_source = state.get("source_issue_url")
-        if observed.state["phase"] != "IDLE" and updated_source != source:
+        if state["phase"] != "IDLE" and observed.state["phase"] != "IDLE" and updated_source != source:
             raise LeaseError("immutable issue origin changed")
         if observed.state["phase"] == "IDLE" and updated_source is not None:
             if (state["phase"] != "RESERVED" or
                     state.get("pr_url") != updated_source):
                 raise LeaseError("issue origin cannot be forged")
         if (observed.state.get("pr_url") != state.get("pr_url")
-                and observed.state["phase"] != "IDLE"):
+                and observed.state["phase"] != "IDLE" and state["phase"] != "IDLE"):
             if (source is None or observed.state["phase"] != "VERIFYING"
                     or state["phase"] != "VERIFYING"
                     or observed.state["pr_url"] != source
