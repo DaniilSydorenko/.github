@@ -58,7 +58,10 @@ def validate_lease_snapshot(snapshot: dict[str, Any], ctx: Context, *,
     if not isinstance(ctx.workflow_run_id, str) or not re.fullmatch(
             r"[1-9][0-9]{0,19}", ctx.workflow_run_id):
         raise AdmissionDenied("workflow_run_id_invalid")
-    if ctx.request_id != f"openhands-164-issue-{ctx.issue}":
+    allowed_ids = {f"openhands-164-issue-{ctx.issue}"}
+    if ctx.issue == 217:
+        allowed_ids.add("openhands-164-issue-217-recovery-8")
+    if ctx.request_id not in allowed_ids:
         raise AdmissionDenied("request_identity_mismatch")
     try:
         check_state(snapshot)

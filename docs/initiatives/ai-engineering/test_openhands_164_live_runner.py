@@ -130,6 +130,8 @@ class LiveRunnerRegressionTests(unittest.TestCase):
                 "status": "CANDIDATE", "reason": _G3_REASON, "candidate_only": True,
                 "cursor_launch_authorized": False, "model_runs_started": 0,
                 "github_mutated": False}}
+            from test_lease_ruleset_candidate import BRANCH, UPDATE, GUARD
+            evidence.update(branch=BRANCH, rulesets=[{**UPDATE, "bypass_actors": [{"actor_type": "Integration", "actor_id": 5535339, "bypass_mode": "always"}]}, GUARD])
             os.environ["AI_ENG_G3_EVIDENCE"] = json.dumps(evidence)
             self.assertIsNone(verify_isolated_g3_evidence(217))
             for key, value in (("run_id", "999"), ("attempt", 2), ("sha", "b" * 40),
@@ -165,10 +167,15 @@ class LiveRunnerRegressionTests(unittest.TestCase):
                                return_value=verdict):
                         self.assertEqual(emit_g3_evidence(), 2)
                         self.assertFalse(output.exists())
-                with patch("openhands_164_production_gates.public_readonly_probe",
-                           return_value=candidate) as probe:
+                from test_lease_ruleset_candidate import BRANCH, UPDATE, GUARD
+                responses = {
+                    "/branches/ai-eng-cursor-lease-v1": BRANCH,
+                    "/rulesets?includes_parents=false&per_page=100": [{"id": 1}, {"id": 2}],
+                    "/rulesets/1": {**UPDATE, "bypass_actors": [{"actor_type": "Integration", "actor_id": 5535339, "bypass_mode": "always"}]},
+                    "/rulesets/2": GUARD,
+                }
+                with patch("lease_ruleset_candidate.ReadOnly.get", side_effect=responses.__getitem__):
                     self.assertEqual(emit_g3_evidence(), 0)
-                    self.assertEqual(probe.call_args.args[1], 5535339)
                 raw = output.read_text().strip().removeprefix("evidence=")
                 self.assertNotIn("audit-fixture", raw)
                 os.environ["AI_ENG_G3_EVIDENCE"] = raw
@@ -226,6 +233,23 @@ class LiveRunnerRegressionTests(unittest.TestCase):
             out = run_pilot(".", issue=217, live_attested=True)
             self.assertEqual(out["reason"], "prior_issue216_satisfaction_unverified")
             store.assert_not_called()
+
+    def test_recovery_is_pinned_and_one_time(self):
+        from types import SimpleNamespace
+        from openhands_164_live_runner import recovery_request_id, RECOVERY_HEAD, RECOVERY_REQUEST
+        from github_ref_lease import fingerprint, initial_state
+        original = request_id_for(217)
+        state = {**initial_state(), "revision": 5, "consumed_request_hashes": [fingerprint(original)]}
+        class Store:
+            def read(self):
+                return SimpleNamespace(sha=RECOVERY_HEAD, state=state)
+        self.assertEqual(recovery_request_id(Store(), 217), RECOVERY_REQUEST)
+        self.assertEqual(recovery_request_id(Store(), 216), request_id_for(216))
+        state["consumed_request_hashes"].append(fingerprint(RECOVERY_REQUEST))
+        self.assertEqual(recovery_request_id(Store(), 217), original)
+        state["consumed_request_hashes"].pop()
+        state["phase"] = "BLOCKED"
+        self.assertEqual(recovery_request_id(Store(), 217), original)
 
     def test_exact_head_ci_pending_handoff(self):
         published = {

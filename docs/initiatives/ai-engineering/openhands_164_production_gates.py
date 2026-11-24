@@ -8,7 +8,8 @@ import re
 import sys
 from typing import Any, Callable
 
-from lease_ruleset_candidate import public_readonly_probe
+from lease_ruleset_candidate import public_readonly_probe, audit as audit_rulesets, REF
+from openhands_lease_admission_adapter import RulesetEvidence
 from openrouter_budget_gate import probe as openrouter_probe
 from openhands_runner_admission_bridge import ProviderBudgetAttestation
 
@@ -135,11 +136,28 @@ def emit_g3_evidence() -> int:
     if not binding or not token or not output:
         print("STOP: missing protected audit context or credential")
         return 2
-    audit = public_readonly_probe(ReadOnly(token), binding["writer_app_id"])
+    reader = ReadOnly(token)
+    class RecordingReader:
+        def __init__(self):
+            self.responses = {}
+        def get(self, path):
+            value = reader.get(path)
+            self.responses[path] = value
+            return value
+    recording = RecordingReader()
+    audit = public_readonly_probe(recording, binding["writer_app_id"])
     print(json.dumps(audit, sort_keys=True))
     if json.dumps(audit, sort_keys=True) != json.dumps(_expected_g3_audit(), sort_keys=True):
         return 2
-    evidence = {**binding, "audit": audit}
+    branch = recording.responses.get(f"/branches/{REF}")
+    rulesets = [v for k, v in recording.responses.items() if re.fullmatch(r"/rulesets/[1-9][0-9]*", k)]
+    if audit_rulesets(branch, rulesets, approved_app_id=binding["writer_app_id"]) != audit:
+        return 2
+    # Retain only fields consumed by the verifier; never transfer credentials.
+    branch = {k: branch[k] for k in ("name", "protected", "commit")}
+    branch["commit"] = {"sha": branch["commit"]["sha"]}
+    rulesets = [{k: rule[k] for k in ("id", "target", "source_type", "source", "enforcement", "conditions", "rules", "bypass_actors") if k in rule} for rule in rulesets]
+    evidence = {**binding, "audit": audit, "branch": branch, "rulesets": rulesets}
     with open(output, "a", encoding="utf-8") as stream:
         stream.write("evidence=" + json.dumps(evidence, separators=(",", ":")) + "\n")
     return 0
@@ -155,14 +173,23 @@ def verify_isolated_g3_evidence(issue: int) -> dict | None:
     binding = _g3_binding(issue)
     raw = os.environ.get("AI_ENG_G3_EVIDENCE", "")
     try:
-        evidence = json.loads(raw) if len(raw) <= 4096 else None
+        evidence = json.loads(raw) if len(raw) <= 65536 else None
     except (ValueError, TypeError):
         evidence = None
     expected = {**binding, "audit": _expected_g3_audit()} if binding else None
     # Canonical JSON comparison also rejects bool/int type confusion.
-    if expected is None or json.dumps(evidence, sort_keys=True) != json.dumps(expected, sort_keys=True):
+    if not isinstance(evidence, dict) or expected is None or json.dumps({k: v for k, v in evidence.items() if k not in ("branch", "rulesets")}, sort_keys=True) != json.dumps(expected, sort_keys=True):
         return {"decision": "STOP", "reason": "g3_isolated_evidence_invalid"}
+    if audit_rulesets(evidence.get("branch"), evidence.get("rulesets"), approved_app_id=binding["writer_app_id"]) != _expected_g3_audit():
+        return {"decision": "STOP", "reason": "g3_isolated_inventory_invalid"}
     return None
+
+
+def isolated_ruleset_evidence(issue: int) -> RulesetEvidence:
+    if verify_isolated_g3_evidence(issue) is not None:
+        raise PermissionError("g3_isolated_evidence_invalid")
+    evidence = json.loads(os.environ["AI_ENG_G3_EVIDENCE"])
+    return RulesetEvidence(evidence["branch"], evidence["rulesets"], evidence["writer_app_id"], True)
 
 
 def self_test() -> None:

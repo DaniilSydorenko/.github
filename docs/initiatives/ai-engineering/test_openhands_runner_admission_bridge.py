@@ -37,7 +37,8 @@ def trusted_bundle(store: MemoryGitRef, *, issue: int = 216) -> TrustedWorkflowA
     rid = request_id_for(issue)
     assert Controller(store).acquire(rid, f"{HAVERSINE}/issues/{issue}") == "ACQUIRED"
     state = store.read().state
-    head = lease_head = "a" * 40
+    head = "a" * 40
+    lease_head = store.read().sha
     writer = agent_id_for(rid)
     return TrustedWorkflowAttestation(
         expected_lease_sha=lease_head,

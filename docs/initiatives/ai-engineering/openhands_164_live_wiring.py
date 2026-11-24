@@ -44,7 +44,6 @@ from openhands_runner_admission_bridge import (
     evaluate_before_model_handoff,
 )
 from github_ref_lease import agent_id_for
-from test_lease_ruleset_candidate import APP_ID, GUARD, UPDATE
 
 SHA = re.compile(r"[0-9a-f]{40}\Z")
 CONTROL_REPO = "DaniilSydorenko/.github"
@@ -109,10 +108,12 @@ def build_trusted_workflow_attestation(
     lease_store,
     issue: int,
     target_head_sha: str,
+    *, ruleset: RulesetEvidence | None = None,
+    rechecked_head_sha: str | None = None,
 ) -> TrustedWorkflowAttestation:
     """Construct workflow-injected attestation from an authenticated lease snapshot."""
-    rid = request_id_for(issue)
     snap = lease_store.read()
+    rid = snap.state['request_id']
     writer = agent_id_for(rid)
     head = snap.sha
     return TrustedWorkflowAttestation(
@@ -125,9 +126,9 @@ def build_trusted_workflow_attestation(
             exclusive_writer_verified=True,
             credential_path_verified=True,
         ),
-        target_head=TargetHeadEvidence(target_head_sha, target_head_sha, target_head_sha, True),
+        target_head=TargetHeadEvidence(target_head_sha, target_head_sha, rechecked_head_sha or "", rechecked_head_sha is not None),
         writer=WriterIdentityEvidence(writer, True),
-        ruleset=RulesetEvidence("ai-eng-cursor-lease-v1", [UPDATE, GUARD], APP_ID, True),
+        ruleset=ruleset,
     )
 
 
@@ -245,6 +246,7 @@ def run_protected_live_wiring(
     executor=execute_authorized,
     publisher=publish_verified_patch,
     publisher_transport=None,
+    revalidate_target: Callable | None = None,
     protected_authority=EXECUTOR_AUTHORITY,
     publisher_authority=PUBLISHER_AUTHORITY,
 ) -> dict[str, Any]:
@@ -340,7 +342,7 @@ def run_protected_live_wiring(
 
     satisfaction = evaluate_issue_satisfaction(issue, root)
     if satisfaction.get("reason") == "ALREADY_SATISFIED":
-        _release_lease_without_spend(lease_store, request_id_for(issue))
+        _release_lease_without_spend(lease_store, request.trusted.lease.state['request_id'])
         return {**satisfaction, "base_sha": base_sha, "publish_authorized": False}
 
     config = live_config or LiveExecutionConfig(live_attested=False)
@@ -365,7 +367,14 @@ def run_protected_live_wiring(
     if not config.publisher_token:
         return _stop("live_publisher_token_missing")
 
-    rid = request_id_for(issue)
+    if revalidate_target is not None:
+        try:
+            revalidate_target()
+        except (PermissionError, OSError, subprocess.SubprocessError):
+            return _stop('target_changed_before_dispatch')
+    rid = request.trusted.lease.state['request_id']
+    if lease_store.read().sha != request.trusted.expected_lease_sha:
+        return _stop('lease_changed_before_dispatch')
     controller = Controller(lease_store)
     try:
         controller.transition(rid, "RESERVED", "DISPATCHING")
@@ -464,15 +473,9 @@ def run_protected_live_wiring(
             return {**result, **ci_denied, "pr_url": pr_url, "model_invoked": True, "github_write": True}
 
     if request.ci_after_publish is not None and request.ci_after_publish.verified():
-        try:
-            controller.release_verified(
-                rid,
-                provider_terminal=True,
-                integration_accepted=False,
-                manual_approval=True,
-            )
-        except Exception as exc:
-            return _stop("lease_release_failed", detail=type(exc).__name__, pr_url=pr_url, model_invoked=True)
+        # CI is evidence, not owner acceptance. Keep the durable VERIFYING lease.
+        result["ci_verified"] = True
+        result["pilot_complete"] = True
         result["reason"] = TERMINAL_CI_VERIFIED
         result["ci_aggregate"] = request.ci_after_publish.aggregate
         result["ci_security"] = request.ci_after_publish.security

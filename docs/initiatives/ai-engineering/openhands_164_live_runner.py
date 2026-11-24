@@ -14,7 +14,7 @@ import sys
 import urllib.error
 import urllib.request
 
-from github_ref_lease import GitHubRefStore
+from github_ref_lease import GitHubRefStore, fingerprint
 from openhands_164_budget_attestation import gates_only_budget_attestation
 from openhands_164_ci_evidence import exact_head_ci_from_check_runs, pr_number_from_url
 from openhands_164_executor import MODEL_DEFAULT
@@ -31,7 +31,7 @@ from openhands_164_live_wiring import (
     protected_context_from_env,
     run_protected_live_wiring,
 )
-from openhands_164_production_gates import verify_isolated_g3_evidence, verify_provider_hard_cap
+from openhands_164_production_gates import verify_isolated_g3_evidence, verify_provider_hard_cap, isolated_ruleset_evidence
 from openhands_live_orchestrator import inspect as inventory_inspect
 from openhands_lease_admission_adapter import request_id_for
 from openhands_runner_admission_bridge import ProviderBudgetAttestation
@@ -172,6 +172,23 @@ def _finalize_lease(session: ManagedLeaseSession, result: dict) -> tuple[dict, o
     return _augment_with_lease_cleanup(result, cleanup), cleanup
 
 
+# One bounded recovery for the audited Run #8 pre-dispatch release.
+RECOVERY_HEAD = "47670c33fe97b7f32aeb2e97bceb0b2947153478"
+RECOVERY_REQUEST = "openhands-164-issue-217-recovery-8"
+
+
+def recovery_request_id(store, issue: int) -> str:
+    original = request_id_for(issue)
+    snap = store.read()
+    if (issue == 217 and snap.sha == RECOVERY_HEAD
+            and snap.state["phase"] == "IDLE"
+            and snap.state["revision"] == 5
+            and fingerprint(original) in snap.state["consumed_request_hashes"]
+            and fingerprint(RECOVERY_REQUEST) not in snap.state["consumed_request_hashes"]):
+        return RECOVERY_REQUEST
+    return original
+
+
 def run_pilot(workspace: str | pathlib.Path, issue: int = 216, *, live_attested: bool) -> dict:
     protected = protected_context_from_env()
     if protected is None:
@@ -235,11 +252,11 @@ def run_pilot(workspace: str | pathlib.Path, issue: int = 216, *, live_attested:
     publish_token = os.environ.get("HAVERSINE_PUBLISH_TOKEN", "")
 
     lease_store = GitHubRefStore(HQ_REPO, lease_token)
-    rid = request_id_for(issue)
+    rid = recovery_request_id(lease_store, issue) if live_attested else request_id_for(issue)
     issue_url = f"https://github.com/{HAVERSINE}/issues/{issue}"
     session = ManagedLeaseSession(lease_store, rid, issue_url)
     acquire_outcome = session.acquire()
-    if acquire_outcome not in ("ACQUIRED", "ALREADY_OWNED"):
+    if acquire_outcome not in (("ACQUIRED",) if live_attested else ("ACQUIRED", "ALREADY_OWNED")):
         return {"decision": "STOP", "reason": "lease_contention", "lease_outcome": acquire_outcome}
 
     if live_attested and session.current_phase() != "RESERVED":
@@ -247,12 +264,13 @@ def run_pilot(workspace: str | pathlib.Path, issue: int = 216, *, live_attested:
 
     result: dict = {"decision": "STOP", "reason": "pilot_aborted"}
     try:
-        trusted = build_trusted_workflow_attestation(lease_store, issue, base_sha)
         try:
             _validate_target_workspace(root, base_sha)
         except PermissionError as exc:
             result = {"decision": "STOP", "reason": str(exc)}
         else:
+            ruleset = isolated_ruleset_evidence(issue) if live_attested else None
+            trusted = build_trusted_workflow_attestation(lease_store, issue, base_sha, ruleset=ruleset, rechecked_head_sha=base_sha)
             run_id = os.environ.get("GITHUB_RUN_ID", "0")
             open_prs: list[int] = []
             branch = f"ai-eng/issue-{issue}-openhands-164"
@@ -294,6 +312,7 @@ def run_pilot(workspace: str | pathlib.Path, issue: int = 216, *, live_attested:
                         wiring_mode="live_execute" if live_attested else "live_gates_only",
                         live_config=live,
                         publisher_transport=_github_transport if live_attested else None,
+                        revalidate_target=lambda: _validate_target_workspace(root, base_sha),
                     )
                     if result.get("reason") == TERMINAL_PUBLISHED:
                         result = _attach_exact_head_ci(result, read_token=read_token)
