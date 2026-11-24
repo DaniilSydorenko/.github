@@ -25,11 +25,18 @@ class IssueProof:
     lease_released: bool
     authenticated: bool
 
+@dataclass(frozen=True)
+class SatisfiedIssueProof:
+    issue: int
+    path: str
+    exact_head: str
+
+
 def stop(reason: str) -> dict:
     return {"decision": "STOP", "reason": reason, "dispatch_authorized": False,
             "model_invoked": False, "github_write": False}
 
-def next_issue(proofs: object) -> dict:
+def next_issue(proofs: object, *, pinned_base_sha: str | None = None) -> dict:
     """Compute next eligible issue, never a dispatch capability.
 
     Every previous issue must have one independently authenticated Draft PR,
@@ -41,6 +48,13 @@ def next_issue(proofs: object) -> dict:
         return stop("proof_inventory_too_long")
     seen_prs = set()
     for idx, proof in enumerate(proofs):
+        if isinstance(proof, SatisfiedIssueProof):
+            if (idx != 0 or proof.issue != 216 or proof.path != EXPECTED_PATHS[0]
+                    or not isinstance(pinned_base_sha, str) or len(pinned_base_sha) != 40
+                    or any(ch not in "0123456789abcdef" for ch in pinned_base_sha)
+                    or proof.exact_head != pinned_base_sha):
+                return stop("satisfaction_proof_unverified")
+            continue
         if not isinstance(proof, IssueProof) or proof.issue != QUEUE[idx]:
             return stop("out_of_order_or_invalid_proof")
         if proof.path != EXPECTED_PATHS[idx]:
@@ -75,6 +89,10 @@ def self_test() -> None:
     assert next_issue([good(0)])["next_issue"] == 217
     assert next_issue([good(0), good(1)])["next_issue"] == 226
     assert next_issue([good(0), good(1), good(2)])["reason"] == "all_three_proofs_recorded_no_auto_merge"
+    satisfied = SatisfiedIssueProof(216, EXPECTED_PATHS[0], "a" * 40)
+    assert next_issue([satisfied], pinned_base_sha="a" * 40)["next_issue"] == 217
+    assert next_issue([satisfied], pinned_base_sha="b" * 40)["reason"] == "satisfaction_proof_unverified"
+    assert next_issue([satisfied])["reason"] == "satisfaction_proof_unverified"
     from dataclasses import replace
     cases = [
         ([good(1)], "out_of_order_or_invalid_proof"),

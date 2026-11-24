@@ -19,6 +19,7 @@ from openhands_164_budget_attestation import gates_only_budget_attestation
 from openhands_164_ci_evidence import exact_head_ci_from_check_runs, pr_number_from_url
 from openhands_164_executor import MODEL_DEFAULT
 from openhands_164_issue_preflight import early_readonly_satisfaction_pinned
+from openhands_164_sequential_handoff import SatisfiedIssueProof
 from openhands_164_lease_session import ManagedLeaseSession
 from openhands_164_live_wiring import (
     APPROVED_OPERATION,
@@ -210,6 +211,15 @@ def run_pilot(workspace: str | pathlib.Path, issue: int = 216, *, live_attested:
         if denied is not None:
             return denied
 
+    prior_proofs = ()
+    if live_attested and issue == 217:
+        pinned = early_readonly_satisfaction_pinned(
+            root, 216, pinned_base_sha=base_sha, workspace_validator=_validate_target_workspace,
+        )
+        if not pinned or pinned.get("reason") != "ALREADY_SATISFIED":
+            return {"decision": "STOP", "reason": "prior_issue216_satisfaction_unverified"}
+        prior_proofs = (SatisfiedIssueProof(216, pinned["target"], base_sha),)
+
     lease_token, lease_err = _require_lease_writer_token()
     if lease_err is not None:
         return lease_err
@@ -231,6 +241,9 @@ def run_pilot(workspace: str | pathlib.Path, issue: int = 216, *, live_attested:
     acquire_outcome = session.acquire()
     if acquire_outcome not in ("ACQUIRED", "ALREADY_OWNED"):
         return {"decision": "STOP", "reason": "lease_contention", "lease_outcome": acquire_outcome}
+
+    if live_attested and session.current_phase() != "RESERVED":
+        return {"decision": "STOP", "reason": "lease_not_reserved"}
 
     result: dict = {"decision": "STOP", "reason": "pilot_aborted"}
     try:
@@ -269,6 +282,7 @@ def run_pilot(workspace: str | pathlib.Path, issue: int = 216, *, live_attested:
                             run_id,
                             inventory,
                             trusted=trusted,
+                            prior_proofs=prior_proofs,
                             budget=budget,
                             protected=protected,
                             open_prs_for_target=open_prs,
