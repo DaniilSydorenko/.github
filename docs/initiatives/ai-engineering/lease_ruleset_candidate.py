@@ -106,7 +106,9 @@ def audit(branch: object, rulesets: object, *, approved_app_id: object) -> dict:
         rules = item.get("rules")
         bypass = item.get("bypass_actors")
         if not isinstance(rules, list) or not isinstance(bypass, list):
-            return result("STOP", "rule_details_or_bypass_inventory_hidden")
+            return {**result("STOP", "rule_details_or_bypass_inventory_hidden"),
+                    "rules_visible": isinstance(rules, list),
+                    "bypass_inventory_visible": isinstance(bypass, list)}
         types = [r.get("type") for r in rules if isinstance(r, dict)]
         if len(types) != len(rules) or len(types) != len(set(types)):
             return result("STOP", "rules_unknown_or_duplicated")

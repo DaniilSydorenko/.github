@@ -11,7 +11,7 @@ on:
         options:
           - '217'
       execute_model:
-        description: 'When true, invoke OpenHands after all gates pass'
+        description: 'False: isolated audit only; true: audit then live pilot'
         required: true
         type: boolean
         default: false
@@ -24,8 +24,37 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  protected-pilot:
+  protected-audit:
     if: >-
+      github.event_name == 'workflow_dispatch' &&
+      github.repository == 'DaniilSydorenko/.github' &&
+      github.actor == 'DaniilSydorenko' &&
+      github.ref == 'refs/heads/main' &&
+      github.run_attempt == 1 &&
+      inputs.issue == '217'
+    runs-on: ubuntu-latest
+    environment: ai-eng-lease-owner
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    outputs:
+      evidence: ${{ steps.audit.outputs.evidence }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Authenticated G3 audit
+        id: audit
+        env:
+          GITHUB_TOKEN: ${{ secrets.AI_ENG_RULESET_AUDIT_TOKEN }}
+          AI_ENG_WRITER_APP_ID: ${{ vars.AI_ENG_WRITER_APP_ID }}
+          AI_ENG_OWNER_GO_ISSUE: ${{ inputs.issue }}
+        run: python3 docs/initiatives/ai-engineering/openhands_164_production_gates.py --emit-g3
+  protected-pilot:
+    needs: protected-audit
+    if: >-
+      inputs.execute_model &&
       github.event_name == 'workflow_dispatch' &&
       github.repository == 'DaniilSydorenko/.github' &&
       github.actor == 'DaniilSydorenko' &&
@@ -40,7 +69,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
-          ref: main
+          ref: ${{ github.sha }}
           persist-credentials: false
       - uses: actions/setup-python@v6
         with:
@@ -68,18 +97,6 @@ jobs:
           owner: DaniilSydorenko
           repositories: .github
           permission-contents: write
-      # Separate read-only admin token for authenticated repository ruleset details.
-      # Keep it isolated from the lease-writer token and the agent executor.
-      - name: Mint HQ ruleset-auditor GitHub App token (live only)
-        if: inputs.execute_model
-        id: ruleset-audit-app
-        uses: actions/create-github-app-token@v2
-        with:
-          app-id: ${{ vars.AI_ENG_WRITER_APP_ID }}
-          private-key: ${{ secrets.AI_ENG_WRITER_APP_PRIVATE_KEY }}
-          owner: DaniilSydorenko
-          repositories: .github
-          permission-administration: read
       - name: Shared provider cap attestation (live execute only)
         if: inputs.execute_model
         env:
@@ -89,7 +106,8 @@ jobs:
         env:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           HAVERSINE_PUBLISH_TOKEN: ${{ secrets.HAVERSINE_PUBLISH_TOKEN }}
-          GH_TOKEN: ${{ steps.ruleset-audit-app.outputs.token }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          AI_ENG_G3_EVIDENCE: ${{ needs.protected-audit.outputs.evidence }}
           AI_ENG_LEASE_WRITER_TOKEN: ${{ steps.lease-app.outputs.token }}
           AI_ENG_LEASE_TOKEN: ${{ steps.lease-app.outputs.token }}
           AI_ENG_WRITER_APP_ID: ${{ vars.AI_ENG_WRITER_APP_ID }}
