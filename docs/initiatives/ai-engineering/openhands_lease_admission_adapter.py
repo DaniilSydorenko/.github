@@ -20,9 +20,10 @@ from github_ref_lease import LeaseError, agent_id_for, check_state
 from lease_ruleset_candidate import audit as ruleset_audit
 
 try:
-    from openhands_164_lease_preconditions import (
+    from openhands_164_lease_admission_scope import (
         AdmissionDenied,
         Context,
+        all_issues,
         validate_lease_snapshot,
     )
 except ImportError:  # main until #166 merges; adapter stays STOP-closed.
@@ -36,8 +37,11 @@ except ImportError:  # main until #166 merges; adapter stays STOP-closed.
         workflow_run_id: str
         expected_lease_sha: str
 
+    def all_issues() -> tuple[int, ...]:  # type: ignore[misc]
+        return DOC_ISSUES
+
     def validate_lease_snapshot(*_a: Any, **_k: Any) -> str:
-        raise AdmissionDenied("lease_preconditions_module_unavailable")
+        raise AdmissionDenied("lease_admission_scope_unavailable")
 
 SHA = re.compile(r"[0-9a-f]{40}\Z")
 DOC_ISSUES = (216, 217, 226)
@@ -45,11 +49,9 @@ DOC_ISSUES = (216, 217, 226)
 
 def _all_issues() -> tuple[int, ...]:
     try:
-        from openhands_164_code_task import registered_code_issues
-        extra = registered_code_issues()
-    except ImportError:
-        extra = ()
-    return DOC_ISSUES + extra
+        return all_issues()
+    except NameError:
+        return DOC_ISSUES
 
 
 ISSUES = DOC_ISSUES
