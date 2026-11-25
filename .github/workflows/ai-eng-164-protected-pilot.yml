@@ -1,15 +1,16 @@
 name: AI Engineering OpenHands #164 Protected Pilot
 
-# Owner workflow_dispatch only. #216 verified ALREADY_SATISFIED; #217 next owner-gated pilot. #226 blocked.
+# Owner workflow_dispatch only. #216 verified ALREADY_SATISFIED; #217 next owner-gated pilot. #226 follows accepted #217.
 on:
   workflow_dispatch:
     inputs:
       issue:
-        description: 'Haversine pilot issue (217 only; #226 blocked)'
+        description: 'Haversine pilot issue (217 or 226)'
         required: true
         type: choice
         options:
           - '217'
+          - '226'
       recover_run9:
         description: 'Release rejected Run 9 only; no model execution'
         type: boolean
@@ -39,7 +40,7 @@ jobs:
       github.actor == 'DaniilSydorenko' &&
       github.ref == 'refs/heads/main' &&
       github.run_attempt == 1 &&
-      inputs.issue == '217'
+      (inputs.issue == '217' || inputs.issue == '226')
     runs-on: ubuntu-latest
     environment: ai-eng-lease-owner
     timeout-minutes: 5
@@ -68,7 +69,7 @@ jobs:
       github.actor == 'DaniilSydorenko' &&
       github.ref == 'refs/heads/main' &&
       github.run_attempt == 1 &&
-      inputs.issue == '217'
+      (inputs.issue == '217' || inputs.issue == '226')
     runs-on: ubuntu-latest
     environment: ai-eng-lease-owner
     timeout-minutes: 15
@@ -139,9 +140,9 @@ jobs:
         run: |
           set -euo pipefail
           if [[ "${{ inputs.execute_model }}" == "true" ]]; then
-            python3 docs/initiatives/ai-engineering/openhands_164_live_runner.py --live issue217-target 217
+            python3 docs/initiatives/ai-engineering/openhands_164_live_runner.py --live issue217-target "$AI_ENG_OWNER_GO_ISSUE"
           else
-            python3 docs/initiatives/ai-engineering/openhands_164_live_runner.py --gates-only issue217-target 217
+            python3 docs/initiatives/ai-engineering/openhands_164_live_runner.py --gates-only issue217-target "$AI_ENG_OWNER_GO_ISSUE"
           fi
   protected-recovery:
     needs: protected-audit

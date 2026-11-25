@@ -19,7 +19,7 @@ from openhands_164_budget_attestation import gates_only_budget_attestation
 from openhands_164_ci_evidence import exact_head_ci_from_check_runs, pr_number_from_url
 from openhands_164_executor import MODEL_DEFAULT
 from openhands_164_issue_preflight import early_readonly_satisfaction_pinned
-from openhands_164_sequential_handoff import SatisfiedIssueProof
+from openhands_164_sequential_handoff import IssueProof, SatisfiedIssueProof
 from openhands_164_lease_session import ManagedLeaseSession
 from openhands_164_live_wiring import (
     APPROVED_OPERATION,
@@ -236,7 +236,7 @@ def run_pilot(workspace: str | pathlib.Path, issue: int = 216, *, live_attested:
             return denied
 
     prior_proofs = ()
-    if live_attested and issue == 217:
+    if live_attested and issue in (217, 226):
         pinned = early_readonly_satisfaction_pinned(
             root, 216, pinned_base_sha=base_sha, workspace_validator=_validate_target_workspace,
         )
@@ -259,6 +259,21 @@ def run_pilot(workspace: str | pathlib.Path, issue: int = 216, *, live_attested:
     publish_token = os.environ.get("HAVERSINE_PUBLISH_TOKEN", "")
 
     lease_store = GitHubRefStore(HQ_REPO, lease_token)
+    if live_attested and issue == 226:
+        snap = lease_store.read()
+        if snap.sha != "5eabb63dee3d7c7e2b79918eb2c4d04e617e6be5" or snap.state["phase"] != "IDLE":
+            return {"decision": "STOP", "reason": "accepted_217_release_unverified"}
+        pr = _github_transport("GET", "https://api.github.com/repos/" + HAVERSINE + "/pulls/230", read_token)
+        accepted_head = "89b5a881435d06bba12d80a510b67908910c5815"
+        if not (pr.get("merged") is True and pr.get("head", {}).get("sha") == accepted_head
+                and pr.get("merge_commit_sha") == "95e5287c11cc87dff988564409365ad63af10259"):
+            return {"decision": "STOP", "reason": "accepted_217_merge_unverified"}
+        ci, err = exact_head_ci_from_check_runs(230, transport=_github_transport, token=read_token)
+        if err or not ci or not ci.verified:
+            return {"decision": "STOP", "reason": "accepted_217_ci_unverified"}
+        prior_proofs += (IssueProof(217, "docs/examples/v2-consumers.md",
+            "https://github.com/DaniilSydorenko/haversine-geolocation/pull/230",
+            accepted_head, True, True, True, True),)
     rid = recovery_request_id(lease_store, issue) if live_attested else request_id_for(issue)
     issue_url = f"https://github.com/{HAVERSINE}/issues/{issue}"
     session = ManagedLeaseSession(lease_store, rid, issue_url)
