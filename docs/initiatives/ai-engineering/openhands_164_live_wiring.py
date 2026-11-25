@@ -551,6 +551,37 @@ def self_test() -> None:
         else:
             raise AssertionError("incomplete issue217 patch accepted")
 
+    # Exercise compiler invocation, failure propagation and temporary-file cleanup.
+    from unittest.mock import patch
+    with tempfile.TemporaryDirectory() as tmp:
+        root = pathlib.Path(tmp)
+        compiler = root / "node_modules" / ".bin" / "tsc"
+        compiler.parent.mkdir(parents=True)
+        compiler.touch()
+        code = _verify_issue217_example(before, before + example)
+        def compile_probe(args, **kwargs):
+            assert args[0] == str(compiler)
+            assert "--strict" in args and "--noEmit" in args
+            assert pathlib.Path(args[-1]).read_text(encoding="utf-8") == code
+            assert kwargs["check"] is True
+        with patch("subprocess.run", side_effect=compile_probe):
+            _typecheck_issue217_example(root, code)
+        with patch("subprocess.run", side_effect=subprocess.CalledProcessError(2, "tsc")):
+            try:
+                _typecheck_issue217_example(root, code)
+            except subprocess.CalledProcessError:
+                pass
+            else:
+                raise AssertionError("compiler failure accepted")
+        assert not list(root.glob(".issue217-*"))
+        compiler.unlink()
+        try:
+            _typecheck_issue217_example(root, code)
+        except PatchContractError:
+            pass
+        else:
+            raise AssertionError("missing compiler accepted")
+
     from test_github_ref_lease import MemoryGitRef
     from test_openhands_runner_admission_bridge import BUDGET_OK, trusted_bundle
 
