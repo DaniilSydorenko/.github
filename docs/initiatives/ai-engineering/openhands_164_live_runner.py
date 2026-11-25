@@ -354,8 +354,9 @@ def live_exit_code(result: dict) -> int:
             and result.get("github_write") is True
             and result.get("lease_phase") == "VERIFYING"
             and result.get("lease_handoff") == "durable_until_owner_ci_and_release"
-            and result.get("ci_aggregate") == "PENDING"
-            and result.get("ci_security") == "PENDING"
+            and result.get("ci_aggregate") in ("PENDING", "SUCCESS")
+            and result.get("ci_security") in ("PENDING", "SUCCESS")
+            and "PENDING" in (result.get("ci_aggregate"), result.get("ci_security"))
             and pr_number_from_url(result.get("pr_url", "")) is not None):
         return 0
     return 1
@@ -367,6 +368,8 @@ def self_test() -> None:
                "ci_aggregate": "PENDING", "ci_security": "PENDING",
                "pr_url": "https://github.com/DaniilSydorenko/haversine-geolocation/pull/230"}
     assert live_exit_code(pending) == 0
+    assert live_exit_code({**pending, "ci_aggregate": "SUCCESS"}) == 0
+    assert live_exit_code({**pending, "ci_security": "SUCCESS"}) == 0
     for key, value in (("ci_aggregate", "FAILURE"), ("lease_phase", "BLOCKED"),
                        ("github_write", False), ("pr_url", "")):
         assert live_exit_code({**pending, key: value}) == 1

@@ -19,6 +19,10 @@ on:
         description: 'Release accepted merged PR 230; no model execution'
         type: boolean
         default: false
+      accepted_head:
+        description: 'Exact owner-approved merged PR HEAD for acceptance'
+        type: string
+        required: false
       execute_model:
         description: 'False: isolated audit only; true: audit then live pilot'
         required: true
@@ -191,7 +195,7 @@ jobs:
       github.actor == 'DaniilSydorenko' &&
       github.ref == 'refs/heads/main' &&
       github.run_attempt == 1 &&
-      inputs.issue == '217'
+      (inputs.issue == '217' || inputs.issue == '226')
     runs-on: ubuntu-latest
     environment: ai-eng-lease-owner
     timeout-minutes: 5
@@ -217,5 +221,6 @@ jobs:
           AI_ENG_LEASE_WRITER_TOKEN: ${{ steps.lease-app.outputs.token }}
           AI_ENG_G3_EVIDENCE: ${{ needs.protected-audit.outputs.evidence }}
           AI_ENG_WRITER_APP_ID: ${{ vars.AI_ENG_WRITER_APP_ID }}
-          AI_ENG_OWNER_GO_ISSUE: '217'
-        run: python3 docs/initiatives/ai-engineering/openhands_164_accept_run11.py
+          AI_ENG_OWNER_GO_ISSUE: ${{ inputs.issue }}
+          AI_ENG_ACCEPTED_HEAD: ${{ inputs.accepted_head }}
+        run: python3 docs/initiatives/ai-engineering/openhands_164_accept.py
