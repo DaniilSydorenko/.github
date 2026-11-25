@@ -185,7 +185,7 @@ class LiveWiringTests(unittest.TestCase):
     def test_live_execute_mocked_executor_publisher(self):
         calls = {"model": 0, "publish": 0}
 
-        def fake_executor(root, key, model, issue, *, authorization):
+        def fake_executor(root, key, model, issue, *, authorization, untrusted_issue_body=None):
             calls["model"] += 1
             assert authorization is _TRUSTED_AUTHORIZATION
             _write(root, issue)

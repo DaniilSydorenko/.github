@@ -46,8 +46,18 @@ def _prompt(issue: int) -> str:
     )
 
 
+def _issue_in_scope(issue: int) -> bool:
+    if issue in ALLOWED:
+        return True
+    try:
+        from openhands_164_code_task import is_code_task_issue
+        return is_code_task_issue(issue)
+    except ImportError:
+        return False
+
+
 def validate_workspace(workspace: str | pathlib.Path, issue: int, *, base_sha: str | None = None):
-    if type(issue) is not int or issue not in ALLOWED:
+    if type(issue) is not int or not _issue_in_scope(issue):
         raise ValueError("issue_out_of_scope")
     if base_sha is not None and (not isinstance(base_sha, str) or not SHA.fullmatch(base_sha)):
         raise ValueError("invalid_base_sha")
@@ -98,13 +108,28 @@ def build_sdk_conversation(root, api_key, model, issue: int):
     return Conversation(agent=agent, workspace=str(root))
 
 
-def execute_authorized(root, api_key, model, issue: int, *, authorization):
+def execute_authorized(
+    root,
+    api_key,
+    model,
+    issue: int,
+    *,
+    authorization,
+    untrusted_issue_body: str | None = None,
+):
     if authorization is not _TRUSTED_AUTHORIZATION:
         raise PermissionError("trusted_live_wiring_and_budget_required")
-    if issue not in ALLOWED:
+    if not _issue_in_scope(issue):
         raise ValueError("issue_out_of_scope")
+    try:
+        from openhands_164_code_task import build_code_task_prompt, resolve_code_task
+
+        spec = resolve_code_task(issue)
+        message = build_code_task_prompt(spec, untrusted_issue_body) if spec else _prompt(issue)
+    except ImportError:
+        message = _prompt(issue)
     conversation = build_sdk_conversation(root, api_key, model, issue)
-    conversation.send_message(_prompt(issue))
+    conversation.send_message(message)
     conversation.run()
     return conversation.state.execution_status
 

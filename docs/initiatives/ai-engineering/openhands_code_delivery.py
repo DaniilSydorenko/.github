@@ -5,7 +5,7 @@ import pathlib
 import re
 from openhands_164_patch_contract import _git, SHA, PatchContractError
 
-SOURCE = re.compile(r"(?:src|tests?|fixtures)/[A-Za-z0-9_./-]+\.ts\Z")
+SOURCE = re.compile(r"(?:src|tests?|spec|fixtures)/[A-Za-z0-9_./-]+\.ts\Z")
 
 def collect_changes(workspace, base_sha, allowed_paths):
     root = pathlib.Path(workspace).resolve(strict=True)

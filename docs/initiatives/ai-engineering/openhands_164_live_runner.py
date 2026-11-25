@@ -21,6 +21,14 @@ from openhands_164_executor import MODEL_DEFAULT
 from openhands_164_issue_preflight import early_readonly_satisfaction_pinned
 from openhands_164_sequential_handoff import IssueProof, SatisfiedIssueProof
 from openhands_164_lease_session import ManagedLeaseSession
+from openhands_164_code_task import (
+    CODE_APPROVED_OPERATION,
+    POST_DOC_PILOT_LEASE_REVISION,
+    build_code_task_inventory,
+    prior_proofs_after_doc_pilot,
+    resolve_code_task,
+    verify_post_doc_pilot_lease,
+)
 from openhands_164_live_wiring import (
     APPROVED_OPERATION,
     TERMINAL_CI_VERIFIED,
@@ -194,6 +202,137 @@ def recovery_request_id(store, issue: int) -> str:
             and fingerprint(RECOVERY_REQUEST) not in snap.state["consumed_request_hashes"]):
         return RECOVERY_REQUEST
     return original
+
+
+def run_code_task_pilot(workspace: str | pathlib.Path, issue: int, *, live_attested: bool) -> dict:
+    protected = protected_context_from_env()
+    if protected is None:
+        return {"decision": "STOP", "reason": "protected_workflow_context_missing"}
+    if protected.operation != CODE_APPROVED_OPERATION:
+        return {"decision": "STOP", "reason": "wrong_operation"}
+    spec = resolve_code_task(issue)
+    if spec is None:
+        return {"decision": "STOP", "reason": "code_task_not_registered", "issue": issue}
+
+    root = pathlib.Path(workspace).resolve(strict=True)
+    read_token = os.environ.get("GH_TOKEN", "") or os.environ.get("GITHUB_TOKEN", "")
+    if not read_token:
+        return {"decision": "STOP", "reason": "github_read_token_missing"}
+
+    head = _github_transport(
+        "GET", f"https://api.github.com/repos/{HAVERSINE}/git/ref/heads/master", read_token
+    )
+    base_sha = head.get("object", {}).get("sha") if isinstance(head, dict) else None
+    if not isinstance(base_sha, str):
+        return {"decision": "STOP", "reason": "default_head_unverified"}
+
+    inventory = build_code_task_inventory(
+        lambda path: _github_transport("GET", f"https://api.github.com/repos/{HAVERSINE}{path}", read_token),
+        issue,
+        default_head=base_sha,
+    )
+    if inventory.get("reason") != "live_authorization_not_integrated":
+        return inventory
+
+    if live_attested:
+        denied = verify_isolated_g3_evidence(issue)
+        if denied is not None:
+            return denied
+
+    lease_token, lease_err = _require_lease_writer_token()
+    if lease_err is not None:
+        return lease_err
+
+    if live_attested:
+        api_key = os.environ.get("OPENROUTER_API_KEY", "")
+        budget, budget_stop, _probe_evidence = verify_provider_hard_cap(api_key)
+        if budget_stop is not None:
+            return budget_stop
+    else:
+        budget = gates_only_budget_attestation()
+
+    publish_token = os.environ.get("HAVERSINE_PUBLISH_TOKEN", "")
+    lease_store = GitHubRefStore(HQ_REPO, lease_token)
+    if live_attested:
+        snap = lease_store.read()
+        denied = verify_post_doc_pilot_lease(snap.state)
+        if denied is not None:
+            return denied
+
+    from openhands_164_code_task import admission_request_id
+
+    rid = admission_request_id(issue)
+    issue_url = f"https://github.com/{HAVERSINE}/issues/{issue}"
+    session = ManagedLeaseSession(lease_store, rid, issue_url)
+    acquire_outcome = session.acquire()
+    if acquire_outcome not in (("ACQUIRED",) if live_attested else ("ACQUIRED", "ALREADY_OWNED")):
+        return {"decision": "STOP", "reason": "lease_contention", "lease_outcome": acquire_outcome}
+
+    result: dict = {"decision": "STOP", "reason": "pilot_aborted"}
+    try:
+        try:
+            _validate_target_workspace(root, base_sha)
+        except PermissionError as exc:
+            result = {"decision": "STOP", "reason": str(exc)}
+        else:
+            ruleset = isolated_ruleset_evidence(issue) if live_attested else None
+            trusted = build_trusted_workflow_attestation(
+                lease_store, issue, base_sha, ruleset=ruleset, rechecked_head_sha=base_sha
+            )
+            run_id = os.environ.get("GITHUB_RUN_ID", "0")
+            branch = branch_for(issue)
+            open_prs: list[int] = []
+            try:
+                existing = _github_transport(
+                    "GET",
+                    f"https://api.github.com/repos/{HAVERSINE}/pulls?state=open&head=DaniilSydorenko:{branch}",
+                    read_token,
+                )
+                if isinstance(existing, list) and existing:
+                    open_prs = [existing[0].get("number", 0)]
+            except (urllib.error.URLError, OSError, ValueError, json.JSONDecodeError):
+                result = {"decision": "STOP", "reason": "collision_query_failed"}
+            else:
+                bodies = inventory.get("issue_bodies", {})
+                live = LiveExecutionConfig(
+                    live_attested=live_attested and os.environ.get("AI_ENG_LIVE_164_EXECUTE") == "1",
+                    api_key=os.environ.get("OPENROUTER_API_KEY", "") if live_attested else None,
+                    model=MODEL_DEFAULT,
+                    publisher_token=publish_token if live_attested else None,
+                    code_paths=spec.allowed_paths,
+                    untrusted_issue_body=bodies.get(issue) if isinstance(bodies, dict) else None,
+                )
+                if live.live_attested and not publish_token:
+                    result = {"decision": "STOP", "reason": "live_publisher_token_missing"}
+                else:
+                    result = run_protected_live_wiring(
+                        LiveWiringRequest(
+                            issue,
+                            run_id,
+                            inventory,
+                            trusted=trusted,
+                            prior_proofs=prior_proofs_after_doc_pilot(),
+                            budget=budget,
+                            protected=protected,
+                            open_prs_for_target=open_prs,
+                            ci_after_publish=None,
+                        ),
+                        lease_store=lease_store,
+                        workspace=root,
+                        base_sha=base_sha,
+                        wiring_mode="live_execute" if live_attested else "live_gates_only",
+                        live_config=live,
+                        publisher_transport=_github_transport if live_attested else None,
+                        revalidate_target=lambda: _validate_target_workspace(root, base_sha),
+                    )
+                    if result.get("reason") == TERMINAL_PUBLISHED:
+                        result = _attach_exact_head_ci(result, read_token=read_token)
+    except Exception as exc:
+        result = {"decision": "STOP", "reason": "pilot_exception", "detail": type(exc).__name__}
+    finally:
+        result, _ = _finalize_lease(session, result)
+    result["lease_revision_expected"] = POST_DOC_PILOT_LEASE_REVISION
+    return result
 
 
 def run_pilot(workspace: str | pathlib.Path, issue: int = 216, *, live_attested: bool) -> dict:
@@ -382,6 +521,27 @@ def self_test() -> None:
 if __name__ == "__main__":
     if sys.argv[1:] == ["--self-test"]:
         self_test()
+    elif len(sys.argv) >= 2 and sys.argv[1] == "--code-live":
+        workspace = sys.argv[2] if len(sys.argv) > 2 else "."
+        issue = int(sys.argv[3]) if len(sys.argv) > 3 else 0
+        try:
+            result = run_code_task_pilot(workspace, issue=issue, live_attested=True)
+            print(json.dumps(result, sort_keys=True))
+            sys.exit(live_exit_code(result))
+        except Exception as error:
+            print(json.dumps({"decision": "STOP", "reason": type(error).__name__}))
+            sys.exit(1)
+    elif len(sys.argv) >= 2 and sys.argv[1] == "--code-gates-only":
+        workspace = sys.argv[2] if len(sys.argv) > 2 else "."
+        issue = int(sys.argv[3]) if len(sys.argv) > 3 else 0
+        result = run_code_task_pilot(workspace, issue=issue, live_attested=False)
+        print(json.dumps(result, sort_keys=True))
+        ok = result.get("reason") in (
+            "live_164_vertical_wiring_verified_owner_gated",
+            "CODE_TASK_ADMITTED",
+            "code_task_target_missing",
+        )
+        sys.exit(0 if ok and not result.get("model_invoked") and not result.get("github_write") else 1)
     elif len(sys.argv) >= 2 and sys.argv[1] == "--live":
         workspace = sys.argv[2] if len(sys.argv) > 2 else "."
         issue = int(sys.argv[3]) if len(sys.argv) > 3 else 216
@@ -400,4 +560,7 @@ if __name__ == "__main__":
         ok = result.get("reason") in ("ALREADY_SATISFIED", "live_164_vertical_wiring_verified_owner_gated")
         sys.exit(0 if ok and not result.get("model_invoked") and not result.get("github_write") else 1)
     else:
-        sys.exit("Usage: --self-test | --gates-only WORKSPACE [ISSUE] | --live WORKSPACE [ISSUE]")
+        sys.exit(
+            "Usage: --self-test | --gates-only WORKSPACE [ISSUE] | --live WORKSPACE [ISSUE] | "
+            "--code-gates-only WORKSPACE ISSUE | --code-live WORKSPACE ISSUE"
+        )

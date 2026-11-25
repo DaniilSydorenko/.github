@@ -11,7 +11,18 @@ from typing import Any
 
 from github_ref_lease import check_state, agent_id_for, LeaseError
 
-ISSUES = (216, 217, 226)
+DOC_ISSUES = (216, 217, 226)
+
+
+def _all_issues() -> tuple[int, ...]:
+    try:
+        from openhands_164_code_task import registered_code_issues
+        return DOC_ISSUES + registered_code_issues()
+    except ImportError:
+        return DOC_ISSUES
+
+
+ISSUES = DOC_ISSUES
 REPO = "https://github.com/DaniilSydorenko/haversine-geolocation"
 SHA = re.compile(r"[0-9a-f]{40}\Z")
 
@@ -51,14 +62,22 @@ def validate_lease_snapshot(snapshot: dict[str, Any], ctx: Context, *,
             or not SHA.fullmatch(observed_lease_sha)
             or observed_lease_sha != ctx.expected_lease_sha):
         raise AdmissionDenied("lease_ref_sha_missing_or_stale")
-    if type(ctx.issue) is not int or ctx.issue not in ISSUES:
+    if type(ctx.issue) is not int or ctx.issue not in _all_issues():
         raise AdmissionDenied("issue_out_of_scope")
     if not isinstance(ctx.target_sha, str) or not SHA.fullmatch(ctx.target_sha):
         raise AdmissionDenied("target_sha_invalid")
     if not isinstance(ctx.workflow_run_id, str) or not re.fullmatch(
             r"[1-9][0-9]{0,19}", ctx.workflow_run_id):
         raise AdmissionDenied("workflow_run_id_invalid")
-    allowed_ids = {f"openhands-164-issue-{ctx.issue}"}
+    try:
+        from openhands_164_code_task import admission_request_id, is_code_task_issue
+
+        if is_code_task_issue(ctx.issue):
+            allowed_ids = {admission_request_id(ctx.issue)}
+        else:
+            allowed_ids = {f"openhands-164-issue-{ctx.issue}"}
+    except ImportError:
+        allowed_ids = {f"openhands-164-issue-{ctx.issue}"}
     if ctx.issue == 217:
         allowed_ids.add("openhands-164-issue-217-recovery-8")
         allowed_ids.add("openhands-164-issue-217-correction-9")
