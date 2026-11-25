@@ -38,7 +38,14 @@ class CodeTaskSpec:
 
 
 # Populated only by trusted HQ control-plane edits; never from issue text.
-TRUSTED_CODE_TASKS: dict[int, CodeTaskSpec] = {}
+TRUSTED_CODE_TASKS: dict[int, CodeTaskSpec] = {
+    232: CodeTaskSpec(
+        ("src/v2/nearest.ts", "spec/v2-nearest.spec.ts"),
+        "Preserve first-candidate selection when computed distances overflow; "
+        "add a deterministic regression with a finite extreme radius, preserving "
+        "existing validation, tie semantics and public API.",
+    ),
+}
 
 
 def registered_code_issues() -> tuple[int, ...]:

@@ -39,6 +39,7 @@ on:
       - 'AGENTS.md'
       - 'docs/initiatives/ai-engineering/openhands_164_lease_preconditions.py'
       - 'docs/initiatives/ai-engineering/openhands_164_patch_contract.py'
+      - 'docs/initiatives/ai-engineering/openhands_164_code_task.py'
       - 'docs/initiatives/ai-engineering/openhands_164_publisher_handoff.py'
       - '.github/workflows/ai-eng-openhands-readiness.yml'
       - '.github/workflows/ai-eng-haversine220-protected-preflight.yml'
@@ -163,6 +164,8 @@ jobs:
           python3 -m unittest discover -s docs/initiatives/ai-engineering -p 'test_openhands_164_singleton.py' -v
       - name: Verify #164 per-Issue documentation patch scope (offline)
         run: python3 docs/initiatives/ai-engineering/openhands_164_patch_contract.py --self-test
+      - name: Verify trusted code task registry (offline, no model)
+        run: python3 docs/initiatives/ai-engineering/openhands_164_code_task.py --self-test
       - name: Verify #164 patch-to-publisher handoff (offline)
         run: python3 docs/initiatives/ai-engineering/openhands_164_publisher_handoff.py
       - name: Verify #164 read-only live inventory adapter (offline)
