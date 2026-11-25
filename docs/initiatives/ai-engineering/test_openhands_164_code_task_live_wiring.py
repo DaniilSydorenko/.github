@@ -18,17 +18,21 @@ from openhands_164_live_wiring import (
 )
 from openhands_164_code_task import (
     CODE_APPROVED_OPERATION,
-    POST_DOC_PILOT_LEASE_REVISION,
+    POST_DOC_PILOT_IDLE_LEASE_REVISION,
+    POST_DOC_PILOT_RESERVED_LEASE_REVISION,
     CodeTaskSpec,
     TRUSTED_CODE_TASKS,
+    admission_request_id,
+    prior_proofs_after_doc_pilot,
 )
-from openhands_164_sequential_handoff import IssueProof
-from openhands_runner_admission_bridge import ProviderBudgetAttestation
+from openhands_164_lease_session import ManagedLeaseSession
+from openhands_runner_admission_bridge import evaluate_before_model_handoff
 from test_github_ref_lease import MemoryGitRef
 from test_openhands_runner_admission_bridge import BUDGET_OK, trusted_bundle
 
 FIXTURE_ISSUE = 99164
 PATHS = ("src/v2/fixture.ts", "spec/v2-fixture.spec.ts")
+HAVERSINE_ISSUE = "https://github.com/DaniilSydorenko/haversine-geolocation/issues"
 
 
 def _repo(tmp: pathlib.Path) -> tuple[pathlib.Path, str]:
@@ -65,43 +69,46 @@ class CodeTaskLiveWiringTests(unittest.TestCase):
     def tearDown(self):
         TRUSTED_CODE_TASKS.pop(FIXTURE_ISSUE, None)
 
+    def test_runner_admission_after_idle_to_reserved(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            _root, sha = _repo(pathlib.Path(tmp))
+            store = MemoryGitRef()
+            trusted = trusted_bundle(
+                store,
+                issue=FIXTURE_ISSUE,
+                target_head_sha=sha,
+                idle_revision=POST_DOC_PILOT_IDLE_LEASE_REVISION,
+            )
+            self.assertEqual(trusted.lease.state["phase"], "RESERVED")
+            self.assertEqual(trusted.lease.state["revision"], POST_DOC_PILOT_RESERVED_LEASE_REVISION)
+            admission = evaluate_before_model_handoff(
+                FIXTURE_ISSUE,
+                "7788",
+                trusted_attestation=trusted,
+                budget_attestation=BUDGET_OK,
+            )
+            self.assertEqual(admission["reason"], "model_handoff_blocked_live_capability_unverified")
+
     def test_mocked_live_code_task_publish(self):
         calls = {"model": 0, "pull_create": 0}
 
-        def fake_executor(root, key, model, issue, *, authorization, untrusted_issue_body=None):
+        def fake_executor(root, key, model, issue, *, authorization, **kwargs):
             calls["model"] += 1
             assert authorization is _TRUSTED_AUTHORIZATION
-            assert "UNTRUSTED" in (untrusted_issue_body or "")
+            assert "UNTRUSTED" in (kwargs.get("untrusted_issue_body") or "")
             for name, content in (
                 (PATHS[0], "export const fixtureValue = 41;\n"),
-                (PATHS[1], "import {it, expect} from 'vitest';\nimport {fixtureValue} from '../src/v2/fixture';\nit('fixture', () => expect(fixtureValue).toBe(41));\n"),
+                (
+                    PATHS[1],
+                    "import {it, expect} from 'vitest';\n"
+                    "import {fixtureValue} from '../src/v2/fixture';\n"
+                    "it('fixture', () => expect(fixtureValue).toBe(41));\n",
+                ),
             ):
                 path = root / name
                 path.parent.mkdir(parents=True, exist_ok=True)
                 path.write_text(content, encoding="utf-8")
 
-        prior = (
-            IssueProof(
-                217,
-                "docs/examples/v2-consumers.md",
-                "https://github.com/DaniilSydorenko/haversine-geolocation/pull/230",
-                "a" * 40,
-                True,
-                True,
-                True,
-                True,
-            ),
-            IssueProof(
-                226,
-                "docs/examples/v2-coding-assistants.md",
-                "https://github.com/DaniilSydorenko/haversine-geolocation/pull/231",
-                "b" * 40,
-                True,
-                True,
-                True,
-                True,
-            ),
-        )
         inventory = {
             "reason": "live_authorization_not_integrated",
             "default_head": "",
@@ -137,10 +144,12 @@ class CodeTaskLiveWiringTests(unittest.TestCase):
                 return {"sha": "d" * 40}
 
             store = MemoryGitRef()
-            # acquire() bumps revision; post–#226 pilot expects rev 23 after reserve.
-            store.state = {**store.state, "revision": 22}
-            trusted = trusted_bundle(store, issue=FIXTURE_ISSUE)
-            self.assertEqual(trusted.lease.state["revision"], POST_DOC_PILOT_LEASE_REVISION)
+            trusted = trusted_bundle(
+                store,
+                issue=FIXTURE_ISSUE,
+                target_head_sha=sha,
+                idle_revision=POST_DOC_PILOT_IDLE_LEASE_REVISION,
+            )
             out = run_protected_live_wiring(
                 LiveWiringRequest(
                     FIXTURE_ISSUE,
@@ -149,7 +158,7 @@ class CodeTaskLiveWiringTests(unittest.TestCase):
                     trusted=trusted,
                     budget=BUDGET_OK,
                     protected=ctx,
-                    prior_proofs=prior,
+                    prior_proofs=prior_proofs_after_doc_pilot(),
                 ),
                 lease_store=store,
                 workspace=root,
@@ -165,11 +174,23 @@ class CodeTaskLiveWiringTests(unittest.TestCase):
                 executor=fake_executor,
                 publisher_transport=fake_transport,
             )
-        self.assertEqual(out["reason"], TERMINAL_PUBLISHED)
-        self.assertTrue(out["model_invoked"])
-        self.assertTrue(out["github_write"])
-        self.assertEqual(calls["model"], 1)
-        self.assertEqual(calls["pull_create"], 1)
+            self.assertEqual(out["reason"], TERMINAL_PUBLISHED)
+            self.assertTrue(out["model_invoked"])
+            self.assertTrue(out["github_write"])
+            self.assertEqual(calls["model"], 1)
+            self.assertEqual(calls["pull_create"], 1)
+            self.assertEqual(store.read().state["phase"], "VERIFYING")
+
+    def test_gates_only_releases_reserved_lease(self):
+        store = MemoryGitRef()
+        store.state = {**store.state, "phase": "IDLE", "revision": POST_DOC_PILOT_IDLE_LEASE_REVISION}
+        rid = admission_request_id(FIXTURE_ISSUE)
+        session = ManagedLeaseSession(store, rid, f"{HAVERSINE_ISSUE}/{FIXTURE_ISSUE}")
+        self.assertEqual(session.acquire(), "ACQUIRED")
+        self.assertEqual(store.read().state["revision"], POST_DOC_PILOT_RESERVED_LEASE_REVISION)
+        cleanup = session.release_reserved_if_still_owned()
+        self.assertTrue(cleanup.released)
+        self.assertEqual(store.read().state["phase"], "IDLE")
 
 
 if __name__ == "__main__":

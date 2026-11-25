@@ -490,14 +490,10 @@ def run_protected_live_wiring(
     model_invoked = False
     try:
         validated = validate_workspace(root, issue, base_sha=base_sha)
-        executor(
-            validated,
-            config.api_key,
-            config.model,
-            issue,
-            authorization=protected_authority,
-            untrusted_issue_body=config.untrusted_issue_body,
-        )
+        exec_kwargs: dict[str, Any] = {"authorization": protected_authority}
+        if config.untrusted_issue_body is not None:
+            exec_kwargs["untrusted_issue_body"] = config.untrusted_issue_body
+        executor(validated, config.api_key, config.model, issue, **exec_kwargs)
         model_invoked = True
     except (PermissionError, ValueError, RuntimeError, OSError) as exc:
         try:

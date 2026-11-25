@@ -15,7 +15,9 @@ from openhands_164_sequential_handoff import IssueProof
 from openhands_code_delivery import SOURCE
 
 REPO_ISSUES = "https://github.com/DaniilSydorenko/haversine-geolocation/issues"
-POST_DOC_PILOT_LEASE_REVISION = 23
+POST_DOC_PILOT_IDLE_LEASE_REVISION = 23
+POST_DOC_PILOT_LEASE_REVISION = POST_DOC_PILOT_IDLE_LEASE_REVISION
+POST_DOC_PILOT_RESERVED_LEASE_REVISION = POST_DOC_PILOT_IDLE_LEASE_REVISION + 1
 ACCEPTED_226_PR = 231
 ACCEPTED_226_HEAD = "f00a9dff7107b1e62eba3dd3b0098c7c688507c4"
 ACCEPTED_226_MERGE = "ed69f7c2b16a638f3ce3d6cc7f24203c39247c0a"
@@ -88,12 +90,26 @@ def build_code_task_prompt(spec: CodeTaskSpec, untrusted_issue_body: str | None)
     )
 
 
+def expected_post_doc_pilot_revision(lease_state: Mapping[str, Any]) -> int | None:
+    phase = lease_state.get("phase")
+    if phase == "IDLE":
+        return POST_DOC_PILOT_IDLE_LEASE_REVISION
+    if phase in ("RESERVED", "DISPATCHING", "RUNNING", "VERIFYING", "BLOCKED"):
+        return POST_DOC_PILOT_RESERVED_LEASE_REVISION
+    return None
+
+
 def verify_post_doc_pilot_revision(lease_state: Mapping[str, Any]) -> dict[str, Any] | None:
-    if lease_state.get("revision") != POST_DOC_PILOT_LEASE_REVISION:
+    expected = expected_post_doc_pilot_revision(lease_state)
+    if expected is None:
+        return _stop("post_doc_pilot_lease_phase_unverified", phase=lease_state.get("phase"))
+    got = lease_state.get("revision")
+    if got != expected:
         return _stop(
             "post_doc_pilot_lease_revision_unverified",
-            expected=POST_DOC_PILOT_LEASE_REVISION,
-            got=lease_state.get("revision"),
+            expected=expected,
+            got=got,
+            phase=lease_state.get("phase"),
         )
     return None
 
@@ -244,7 +260,7 @@ def self_test() -> None:
         assert "IGNORE" in prompt
         assert admit_protected_code_task(
             99164,
-            lease_state={"phase": "IDLE", "revision": POST_DOC_PILOT_LEASE_REVISION},
+            lease_state={"phase": "RESERVED", "revision": POST_DOC_PILOT_RESERVED_LEASE_REVISION},
             issue_record={"number": 99164, "state": "open", "body": "untrusted"},
             accepted_226_ok=True,
         )["decision"] == "CODE_TASK_ADMITTED"

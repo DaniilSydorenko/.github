@@ -33,11 +33,19 @@ BUDGET_OK = ProviderBudgetAttestation(
 )
 
 
-def trusted_bundle(store: MemoryGitRef, *, issue: int = 216) -> TrustedWorkflowAttestation:
+def trusted_bundle(
+    store: MemoryGitRef,
+    *,
+    issue: int = 216,
+    target_head_sha: str | None = None,
+    idle_revision: int | None = None,
+) -> TrustedWorkflowAttestation:
+    if idle_revision is not None:
+        store.state = {**store.state, "phase": "IDLE", "revision": idle_revision}
     rid = request_id_for(issue)
     assert Controller(store).acquire(rid, f"{HAVERSINE}/issues/{issue}") == "ACQUIRED"
     state = store.read().state
-    head = "a" * 40
+    head = target_head_sha if target_head_sha is not None else "a" * 40
     lease_head = store.read().sha
     writer = agent_id_for(rid)
     return TrustedWorkflowAttestation(

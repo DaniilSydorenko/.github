@@ -219,7 +219,7 @@ class LiveWiringTests(unittest.TestCase):
     def test_publisher_failure_blocks_lease(self):
         store = MemoryGitRef()
 
-        def fake_executor(root, key, model, issue, *, authorization):
+        def fake_executor(root, key, model, issue, *, authorization, **kwargs):
             _write(root, issue)
 
         def bad_publish(**_kwargs):
