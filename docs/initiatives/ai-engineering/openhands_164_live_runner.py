@@ -332,7 +332,29 @@ def run_pilot(workspace: str | pathlib.Path, issue: int = 216, *, live_attested:
     return result
 
 
+def live_exit_code(result: dict) -> int:
+    if result.get("pilot_complete") is True or result.get("reason") == "ALREADY_SATISFIED":
+        return 0
+    if (result.get("reason") == EXACT_HEAD_CI_PENDING
+            and result.get("github_write") is True
+            and result.get("lease_phase") == "VERIFYING"
+            and result.get("lease_handoff") == "durable_until_owner_ci_and_release"
+            and result.get("ci_aggregate") == "PENDING"
+            and result.get("ci_security") == "PENDING"
+            and pr_number_from_url(result.get("pr_url", "")) is not None):
+        return 0
+    return 1
+
+
 def self_test() -> None:
+    pending = {"reason": EXACT_HEAD_CI_PENDING, "github_write": True,
+               "lease_phase": "VERIFYING", "lease_handoff": "durable_until_owner_ci_and_release",
+               "ci_aggregate": "PENDING", "ci_security": "PENDING",
+               "pr_url": "https://github.com/DaniilSydorenko/haversine-geolocation/pull/230"}
+    assert live_exit_code(pending) == 0
+    for key, value in (("ci_aggregate", "FAILURE"), ("lease_phase", "BLOCKED"),
+                       ("github_write", False), ("pr_url", "")):
+        assert live_exit_code({**pending, key: value}) == 1
     assert protected_context_from_env() is None
     missing = run_pilot(".", live_attested=False)
     assert missing["reason"] == "protected_workflow_context_missing"
@@ -348,7 +370,7 @@ if __name__ == "__main__":
         try:
             result = run_pilot(workspace, issue=issue, live_attested=True)
             print(json.dumps(result, sort_keys=True))
-            sys.exit(0 if result.get("pilot_complete") is True or result.get("reason") == "ALREADY_SATISFIED" else 1)
+            sys.exit(live_exit_code(result))
         except Exception as error:
             print(json.dumps({"decision": "STOP", "reason": type(error).__name__}))
             sys.exit(1)

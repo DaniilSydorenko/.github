@@ -197,7 +197,7 @@ def _release_lease_without_spend(lease_store, request_id: str) -> None:
         pass
 
 
-def _verify_issue217_example(before: str, after: str) -> None:
+def _verify_issue217_example(before: str, after: str) -> str:
     """Conservative pilot-specific shape gate; human review still required."""
     old = before.splitlines(keepends=True)
     new = after.splitlines(keepends=True)
@@ -218,6 +218,22 @@ def _verify_issue217_example(before: str, after: str) -> None:
             and re.search(r"\bisCoordinate\s*\([^)]*\)[\s\S]*\bdistance\s*\(", code)
             and "latitude" in code and "longitude" in code):
         raise PatchContractError("issue217_validation_example_missing")
+    return code
+
+
+def _typecheck_issue217_example(workspace: pathlib.Path, code: str) -> None:
+    # Compile against the package declarations built before model execution.
+    compiler = workspace / "node_modules" / ".bin" / "tsc"
+    if not compiler.is_file():
+        raise PatchContractError("issue217_compiler_missing")
+    with tempfile.TemporaryDirectory(prefix=".issue217-", dir=workspace) as directory:
+        example = pathlib.Path(directory) / "example.ts"
+        example.write_text(code, encoding="utf-8")
+        subprocess.run([str(compiler), "--noEmit", "--strict", "--target", "ES2022",
+                        "--module", "NodeNext", "--moduleResolution", "NodeNext",
+                        str(example)], cwd=workspace, check=True, timeout=60,
+                       capture_output=True, text=True)
+
 
 
 def _complete_patch_pipeline(
@@ -238,7 +254,8 @@ def _complete_patch_pipeline(
                 ["git", "-C", str(workspace), "show", f"{base_sha}:{ALLOWED[issue]}"],
                 text=True, timeout=15,
             )
-            _verify_issue217_example(before, (workspace / ALLOWED[issue]).read_text(encoding="utf-8"))
+            code = _verify_issue217_example(before, (workspace / ALLOWED[issue]).read_text(encoding="utf-8"))
+            _typecheck_issue217_example(workspace, code)
         except (PatchContractError, OSError, ValueError, subprocess.SubprocessError) as exc:
             return _stop("issue217_acceptance_unverified", detail=str(exc)), None
 
@@ -533,6 +550,37 @@ def self_test() -> None:
             pass
         else:
             raise AssertionError("incomplete issue217 patch accepted")
+
+    # Exercise compiler invocation, failure propagation and temporary-file cleanup.
+    from unittest.mock import patch
+    with tempfile.TemporaryDirectory() as tmp:
+        root = pathlib.Path(tmp)
+        compiler = root / "node_modules" / ".bin" / "tsc"
+        compiler.parent.mkdir(parents=True)
+        compiler.touch()
+        code = _verify_issue217_example(before, before + example)
+        def compile_probe(args, **kwargs):
+            assert args[0] == str(compiler)
+            assert "--strict" in args and "--noEmit" in args
+            assert pathlib.Path(args[-1]).read_text(encoding="utf-8") == code
+            assert kwargs["check"] is True
+        with patch("subprocess.run", side_effect=compile_probe):
+            _typecheck_issue217_example(root, code)
+        with patch("subprocess.run", side_effect=subprocess.CalledProcessError(2, "tsc")):
+            try:
+                _typecheck_issue217_example(root, code)
+            except subprocess.CalledProcessError:
+                pass
+            else:
+                raise AssertionError("compiler failure accepted")
+        assert not list(root.glob(".issue217-*"))
+        compiler.unlink()
+        try:
+            _typecheck_issue217_example(root, code)
+        except PatchContractError:
+            pass
+        else:
+            raise AssertionError("missing compiler accepted")
 
     from test_github_ref_lease import MemoryGitRef
     from test_openhands_runner_admission_bridge import BUDGET_OK, trusted_bundle
