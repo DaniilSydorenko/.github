@@ -35,6 +35,26 @@ def collect_changes(workspace, base_sha, allowed_paths):
         raise PatchContractError("invalid_change_size")
     return changes
 
+
+def verify_code_handoff(workspace, base_sha, allowed_paths):
+    """Reconstruct the exact candidate in a clean checkout before publication."""
+    import tempfile
+    import subprocess
+    changes = collect_changes(workspace, base_sha, allowed_paths)
+    with tempfile.TemporaryDirectory() as tmp:
+        clean = pathlib.Path(tmp) / "clean"
+        subprocess.run(["git", "clone", "-q", "--no-hardlinks", str(workspace), str(clean)], check=True, timeout=30)
+        _git(clean, "checkout", "--detach", base_sha)
+        for name, content in changes.items():
+            path = clean / name
+            if path.resolve() != path:
+                raise PatchContractError("target_not_regular_file")
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(content.encode("utf-8"))
+        if collect_changes(clean, base_sha, allowed_paths) != changes:
+            raise PatchContractError("handoff_mismatch")
+    return changes
+
 def publish_changes(*, issue, base_sha, changes, allowed_paths, token, authority, transport):
     from openhands_164_draft_publisher import REPO, _PROTECTED_AUTHORITY, branch_for
     if authority is not _PROTECTED_AUTHORITY:

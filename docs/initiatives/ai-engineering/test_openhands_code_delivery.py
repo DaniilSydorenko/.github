@@ -1,7 +1,7 @@
 import tempfile
 from pathlib import Path
 from openhands_164_patch_contract import _git, PatchContractError
-from openhands_code_delivery import collect_changes, publish_changes
+from openhands_code_delivery import collect_changes, publish_changes, verify_code_handoff
 from openhands_164_draft_publisher import _PROTECTED_AUTHORITY
 
 def self_test():
@@ -17,6 +17,7 @@ def self_test():
             file.write_text("export const value = 1;\n")
         changes = collect_changes(root, sha, paths)
         assert set(changes) == set(paths)
+        assert verify_code_handoff(root, sha, paths) == changes
         (root / "package.json").write_text("{}")
         try:
             collect_changes(root, sha, paths)
