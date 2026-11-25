@@ -39,7 +39,7 @@ def publish_changes(*, issue, base_sha, changes, allowed_paths, token, authority
     from openhands_164_draft_publisher import REPO, _PROTECTED_AUTHORITY, branch_for
     if authority is not _PROTECTED_AUTHORITY:
         raise PermissionError("protected_workflow_authority_missing")
-    if not SHA.fullmatch(base_sha) or not changes or len(changes) > 8 or not set(changes) <= set(allowed_paths):
+    if type(issue) is not int or issue <= 0 or not SHA.fullmatch(base_sha) or not changes or len(changes) > 8 or len(set(allowed_paths)) > 8 or not set(changes) <= set(allowed_paths):
         raise PatchContractError("invalid_publish_scope")
     for name, content in changes.items():
         if not SOURCE.fullmatch(name) or any(x in ("", ".", "..") for x in name.split("/")) or not content.strip() or "\0" in content or len(content.encode()) > 120000:
@@ -57,5 +57,7 @@ def publish_changes(*, issue, base_sha, changes, allowed_paths, token, authority
         {"path": name, "mode": "100644", "type": "blob", "content": content}
         for name, content in sorted(changes.items())]})
     commit = transport("POST", api + "/git/commits", token, {"message": f"fix: address issue #{issue}", "tree": tree["sha"], "parents": [base_sha]})
+    if transport("GET", api + "/git/ref/heads/master", token)["object"]["sha"] != base_sha:
+        raise RuntimeError("base_moved_stop")
     transport("POST", api + "/git/refs", token, {"ref": "refs/heads/" + branch, "sha": commit["sha"]})
     return transport("POST", api + "/pulls", token, {"title": f"fix: address issue #{issue}", "head": branch, "base": "master", "draft": True, "body": f"Addresses #{issue}. Human review required."})
