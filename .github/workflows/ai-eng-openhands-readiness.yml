@@ -39,6 +39,7 @@ on:
       - 'AGENTS.md'
       - 'docs/initiatives/ai-engineering/openhands_164_lease_preconditions.py'
       - 'docs/initiatives/ai-engineering/openhands_164_patch_contract.py'
+      - 'docs/initiatives/ai-engineering/openhands_164_code_task.py'
       - 'docs/initiatives/ai-engineering/openhands_164_publisher_handoff.py'
       - '.github/workflows/ai-eng-openhands-readiness.yml'
       - '.github/workflows/ai-eng-haversine220-protected-preflight.yml'
