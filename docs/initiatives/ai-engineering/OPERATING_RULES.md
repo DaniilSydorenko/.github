@@ -1,5 +1,19 @@
 # AI Engineering Ecosystem — Operating Rules (Low-Burn v2)
 
+## Execution-first mandate (2026-11-25)
+
+For the OpenHands #164 pilot, this mandate supersedes conflicting procedural guidance, but never security, owner approval, budget, scope or single-writer controls.
+
+- Every round must implement a known blocker, execute a relevant test, integrate an eligible change, or perform an authorized live run. Status-only rounds are permitted only for a concrete external blocker.
+- Read the current PR/head and relevant code once. Do not repeat unchanged audits, inventories, architecture reviews or readiness reports.
+- Batch related implementation and regression tests into one coherent commit. Reuse the existing PR and toolchain; avoid new abstractions, services and planning documents.
+- Run focused tests and required exact-head CI. A failed test must lead to a fix, not another report. Do not poll unchanged pending checks repeatedly.
+- Once required gates pass, integrate promptly within existing merge authority. Request any required owner approval once, with exact PR and HEAD.
+- Prefer a real OpenHands run and observable output over additional offline simulations once live prerequisites are satisfied. Never rerun a paid model to repair a deterministic integration defect.
+- Keep the current pilot sequential: finish #217 acceptance and lease release before #226. No automatic agent PR merge, bypass, duplicate dispatch or invented evidence.
+- Report only the actual code change, test outcome, integration outcome and remaining actionable blocker. Do not claim a test passed merely because it was written.
+
+
 ## Delivery-first pilot override (2026-11-25)
 
 For #164 only, this section supersedes older planning, cadence, delegation-discovery and reporting requirements, not security or domain authority. The current goal is one accepted #217 agent result, not a general orchestration platform.
