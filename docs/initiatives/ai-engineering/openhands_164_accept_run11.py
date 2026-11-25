@@ -25,7 +25,7 @@ def main():
             and pr.get("head", {}).get("sha") == head):
         raise SystemExit("STOP: accepted terminal result not proven")
     checks = get("haversine-geolocation/commits/" + head + "/check-runs?per_page=100", None)
-    for name in ("Test and build", "Secret Scan"):
+    for name in ("Test and build", "Gitleaks"):
         matches = [c for c in checks["check_runs"] if c["name"] == name]
         if not matches or any(c["conclusion"] != "success" for c in matches):
             raise SystemExit("STOP: required check not successful: " + name)
