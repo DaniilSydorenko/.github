@@ -107,7 +107,14 @@ _G3_REASON = "ruleset_shape_passed_live_bypass_and_cas_proofs_still_required"
 def _g3_binding(issue: int) -> dict | None:
     env = os.environ
     app_id, err = _resolve_writer_app_id()
-    if (err or app_id != 5535339 or issue not in (217, 226)
+    try:
+        from openhands_164_code_task import CODE_APPROVED_OPERATION, is_code_task_issue
+
+        code_mode = env.get("AI_ENG_APPROVED_OPERATION") == CODE_APPROVED_OPERATION
+        issue_ok = is_code_task_issue(issue) if code_mode else issue in (217, 226)
+    except ImportError:
+        issue_ok = issue in (217, 226)
+    if (err or app_id != 5535339 or not issue_ok
             or env.get("GITHUB_REPOSITORY") != "DaniilSydorenko/.github"
             or env.get("GITHUB_ACTOR") != "DaniilSydorenko"
             or env.get("GITHUB_REF") != "refs/heads/main"

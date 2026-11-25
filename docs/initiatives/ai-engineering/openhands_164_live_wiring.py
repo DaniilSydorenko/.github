@@ -18,6 +18,13 @@ from typing import Any, Callable, Mapping, Sequence
 from github_ref_lease import Controller
 from openhands_164_draft_publisher import _PROTECTED_AUTHORITY as PUBLISHER_AUTHORITY
 from openhands_164_draft_publisher import publish_verified_patch
+from openhands_code_delivery import verify_code_handoff, publish_changes
+from openhands_164_code_task import (
+    CODE_APPROVED_OPERATION,
+    admit_protected_code_task,
+    resolve_code_task,
+    verify_code_task_acceptance,
+)
 from openhands_164_executor import MODEL_DEFAULT
 from openhands_164_executor import _TRUSTED_AUTHORIZATION as EXECUTOR_AUTHORITY
 from openhands_164_executor import execute_authorized, validate_workspace
@@ -89,6 +96,8 @@ class LiveExecutionConfig:
     api_key: str | None = None
     model: str = MODEL_DEFAULT
     publisher_token: str | None = None
+    code_paths: tuple[str, ...] = ()
+    untrusted_issue_body: str | None = None
 
 
 def _stop(reason: str, **extra: Any) -> dict[str, Any]:
@@ -171,7 +180,12 @@ def evaluate_ci_evidence(ci: CiEvidence | None) -> dict[str, Any] | None:
     return None
 
 
-def verify_protected_context(ctx: ProtectedWorkflowContext, issue: int) -> dict[str, Any] | None:
+def verify_protected_context(
+    ctx: ProtectedWorkflowContext,
+    issue: int,
+    *,
+    code_task: bool = False,
+) -> dict[str, Any] | None:
     if ctx.repository != CONTROL_REPO:
         return _stop("wrong_control_repository")
     if ctx.actor != CONTROL_ACTOR:
@@ -182,7 +196,8 @@ def verify_protected_context(ctx: ProtectedWorkflowContext, issue: int) -> dict[
         return _stop("not_manual_dispatch")
     if ctx.run_attempt != "1":
         return _stop("rerun_disallowed")
-    if ctx.operation != APPROVED_OPERATION:
+    expected_op = CODE_APPROVED_OPERATION if code_task else APPROVED_OPERATION
+    if ctx.operation != expected_op:
         return _stop("wrong_operation")
     if ctx.owner_go_issue != issue:
         return _stop("owner_go_issue_mismatch", expected=issue, got=ctx.owner_go_issue)
@@ -301,11 +316,16 @@ def run_protected_live_wiring(
     publisher_authority=PUBLISHER_AUTHORITY,
 ) -> dict[str, Any]:
     issue = request.issue
-    if type(issue) is not int or issue not in ALLOWED:
+    code_spec = resolve_code_task(issue) if type(issue) is int else None
+    code_task = code_spec is not None
+    if type(issue) is not int or (issue not in ALLOWED and not code_task):
         return _stop("unexpected_issue")
     if not isinstance(base_sha, str) or not SHA.fullmatch(base_sha):
         return _stop("invalid_base_sha")
     root = pathlib.Path(workspace).resolve()
+
+    if wiring_mode == "offline_replay" and code_task:
+        return _stop("code_task_offline_replay_unsupported")
 
     if wiring_mode == "offline_replay":
         vertical = run_offline_vertical(
@@ -329,19 +349,30 @@ def run_protected_live_wiring(
         if not vertical.get("publisher_handoff_ready"):
             return _stop("publisher_handoff_not_ready")
     else:
-        pre = run_vertical_pregates(
-            VerticalRequest(
-                issue,
-                request.workflow_run_id,
-                request.inventory,
-                trusted=request.trusted,
-                budget=request.budget,
-                prior_proofs=request.prior_proofs,
-                open_prs_for_target=request.open_prs_for_target,
-            ),
-            lease_store=lease_store,
-            base_sha=base_sha,
-        )
+        if code_task:
+            if request.open_prs_for_target:
+                return _stop(
+                    "duplicate_or_overlapping_pr",
+                    issue=issue,
+                    open_prs=list(request.open_prs_for_target),
+                )
+            if request.trusted is None or request.budget is None:
+                return _stop("missing_trusted_workflow_attestation")
+            pre = {"decision": "PREGATES_PASS"}
+        else:
+            pre = run_vertical_pregates(
+                VerticalRequest(
+                    issue,
+                    request.workflow_run_id,
+                    request.inventory,
+                    trusted=request.trusted,
+                    budget=request.budget,
+                    prior_proofs=request.prior_proofs,
+                    open_prs_for_target=request.open_prs_for_target,
+                ),
+                lease_store=lease_store,
+                base_sha=base_sha,
+            )
         if pre.get("decision") != "PREGATES_PASS":
             return pre
 
@@ -364,9 +395,26 @@ def run_protected_live_wiring(
             patch_scope_verified=wiring_mode == "offline_replay",
             publisher_handoff_ready=wiring_mode == "offline_replay",
         )
-    denied = verify_protected_context(ctx, issue)
+    denied = verify_protected_context(ctx, issue, code_task=code_task)
     if denied is not None:
         return denied
+
+    if code_task:
+        bodies = request.inventory.get("issue_bodies") if isinstance(request.inventory, Mapping) else None
+        body = bodies.get(issue) if isinstance(bodies, Mapping) else None
+        issue_record = (
+            {"number": issue, "state": "open", "body": body}
+            if isinstance(body, str) and body.strip()
+            else None
+        )
+        admitted = admit_protected_code_task(
+            issue,
+            lease_state=request.trusted.lease.state if request.trusted else {},
+            issue_record=issue_record,
+            accepted_226_ok=bool(request.inventory.get("doc_pilot_226_accepted")),
+        )
+        if admitted.get("decision") != "CODE_TASK_ADMITTED":
+            return admitted
 
     if protected_authority is not EXECUTOR_AUTHORITY:
         return _stop("executor_authority_missing", wiring_stage="pre_model")
@@ -412,6 +460,13 @@ def run_protected_live_wiring(
             live_openhands_authorized=False,
         )
 
+    if config.code_paths and issue in (216, 217, 226):
+        return _stop("code_scope_not_authorized_for_documentation_pilot")
+    if code_task:
+        if tuple(config.code_paths) != code_spec.allowed_paths:
+            return _stop("code_paths_not_trusted")
+        if not config.code_paths:
+            return _stop("code_paths_missing")
     if not config.api_key:
         return _stop("live_api_key_missing")
     if not config.publisher_token:
@@ -435,7 +490,10 @@ def run_protected_live_wiring(
     model_invoked = False
     try:
         validated = validate_workspace(root, issue, base_sha=base_sha)
-        executor(validated, config.api_key, config.model, issue, authorization=protected_authority)
+        exec_kwargs: dict[str, Any] = {"authorization": protected_authority}
+        if config.untrusted_issue_body is not None:
+            exec_kwargs["untrusted_issue_body"] = config.untrusted_issue_body
+        executor(validated, config.api_key, config.model, issue, **exec_kwargs)
         model_invoked = True
     except (PermissionError, ValueError, RuntimeError, OSError) as exc:
         try:
@@ -450,7 +508,17 @@ def run_protected_live_wiring(
             lease_phase=lease_phase,
         )
 
-    denied_patch, content_path = _complete_patch_pipeline(root, base_sha, issue)
+    code_changes = None
+    if config.code_paths:
+        try:
+            code_changes = verify_code_handoff(root, base_sha, config.code_paths)
+            if code_task:
+                verify_code_task_acceptance(code_changes, code_spec)
+            denied_patch, content_path = None, None
+        except (PatchContractError, OSError, ValueError, subprocess.SubprocessError) as exc:
+            denied_patch, content_path = _stop("code_handoff_rejected", detail=str(exc)), None
+    else:
+        denied_patch, content_path = _complete_patch_pipeline(root, base_sha, issue)
     if denied_patch is not None:
         try:
             controller.transition(rid, "RUNNING", "BLOCKED")
@@ -459,19 +527,24 @@ def run_protected_live_wiring(
             denied_patch = {**denied_patch, "lease_phase": "RUNNING"}
         return {**denied_patch, "model_invoked": model_invoked}
 
-    assert content_path is not None
+    assert content_path is not None or code_changes is not None
     if publisher_transport is None:
         return _stop("publisher_transport_missing", model_invoked=model_invoked)
 
     try:
-        pr = publisher(
-            issue=issue,
-            token=config.publisher_token,
-            base_sha=base_sha,
-            content_path=content_path,
-            authority=publisher_authority,
-            transport=publisher_transport,
-        )
+        if code_changes is not None:
+            pr = publish_changes(issue=issue, base_sha=base_sha, changes=code_changes,
+                                 allowed_paths=config.code_paths, token=config.publisher_token,
+                                 authority=publisher_authority, transport=publisher_transport)
+        else:
+            pr = publisher(
+                issue=issue,
+                token=config.publisher_token,
+                base_sha=base_sha,
+                content_path=content_path,
+                authority=publisher_authority,
+                transport=publisher_transport,
+            )
     except (PermissionError, ValueError, RuntimeError) as exc:
         try:
             controller.transition(rid, "RUNNING", "BLOCKED")
@@ -503,7 +576,7 @@ def run_protected_live_wiring(
         "decision": "STOP",
         "reason": TERMINAL_PUBLISHED,
         "issue": issue,
-        "target": ALLOWED[issue],
+        "target": ",".join(code_spec.allowed_paths) if code_task and code_spec else ALLOWED[issue],
         "base_sha": base_sha,
         "pr_url": pr_url,
         "patch_scope_verified": True,

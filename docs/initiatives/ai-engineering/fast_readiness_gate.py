@@ -16,9 +16,13 @@ TESTS = [
     ["openhands_live_orchestrator.py", "--self-test"],
     ["openhands_three_issue_gate.py"],
     ["test_openhands_164_singleton.py"],
+    ["openhands_164_lease_admission_scope.py", "--self-test"],
     ["openhands_164_lease_preconditions.py"],
     ["test_github_ref_lease.py"],
     ["test_run9_rejected_release.py"],
+    ["test_openhands_code_delivery.py"],
+    ["openhands_164_code_task.py", "--self-test"],
+    ["test_openhands_164_code_task_live_wiring.py"],
     ["openhands_164_live_runner.py", "--self-test"],
 ]
 

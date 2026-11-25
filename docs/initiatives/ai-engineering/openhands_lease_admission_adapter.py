@@ -20,9 +20,10 @@ from github_ref_lease import LeaseError, agent_id_for, check_state
 from lease_ruleset_candidate import audit as ruleset_audit
 
 try:
-    from openhands_164_lease_preconditions import (
+    from openhands_164_lease_admission_scope import (
         AdmissionDenied,
         Context,
+        all_issues,
         validate_lease_snapshot,
     )
 except ImportError:  # main until #166 merges; adapter stays STOP-closed.
@@ -36,11 +37,24 @@ except ImportError:  # main until #166 merges; adapter stays STOP-closed.
         workflow_run_id: str
         expected_lease_sha: str
 
+    def all_issues() -> tuple[int, ...]:  # type: ignore[misc]
+        return DOC_ISSUES
+
     def validate_lease_snapshot(*_a: Any, **_k: Any) -> str:
-        raise AdmissionDenied("lease_preconditions_module_unavailable")
+        raise AdmissionDenied("lease_admission_scope_unavailable")
 
 SHA = re.compile(r"[0-9a-f]{40}\Z")
-ISSUES = (216, 217, 226)
+DOC_ISSUES = (216, 217, 226)
+
+
+def _all_issues() -> tuple[int, ...]:
+    try:
+        return all_issues()
+    except NameError:
+        return DOC_ISSUES
+
+
+ISSUES = DOC_ISSUES
 REPO = "https://github.com/DaniilSydorenko/haversine-geolocation"
 HQ_LEASE_REF = "ai-eng-cursor-lease-v1"
 
@@ -115,8 +129,16 @@ def _valid_sha(value: object) -> bool:
 
 
 def request_id_for(issue: int) -> str:
-    if issue not in ISSUES:
+    issues = _all_issues()
+    if issue not in issues:
         raise ValueError("issue_out_of_scope")
+    try:
+        from openhands_164_code_task import admission_request_id, is_code_task_issue
+
+        if is_code_task_issue(issue):
+            return admission_request_id(issue)
+    except ImportError:
+        pass
     return f"openhands-164-issue-{issue}"
 
 
@@ -225,7 +247,7 @@ def evaluate_preconditions(
 
 def _evaluate_admission_inner(request: AdmissionRequest) -> dict[str, Any]:
     """Ordered, lazy evaluation: each gate runs only if earlier gates passed."""
-    if request.issue not in ISSUES:
+    if request.issue not in _all_issues():
         return _stop("issue_out_of_scope")
     loops = (
         lambda: evaluate_ruleset_evidence(request.ruleset),
