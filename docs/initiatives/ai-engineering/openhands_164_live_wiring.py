@@ -18,6 +18,7 @@ from typing import Any, Callable, Mapping, Sequence
 from github_ref_lease import Controller
 from openhands_164_draft_publisher import _PROTECTED_AUTHORITY as PUBLISHER_AUTHORITY
 from openhands_164_draft_publisher import publish_verified_patch
+from openhands_code_delivery import verify_code_handoff, publish_changes
 from openhands_164_executor import MODEL_DEFAULT
 from openhands_164_executor import _TRUSTED_AUTHORIZATION as EXECUTOR_AUTHORITY
 from openhands_164_executor import execute_authorized, validate_workspace
@@ -89,6 +90,7 @@ class LiveExecutionConfig:
     api_key: str | None = None
     model: str = MODEL_DEFAULT
     publisher_token: str | None = None
+    code_paths: tuple[str, ...] = ()
 
 
 def _stop(reason: str, **extra: Any) -> dict[str, Any]:
@@ -412,6 +414,8 @@ def run_protected_live_wiring(
             live_openhands_authorized=False,
         )
 
+    if config.code_paths and issue in (216, 217, 226):
+        return _stop("code_scope_not_authorized_for_documentation_pilot")
     if not config.api_key:
         return _stop("live_api_key_missing")
     if not config.publisher_token:
@@ -450,7 +454,15 @@ def run_protected_live_wiring(
             lease_phase=lease_phase,
         )
 
-    denied_patch, content_path = _complete_patch_pipeline(root, base_sha, issue)
+    code_changes = None
+    if config.code_paths:
+        try:
+            code_changes = verify_code_handoff(root, base_sha, config.code_paths)
+            denied_patch, content_path = None, None
+        except (PatchContractError, OSError, ValueError, subprocess.SubprocessError) as exc:
+            denied_patch, content_path = _stop("code_handoff_rejected", detail=str(exc)), None
+    else:
+        denied_patch, content_path = _complete_patch_pipeline(root, base_sha, issue)
     if denied_patch is not None:
         try:
             controller.transition(rid, "RUNNING", "BLOCKED")
@@ -459,19 +471,24 @@ def run_protected_live_wiring(
             denied_patch = {**denied_patch, "lease_phase": "RUNNING"}
         return {**denied_patch, "model_invoked": model_invoked}
 
-    assert content_path is not None
+    assert content_path is not None or code_changes is not None
     if publisher_transport is None:
         return _stop("publisher_transport_missing", model_invoked=model_invoked)
 
     try:
-        pr = publisher(
-            issue=issue,
-            token=config.publisher_token,
-            base_sha=base_sha,
-            content_path=content_path,
-            authority=publisher_authority,
-            transport=publisher_transport,
-        )
+        if code_changes is not None:
+            pr = publish_changes(issue=issue, base_sha=base_sha, changes=code_changes,
+                                 allowed_paths=config.code_paths, token=config.publisher_token,
+                                 authority=publisher_authority, transport=publisher_transport)
+        else:
+            pr = publisher(
+                issue=issue,
+                token=config.publisher_token,
+                base_sha=base_sha,
+                content_path=content_path,
+                authority=publisher_authority,
+                transport=publisher_transport,
+            )
     except (PermissionError, ValueError, RuntimeError) as exc:
         try:
             controller.transition(rid, "RUNNING", "BLOCKED")
