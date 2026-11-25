@@ -40,6 +40,7 @@ on:
       - 'docs/initiatives/ai-engineering/openhands_164_lease_preconditions.py'
       - 'docs/initiatives/ai-engineering/openhands_164_patch_contract.py'
       - 'docs/initiatives/ai-engineering/openhands_164_code_task.py'
+      - 'docs/initiatives/ai-engineering/openhands_code_quality.py'
       - 'docs/initiatives/ai-engineering/openhands_164_production_gates.py'
       - 'docs/initiatives/ai-engineering/openhands_164_publisher_handoff.py'
       - '.github/workflows/ai-eng-openhands-readiness.yml'
@@ -167,6 +168,8 @@ jobs:
         run: python3 docs/initiatives/ai-engineering/openhands_164_patch_contract.py --self-test
       - name: Verify trusted code task registry (offline, no model)
         run: python3 docs/initiatives/ai-engineering/openhands_164_code_task.py --self-test
+      - name: Code quality result contract
+        run: python3 docs/initiatives/ai-engineering/openhands_code_quality.py
       - name: Verify G3 production gate admission (offline, no model)
         run: python3 docs/initiatives/ai-engineering/openhands_164_production_gates.py --self-test
       - name: Verify #164 patch-to-publisher handoff (offline)
