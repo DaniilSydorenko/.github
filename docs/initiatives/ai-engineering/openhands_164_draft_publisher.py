@@ -17,6 +17,8 @@ _PROTECTED_AUTHORITY = object()
 
 
 def branch_for(issue: int) -> str:
+    if issue == 217:
+        return "ai-eng/issue-217-openhands-164-correction-9"
     return f"ai-eng/issue-{issue}-openhands-164"
 
 

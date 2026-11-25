@@ -34,6 +34,7 @@ from openhands_164_live_wiring import (
 from openhands_164_production_gates import verify_isolated_g3_evidence, verify_provider_hard_cap, isolated_ruleset_evidence
 from openhands_live_orchestrator import inspect as inventory_inspect
 from openhands_lease_admission_adapter import request_id_for
+from openhands_164_draft_publisher import branch_for
 from openhands_runner_admission_bridge import ProviderBudgetAttestation
 
 HAVERSINE = "DaniilSydorenko/haversine-geolocation"
@@ -180,6 +181,10 @@ RECOVERY_REQUEST = "openhands-164-issue-217-recovery-8"
 def recovery_request_id(store, issue: int) -> str:
     original = request_id_for(issue)
     snap = store.read()
+    if (issue == 217 and snap.state["phase"] == "IDLE"
+            and snap.state["revision"] == 11
+            and snap.state["consumed_request_hashes"] == ["844221e53befae396f137bc06ad6cd86d6cf52cec98c5c27f9761e67da5959b2","7602adf7726fc3235b6afe4e80cd6f52241e8afc672fb854cc05a4b0ca778dcb","cbb61385736f96fef891ba34da95e9e1d096f6446900c3c71e4eaeac82e5040e"]):
+        return "openhands-164-issue-217-correction-9"
     if (issue == 217 and snap.sha == RECOVERY_HEAD
             and snap.state["phase"] == "IDLE"
             and snap.state["revision"] == 5
@@ -273,7 +278,7 @@ def run_pilot(workspace: str | pathlib.Path, issue: int = 216, *, live_attested:
             trusted = build_trusted_workflow_attestation(lease_store, issue, base_sha, ruleset=ruleset, rechecked_head_sha=base_sha)
             run_id = os.environ.get("GITHUB_RUN_ID", "0")
             open_prs: list[int] = []
-            branch = f"ai-eng/issue-{issue}-openhands-164"
+            branch = branch_for(issue)
             try:
                 existing = _github_transport(
                     "GET",

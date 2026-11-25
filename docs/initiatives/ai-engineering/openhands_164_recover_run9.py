@@ -9,8 +9,8 @@ HEAD = "409e9fe50a4fbf086f6a765f8b758bd6908e1af9"
 
 def get(path, token):
     req = Request("https://api.github.com/repos/DaniilSydorenko/" + path,
-                  headers={"Authorization": "Bearer " + token,
-                           "Accept": "application/vnd.github+json"})
+                  headers={"Accept": "application/vnd.github+json",
+                           **({"Authorization": "Bearer " + token} if token else {})})
     with urlopen(req, timeout=15) as response:
         return json.load(response)
 
@@ -20,7 +20,7 @@ def main():
     token = os.environ["GH_TOKEN"]
     run = get(".github/actions/runs/45493386830", token)
     # Public target repository; HQ token is read-only and cannot mutate it.
-    pr = get("haversine-geolocation/pulls/229", token)
+    pr = get("haversine-geolocation/pulls/229", None)
     if not (run.get("id") == 45493386830 and run.get("status") == "completed"
             and run.get("conclusion") == "failure"
             and pr.get("number") == 229 and pr.get("state") == "closed"

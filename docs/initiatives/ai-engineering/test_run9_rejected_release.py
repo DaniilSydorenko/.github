@@ -12,7 +12,7 @@ class Store:
                       "run_id": "run-45493386830",
                       "pr_url": "https://github.com/DaniilSydorenko/haversine-geolocation/pull/229",
                       "source_issue_url": "https://github.com/DaniilSydorenko/haversine-geolocation/issues/217",
-                      "consumed_request_hashes": [fingerprint(RID)]}
+                      "consumed_request_hashes": ["844221e53befae396f137bc06ad6cd86d6cf52cec98c5c27f9761e67da5959b2","7602adf7726fc3235b6afe4e80cd6f52241e8afc672fb854cc05a4b0ca778dcb","cbb61385736f96fef891ba34da95e9e1d096f6446900c3c71e4eaeac82e5040e"]}
         self.sha = HEAD
     def read(self):
         return Snapshot(self.sha, "a" * 40, self.state)
@@ -34,7 +34,7 @@ def self_test():
             raise AssertionError(key)
     assert ctl.release_rejected_run9(**args) == "REJECTED_RELEASED"
     assert store.state["phase"] == "IDLE" and store.state["revision"] == 11
-    assert store.state["consumed_request_hashes"] == [fingerprint(RID)]
+    assert store.state["consumed_request_hashes"] == ["844221e53befae396f137bc06ad6cd86d6cf52cec98c5c27f9761e67da5959b2","7602adf7726fc3235b6afe4e80cd6f52241e8afc672fb854cc05a4b0ca778dcb","cbb61385736f96fef891ba34da95e9e1d096f6446900c3c71e4eaeac82e5040e"]
     try:
         ctl.release_rejected_run9(**args)
     except LeaseError:
