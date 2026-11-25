@@ -23,6 +23,43 @@ def verify_quality(results):
         for expected, result in zip(COMMANDS, results)
     )
 
+def run_quality(workspace, *, image):
+    """Run candidate checks in a disposable, network-disabled container.
+
+    The caller must provision a trusted dependency image with /opt/target/node_modules.
+    No host environment, Docker socket, credentials or writable host mounts are passed.
+    """
+    import pathlib
+    import subprocess
+    import re
+    root = pathlib.Path(workspace).resolve(strict=True)
+    if not root.is_dir() or not re.fullmatch(r"sha256:[0-9a-f]{64}", image):
+        raise ValueError("invalid_quality_workspace_or_image")
+    results = []
+    for name in COMMANDS:
+        command = [
+            "docker", "run", "--rm", "--pull=never", "--network=none",
+            "--cap-drop=ALL", "--security-opt=no-new-privileges",
+            "--user=1000:1000", "--read-only", "--pids-limit=256",
+            "--memory=2g", "--cpus=2", "--tmpfs=/tmp:rw,exec,size=1g",
+            "--mount", f"type=bind,source={root},target=/candidate,readonly",
+            "--entrypoint=/bin/sh", image, "-ec",
+            'mkdir /tmp/work && cp -R /candidate/. /tmp/work/ && cd /tmp/work && '
+            'ln -s /opt/target/node_modules node_modules && HOME=/tmp npm run "$1"',
+            "quality", name,
+        ]
+        try:
+            completed = subprocess.run(command, timeout=180, check=False,
+                                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            results.append(CheckResult(name, completed.returncode))
+        except subprocess.TimeoutExpired:
+            results.append(CheckResult(name, 1, True))
+        except OSError:
+            results.append(CheckResult(name, 1))
+        if results[-1].exit_code != 0 or results[-1].timed_out:
+            break
+    return tuple(results)
+
 def self_test():
     good = tuple(CheckResult(name, 0) for name in COMMANDS)
     assert verify_quality(good)
@@ -34,7 +71,25 @@ def self_test():
         for bad in (CheckResult(name, 1), CheckResult(name, 0, True),
                     CheckResult(name, False)):
             assert not verify_quality(good[:index] + (bad,) + good[index+1:])
-    print("PASS: quality result contract")
+    from unittest.mock import patch
+    import tempfile
+    import subprocess
+    with tempfile.TemporaryDirectory() as root:
+        image = "sha256:" + "a" * 64
+        with patch("subprocess.run", return_value=subprocess.CompletedProcess([], 0)) as run:
+            assert verify_quality(run_quality(root, image=image))
+            assert run.call_count == 4
+            for call in run.call_args_list:
+                args = call.args[0]
+                assert "--network=none" in args and "--pull=never" in args
+                assert "--read-only" in args and "--cap-drop=ALL" in args
+                assert any("target=/candidate,readonly" in arg for arg in args)
+        with patch("subprocess.run", side_effect=subprocess.TimeoutExpired("docker", 180)):
+            assert not verify_quality(run_quality(root, image=image))
+        with patch("subprocess.run", return_value=subprocess.CompletedProcess([], 1)) as run:
+            assert not verify_quality(run_quality(root, image=image))
+            assert run.call_count == 1
+    print("PASS: quality result contract and isolated runner fixtures")
 
 if __name__ == "__main__":
     self_test()
