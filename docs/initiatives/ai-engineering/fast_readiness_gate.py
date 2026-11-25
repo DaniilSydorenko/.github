@@ -18,6 +18,7 @@ TESTS = [
     ["test_openhands_164_singleton.py"],
     ["openhands_164_lease_preconditions.py"],
     ["test_github_ref_lease.py"],
+    ["test_run9_rejected_release.py"],
 ]
 
 
@@ -67,7 +68,7 @@ def governance_contract(files: dict[str, str]) -> list[str]:
     for key, markers in {
         'agents': ('DELIVERY_GOVERNANCE.md', 'DELIVERY_PLAN_164.md'),
         'governance': ('New chat bootstrap', 'Cross-repository adoption', 'Owner-time budget'),
-        'plan': ('DELIVERY_GOVERNANCE.md', 'AI-session rebaseline', 'B01'),
+        'plan': ('Critical path', 'Minimum evidence', 'Deferred'),
         'adoption': ('AGENTS.md', 'NOT_INVENTORIED', 'ENFORCED'),
     }.items():
         if not files.get(key):
@@ -99,7 +100,7 @@ environment: ai-eng-lease-owner""",
     assert live_integration_observations({"runner": "# execute_authorized(root, key)", "orchestrator": ""}) == []
     assert live_integration_observations({"runner": "def broken(", "orchestrator": ""}) == ["legacy_runner_unparseable"]
     assert live_integration_observations({"runner": "", "orchestrator": ""}) == []
-    fixture = {"agents": "DELIVERY_GOVERNANCE.md DELIVERY_PLAN_164.md", "governance": "New chat bootstrap Cross-repository adoption Owner-time budget", "plan": "DELIVERY_GOVERNANCE.md AI-session rebaseline B01", "adoption": "AGENTS.md NOT_INVENTORIED ENFORCED"}
+    fixture = {"agents": "DELIVERY_GOVERNANCE.md DELIVERY_PLAN_164.md", "governance": "New chat bootstrap Cross-repository adoption Owner-time budget", "plan": "Critical path Minimum evidence Deferred", "adoption": "AGENTS.md NOT_INVENTORIED ENFORCED"}
     assert governance_contract(fixture) == []
     assert governance_contract({**fixture, "agents": ""})
     print("PASS: fast-gate negative fixtures (not live admission)")

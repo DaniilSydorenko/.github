@@ -184,7 +184,9 @@ def recovery_request_id(store, issue: int) -> str:
     if (issue == 217 and snap.state["phase"] == "IDLE"
             and snap.state["revision"] == 11
             and snap.state["consumed_request_hashes"] == ["844221e53befae396f137bc06ad6cd86d6cf52cec98c5c27f9761e67da5959b2","7602adf7726fc3235b6afe4e80cd6f52241e8afc672fb854cc05a4b0ca778dcb","cbb61385736f96fef891ba34da95e9e1d096f6446900c3c71e4eaeac82e5040e"]):
-        return "openhands-164-issue-217-correction-9"
+        commit = store._call("GET", "/git/commits/" + snap.sha)
+        if [parent.get("sha") for parent in commit.get("parents", [])] == ["409e9fe50a4fbf086f6a765f8b758bd6908e1af9"]:
+            return "openhands-164-issue-217-correction-9"
     if (issue == 217 and snap.sha == RECOVERY_HEAD
             and snap.state["phase"] == "IDLE"
             and snap.state["revision"] == 5

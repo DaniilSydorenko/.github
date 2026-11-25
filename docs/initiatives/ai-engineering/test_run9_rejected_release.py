@@ -44,3 +44,4 @@ def self_test():
 
 if __name__ == "__main__":
     self_test()
+    print("PASS: rejected release preserves ledger and rejects replay")
