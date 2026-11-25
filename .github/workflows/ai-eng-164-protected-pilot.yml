@@ -89,6 +89,14 @@ jobs:
           ref: master
           path: issue217-target
           persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+      - name: Prepare pinned target TypeScript declarations
+        working-directory: issue217-target
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm run build:types
       # Mint a short-lived installation token; never use the App private key as a GitHub API token.
       # Only the live path needs writer credentials. Missing installation/permissions fails closed.
       - name: Mint HQ lease-writer GitHub App token (live only)

@@ -197,7 +197,7 @@ def _release_lease_without_spend(lease_store, request_id: str) -> None:
         pass
 
 
-def _verify_issue217_example(before: str, after: str) -> None:
+def _verify_issue217_example(before: str, after: str) -> str:
     """Conservative pilot-specific shape gate; human review still required."""
     old = before.splitlines(keepends=True)
     new = after.splitlines(keepends=True)
@@ -218,6 +218,22 @@ def _verify_issue217_example(before: str, after: str) -> None:
             and re.search(r"\bisCoordinate\s*\([^)]*\)[\s\S]*\bdistance\s*\(", code)
             and "latitude" in code and "longitude" in code):
         raise PatchContractError("issue217_validation_example_missing")
+    return code
+
+
+def _typecheck_issue217_example(workspace: pathlib.Path, code: str) -> None:
+    # Compile against the package declarations built before model execution.
+    compiler = workspace / "node_modules" / ".bin" / "tsc"
+    if not compiler.is_file():
+        raise PatchContractError("issue217_compiler_missing")
+    with tempfile.TemporaryDirectory(prefix=".issue217-", dir=workspace) as directory:
+        example = pathlib.Path(directory) / "example.ts"
+        example.write_text(code, encoding="utf-8")
+        subprocess.run([str(compiler), "--noEmit", "--strict", "--target", "ES2022",
+                        "--module", "NodeNext", "--moduleResolution", "NodeNext",
+                        str(example)], cwd=workspace, check=True, timeout=60,
+                       capture_output=True, text=True)
+
 
 
 def _complete_patch_pipeline(
@@ -238,7 +254,8 @@ def _complete_patch_pipeline(
                 ["git", "-C", str(workspace), "show", f"{base_sha}:{ALLOWED[issue]}"],
                 text=True, timeout=15,
             )
-            _verify_issue217_example(before, (workspace / ALLOWED[issue]).read_text(encoding="utf-8"))
+            code = _verify_issue217_example(before, (workspace / ALLOWED[issue]).read_text(encoding="utf-8"))
+            _typecheck_issue217_example(workspace, code)
         except (PatchContractError, OSError, ValueError, subprocess.SubprocessError) as exc:
             return _stop("issue217_acceptance_unverified", detail=str(exc)), None
 
