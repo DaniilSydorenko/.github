@@ -269,7 +269,7 @@ def run_pilot(workspace: str | pathlib.Path, issue: int = 216, *, live_attested:
                 and pr.get("merge_commit_sha") == "95e5287c11cc87dff988564409365ad63af10259"):
             return {"decision": "STOP", "reason": "accepted_217_merge_unverified"}
         ci, err = exact_head_ci_from_check_runs(230, transport=_github_transport, token=read_token)
-        if err or not ci or not ci.verified:
+        if err or not ci or not ci.verified():
             return {"decision": "STOP", "reason": "accepted_217_ci_unverified"}
         prior_proofs += (IssueProof(217, "docs/examples/v2-consumers.md",
             "https://github.com/DaniilSydorenko/haversine-geolocation/pull/230",
