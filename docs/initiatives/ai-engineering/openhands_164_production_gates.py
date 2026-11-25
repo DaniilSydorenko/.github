@@ -138,7 +138,7 @@ def _expected_g3_audit() -> dict:
 def emit_g3_evidence() -> int:
     from lease_ruleset_candidate import ReadOnly
     raw_issue = os.environ.get("AI_ENG_OWNER_GO_ISSUE", "")
-    binding = _g3_binding(int(raw_issue)) if raw_issue in ("217", "226") else None
+    binding = _g3_binding(int(raw_issue)) if re.fullmatch(r"[1-9][0-9]{0,11}", raw_issue) else None
     token = os.environ.get("GITHUB_TOKEN", "")
     output = os.environ.get("GITHUB_OUTPUT", "")
     if not binding or not token or not output:
@@ -216,6 +216,31 @@ def self_test() -> None:
         assert denied["reason"] == "forged_g3_ruleset_env_rejected"
     finally:
         os.environ.pop("AI_ENG_G3_RULESET_ATTESTED", None)
+    # Exercise the actual emitter entrypoint, not just the binding helper.
+    from unittest.mock import patch
+    from openhands_164_code_task import CODE_APPROVED_OPERATION, CodeTaskSpec, TRUSTED_CODE_TASKS
+    context = {
+        "AI_ENG_OWNER_GO_ISSUE": "99164",
+        "AI_ENG_APPROVED_OPERATION": CODE_APPROVED_OPERATION,
+        "AI_ENG_WRITER_APP_ID": "5535339",
+        "GITHUB_REPOSITORY": "DaniilSydorenko/.github",
+        "GITHUB_ACTOR": "DaniilSydorenko",
+        "GITHUB_REF": "refs/heads/main",
+        "GITHUB_EVENT_NAME": "workflow_dispatch",
+        "GITHUB_RUN_ATTEMPT": "1",
+        "GITHUB_SHA": "a" * 40,
+        "GITHUB_RUN_ID": "123",
+        "GITHUB_TOKEN": "offline-fixture",
+        "GITHUB_OUTPUT": "unused-offline-fixture",
+    }
+    with patch.dict(TRUSTED_CODE_TASKS, {99164: CodeTaskSpec(("src/v2/nearest.ts", "spec/v2-nearest.spec.ts"), "fixture")}), patch.dict(os.environ, context, clear=True):
+        with patch("lease_ruleset_candidate.ReadOnly") as reader, patch(__name__ + ".public_readonly_probe", return_value={"status": "STOP"}):
+            assert emit_g3_evidence() == 2
+            reader.assert_called_once_with("offline-fixture")
+            reader.reset_mock()
+            os.environ["AI_ENG_OWNER_GO_ISSUE"] = "99165"
+            assert emit_g3_evidence() == 2
+            reader.assert_not_called()
     print("PASS: #164 production gates reject forged env without API proof")
 
 
