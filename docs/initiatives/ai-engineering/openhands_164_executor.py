@@ -32,6 +32,11 @@ def _prompt(issue: int) -> str:
                 "guard it with isCoordinate before calling distance with latitude/longitude coordinates. "
                 "Preserve all existing text, headings and code fences. Use a unique surrounding anchor "
                 "for insertion. If an edit fails, inspect the anchor rather than repeating the same edit.")
+    if issue == 226:
+        task = (" Add one compact section titled Source-of-truth checks. Verify src/v2/index.ts, "
+                "src/v2/distance.ts and src/v2/coordinate.ts exist before linking them. "
+                "Explain that published package exports are authoritative for consumer examples. "
+                "Preserve existing content and do not duplicate the API table.")
     return (
         f"Work on GitHub issue #{issue} only. Read the repository and change ONLY "
         f"{target}. Ground the documentation in real source files listed in the issue "
@@ -128,6 +133,8 @@ def self_test() -> None:
     for requirement in ("isCoordinate", "unknown input", "before calling distance", "Preserve all existing", "unique surrounding anchor"):
         assert requirement in _prompt(217)
         assert requirement not in _prompt(216)
+    for requirement in ("Source-of-truth checks", "src/v2/index.ts", "src/v2/distance.ts", "src/v2/coordinate.ts", "published package exports"):
+        assert requirement in _prompt(226)
     try:
         execute_authorized(None, None, None, 216, authorization=None)
     except PermissionError:

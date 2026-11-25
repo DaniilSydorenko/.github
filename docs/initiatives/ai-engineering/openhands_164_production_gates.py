@@ -107,7 +107,7 @@ _G3_REASON = "ruleset_shape_passed_live_bypass_and_cas_proofs_still_required"
 def _g3_binding(issue: int) -> dict | None:
     env = os.environ
     app_id, err = _resolve_writer_app_id()
-    if (err or app_id != 5535339 or issue != 217
+    if (err or app_id != 5535339 or issue not in (217, 226)
             or env.get("GITHUB_REPOSITORY") != "DaniilSydorenko/.github"
             or env.get("GITHUB_ACTOR") != "DaniilSydorenko"
             or env.get("GITHUB_REF") != "refs/heads/main"
@@ -130,7 +130,8 @@ def _expected_g3_audit() -> dict:
 
 def emit_g3_evidence() -> int:
     from lease_ruleset_candidate import ReadOnly
-    binding = _g3_binding(217)
+    raw_issue = os.environ.get("AI_ENG_OWNER_GO_ISSUE", "")
+    binding = _g3_binding(int(raw_issue)) if raw_issue in ("217", "226") else None
     token = os.environ.get("GITHUB_TOKEN", "")
     output = os.environ.get("GITHUB_OUTPUT", "")
     if not binding or not token or not output:
