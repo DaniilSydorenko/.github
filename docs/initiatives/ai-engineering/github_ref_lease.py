@@ -212,6 +212,25 @@ class Controller:
         self.store.advance(old, nxt)
         return "RELEASED"
 
+    def release_rejected_run9(self, *, expected_sha: str, provider_terminal: bool,
+                              pr_closed_unmerged: bool, manual_approval: bool) -> str:
+        """One-shot rejected pilot recovery; not successful integration."""
+        if not (provider_terminal is True and pr_closed_unmerged is True and manual_approval is True):
+            raise LeaseError("rejected release proof incomplete")
+        old = self.store.read()
+        check_state(old.state)
+        if (expected_sha != "409e9fe50a4fbf086f6a765f8b758bd6908e1af9"
+                or old.sha != expected_sha or old.state["revision"] != 10
+                or old.state["phase"] != "VERIFYING"
+                or old.state["request_id"] != "openhands-164-issue-217-recovery-8"
+                or old.state["run_id"] != "run-45493386830"
+                or old.state["pr_url"] != "https://github.com/DaniilSydorenko/haversine-geolocation/pull/229"):
+            raise LeaseError("rejected release snapshot mismatch")
+        nxt = {**initial_state(), "revision": 11,
+               "consumed_request_hashes": list(old.state["consumed_request_hashes"])}
+        self.store.advance(old, nxt)
+        return "REJECTED_RELEASED"
+
 
 class GitHubRefStore:
     """GitHub Git Data REST adapter. Only use in authenticated, serial controller.

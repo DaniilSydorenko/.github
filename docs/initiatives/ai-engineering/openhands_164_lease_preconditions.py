@@ -61,6 +61,7 @@ def validate_lease_snapshot(snapshot: dict[str, Any], ctx: Context, *,
     allowed_ids = {f"openhands-164-issue-{ctx.issue}"}
     if ctx.issue == 217:
         allowed_ids.add("openhands-164-issue-217-recovery-8")
+        allowed_ids.add("openhands-164-issue-217-correction-9")
     if ctx.request_id not in allowed_ids:
         raise AdmissionDenied("request_identity_mismatch")
     try:

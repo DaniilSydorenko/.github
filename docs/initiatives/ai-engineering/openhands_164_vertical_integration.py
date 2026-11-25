@@ -132,8 +132,8 @@ def run_vertical_pregates(request: VerticalRequest, *, lease_store, base_sha: st
         return _stop("base_sha_mismatch", inventory_head=head, workspace_base=base_sha)
 
     rid = request_id_for(issue)
-    if issue == 217 and request.trusted and request.trusted.lease.state.get('request_id') == 'openhands-164-issue-217-recovery-8':
-        rid = 'openhands-164-issue-217-recovery-8'
+    if issue == 217 and request.trusted and request.trusted.lease.state.get('request_id') in ('openhands-164-issue-217-recovery-8', 'openhands-164-issue-217-correction-9'):
+        rid = request.trusted.lease.state['request_id']
     lease = Controller(lease_store)
     acquired = lease.acquire(rid, f"https://github.com/DaniilSydorenko/haversine-geolocation/issues/{issue}")
     if acquired not in ("ACQUIRED", "ALREADY_OWNED"):

@@ -1,5 +1,18 @@
 # GitHub HQ — agent entry point
 
+## Delivery-first pilot override (2026-11-25)
+
+For #164 only, this section supersedes older planning, cadence, delegation-discovery and reporting requirements, not security or domain authority. The current goal is one accepted #217 agent result, not a general orchestration platform.
+
+- One existing implementation PR, one writer, one coherent fix per round. Direct connector edits are the default for bounded HQ fixes; no mandatory Cursor evaluation or paid delegation.
+- Read the active PR and relevant code once; implement the complete known blocker in the same round. Do not repeat unchanged audits, status-only rounds, roadmap estimates or create new helpers unless necessary for a working path.
+- Reuse the protected workflow, App writer, durable CAS/replay ledger, provider cap, scope validation and required exact-head CI. No new service, scheduler, credential, ruleset or abstraction. Never bypass protections or fabricate acceptance.
+- Check only changed dependencies and required gates. Run focused regression tests and existing required CI once per final HEAD; poll only when a result can change the next action. Fresh live authorization and security evidence remain mandatory at execution.
+- Recovery is an explicit terminal rejected-result path, not successful integration. Preserve history; prove terminal execution and rejected artifact, then admit at most one bounded correction for #217. No parallel writers or automatic merge.
+- Finish #192, recover the lease, execute #217, review the actual snippet and exact-head CI. #226 and all platform expansion are deferred until owner acceptance. Escalate an actual owner-only action once, with exact instructions.
+- Report only changed code/PR, test result, actual blocker and next action. If no mutation is possible, state the concrete tool or authority limitation; do not imply progress.
+
+
 ## Mandatory AI engineering delivery bootstrap (proposed in #166)
 
 For work in `docs/initiatives/ai-engineering/**` or `ai-eng-*` workflows, first read [Delivery Governance](docs/initiatives/ai-engineering/DELIVERY_GOVERNANCE.md), then the initiative's canonical delivery plan (currently [#164](docs/initiatives/ai-engineering/DELIVERY_PLAN_164.md)), tracking issue and active PR exact-head CI. Treat these as the **working source of truth across new chats**. Keep owner interaction brief; use bounded AI sessions rather than eight-hour workday estimates. This is process guidance, **not** permission to launch models, alter security or operate other repositories. Existing owner/security/domain gates prevail.
