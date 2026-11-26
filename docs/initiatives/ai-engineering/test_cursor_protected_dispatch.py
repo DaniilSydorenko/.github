@@ -11,6 +11,10 @@ import cursor_protected_dispatch
 
 from cursor_protected_dispatch import (
     APPROVED_OPERATION,
+    OWNER_ATTESTATIONS,
+    attestations_from_env,
+    request_id_for_dispatch,
+    summarize_launch_attempt,
     ISSUE,
     ProtectedCursorContext,
     competing_writer_verdict,
@@ -189,6 +193,116 @@ class CursorProtectedDispatchTests(TestCase):
         self.assertEqual(result["decision"], "STOP")
         self.assertFalse(result["cursor_post_attempted"])
         self.assertEqual(result["managed_launch_state"], "STOP")
+
+
+    ALL_ATTESTED = {key: True for key in OWNER_ATTESTATIONS}
+
+    class FakeCursor:
+        def __init__(self, models=("composer-2",), agents=()):
+            self.models, self.agents, self.calls = models, list(agents), []
+
+        def get_json(self, path, params=None):
+            self.calls.append(path)
+            if path == "/v1/me":
+                return {"apiKeyName": "ci", "createdAt": "2026-01-01T00:00:00Z"}
+            if path == "/v1/models":
+                return {"items": [{"id": m, "displayName": m} for m in self.models]}
+            if path == "/v1/agents":
+                return {"items": self.agents}
+            raise AssertionError("unexpected Cursor path " + path)
+
+    def _run(self, **kwargs):
+        args = dict(
+            issue_preflight=lambda: self.preflight_ok,
+            lease_state_reader=lambda: self.idle,
+            main_sha_reader=lambda: self.main_sha,
+        )
+        args.update(kwargs)
+        return run_gates_only(self.ctx, **args)
+
+    def _spy_launch(self):
+        calls = []
+        real = cursor_protected_dispatch.launch_single_approved_issue
+
+        def spy(**kwargs):
+            calls.append(kwargs)
+            return real(**kwargs)
+
+        return calls, patch.object(cursor_protected_dispatch, "launch_single_approved_issue", spy)
+
+    def test_request_id_is_deterministic_per_issue_not_per_run(self) -> None:
+        rid = request_id_for_dispatch()
+        self.assertEqual(rid, "seq-b71fef904d1a0cbe1eac77c552ea3f75")
+        other = ProtectedCursorContext(**{**self.ctx.__dict__, "workflow_run_id": "1000"})
+        self.assertEqual(run_gates_only(
+            other, issue_preflight=lambda: self.preflight_ok,
+            lease_state_reader=lambda: self.idle,
+            main_sha_reader=lambda: self.main_sha)["request_id"], rid)
+
+    def test_consumed_request_cannot_dispatch_again(self) -> None:
+        consumed = {**self.idle, "consumed_request_hashes": [fingerprint(request_id_for_dispatch())]}
+        result = self._run(lease_state_reader=lambda: consumed)
+        self.assertEqual(result["reason"], "request_already_consumed")
+        self.assertFalse(result["cursor_post_attempted"])
+
+    def test_no_cursor_key_means_missing_evidence_and_empty_permit(self) -> None:
+        calls, spy = self._spy_launch()
+        with spy:
+            result = self._run(attestations=self.ALL_ATTESTED)
+        for item in ("cursor_inventory_clear", "verified_account_scope",
+                     "verified_model_allowlist"):
+            self.assertIn(item, result["permit_missing_evidence"])
+        self.assertEqual(calls[0]["permit"], {})
+
+    def test_missing_attestation_is_reported_not_assumed(self) -> None:
+        partial = {**self.ALL_ATTESTED, "verified_cursor_billing": False}
+        result = self._run(cursor_api=self.FakeCursor(), attestations=partial)
+        self.assertEqual(result["permit_missing_evidence"], ["verified_cursor_billing"])
+
+    def test_model_must_exist_in_live_cursor_model_list(self) -> None:
+        result = self._run(cursor_api=self.FakeCursor(models=("composer-2.5",)),
+                           attestations=self.ALL_ATTESTED)
+        self.assertEqual(result["permit_missing_evidence"], ["verified_model_allowlist"])
+
+    def test_active_cursor_agent_blocks(self) -> None:
+        busy = [{"id": "bc-00000000-0000-0000-0000-000000000009", "status": "ACTIVE"}]
+        result = self._run(cursor_api=self.FakeCursor(agents=busy),
+                           attestations=self.ALL_ATTESTED)
+        self.assertEqual(result["reason"], "cursor_agent_busy")
+        self.assertFalse(result["cursor_post_attempted"])
+
+    def test_complete_evidence_builds_permit_and_stops_only_at_bundle(self) -> None:
+        fake = self.FakeCursor()
+        calls, spy = self._spy_launch()
+        with spy, patch("managed_cursor_launch.PILOT_ACTIVATION_ENABLED", True):
+            result = self._run(cursor_api=fake, attestations=self.ALL_ATTESTED)
+        self.assertEqual(result["permit_missing_evidence"], [])
+        permit = calls[0]["permit"]
+        self.assertTrue(all(v is True for k, v in permit.items() if k.startswith("verified_")))
+        self.assertEqual(permit["request_id"], request_id_for_dispatch())
+        self.assertEqual(permit["head_sha"], self.main_sha)
+        # Remaining gate: the live preview+handoff bundle is not built yet.
+        self.assertEqual(result["managed_launch_reason"], "next_issue_preview_or_handoff_unverified")
+        self.assertFalse(result["cursor_post_attempted"])
+        self.assertNotIn("/v1/agents/bc-", " ".join(fake.calls))
+
+    def test_attestations_require_exact_true(self) -> None:
+        env = {var: "true" for var in OWNER_ATTESTATIONS.values()}
+        self.assertTrue(all(attestations_from_env(env).values()))
+        for value in ("True", "1", "yes", ""):
+            self.assertFalse(any(attestations_from_env(
+                {var: value for var in OWNER_ATTESTATIONS.values()}).values()))
+
+    def test_held_lock_reports_possible_post(self) -> None:
+        out = summarize_launch_attempt(
+            {"state": "STOP_LOCK_HELD", "reason": "cursor_create_result_unknown"}, proposal=None)
+        self.assertEqual(out["decision"], "STOP")
+        self.assertTrue(out["cursor_post_attempted"])
+
+    def test_no_writers_constructed_while_activation_off(self) -> None:
+        env = {"AI_ENG_LEASE_WRITER_TOKEN": "t", "CURSOR_API_KEY": "k"}
+        with patch.dict("os.environ", env):
+            self.assertEqual(cursor_protected_dispatch._live_writers(), (None, None))
 
 
 if __name__ == "__main__":

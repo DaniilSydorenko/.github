@@ -41,6 +41,16 @@ jobs:
           AI_ENG_APPROVED_OPERATION: pilot-cursor-220-dispatch-gates-only
           AI_ENG_OWNER_GO_ISSUE: "220"
           AI_ENG_EXECUTE_CURSOR: ${{ inputs.execute_cursor }}
+          # GET-only inventory, /v1/models and /v1/me. No POST client exists while
+          # PILOT_ACTIVATION_ENABLED is False (enforced in code, tested).
+          CURSOR_API_KEY: ${{ secrets.CURSOR_API_KEY }}
+          # Owner attestations (repository variables, exact value "true").
+          AI_ENG_ATTEST_CURSOR_SPEND_LIMIT_SET: ${{ vars.AI_ENG_ATTEST_CURSOR_SPEND_LIMIT_SET }}
+          AI_ENG_ATTEST_NO_EXTERNAL_BILLING: ${{ vars.AI_ENG_ATTEST_NO_EXTERNAL_BILLING }}
+          AI_ENG_ATTEST_SUBAGENTS_DISABLED: ${{ vars.AI_ENG_ATTEST_SUBAGENTS_DISABLED }}
+          AI_ENG_ATTEST_SINGLE_LAUNCH_ROUTE: ${{ vars.AI_ENG_ATTEST_SINGLE_LAUNCH_ROUTE }}
+          AI_ENG_ATTEST_TARGET_BRANCH_PROTECTED: ${{ vars.AI_ENG_ATTEST_TARGET_BRANCH_PROTECTED }}
+          AI_ENG_ATTEST_CURSOR_KEY_ACCOUNT_SCOPE: ${{ vars.AI_ENG_ATTEST_CURSOR_KEY_ACCOUNT_SCOPE }}
         run: |
           set -euo pipefail
           python3 docs/initiatives/ai-engineering/cursor_protected_dispatch.py --self-test
@@ -48,15 +58,20 @@ jobs:
           result="$(python3 docs/initiatives/ai-engineering/cursor_protected_dispatch.py --gates-only)"
           echo "$result" | tee cursor220-gates.json
           python3 - <<'PY'
-          import json, sys
+          import json, os
           with open("cursor220-gates.json", encoding="utf-8") as handle:
               payload = json.load(handle)
-          assert payload["decision"] == "STOP"
+          assert payload["decision"] == "STOP", payload["decision"]
           assert payload["live_cursor_dispatch_authorized"] is False
           assert payload["cursor_post_attempted"] is False
-          if payload.get("competing_writer"):
-              print("PASS: competing writer detected; Cursor dispatch blocked")
-          else:
-              assert payload["reason"] == "owner_activation_not_enabled"
-              print("PASS: owner gates-only Cursor path; activation OFF")
+          lines = [
+              "### Cursor #220 dispatch gates",
+              f"- reason: `{payload['reason']}`",
+              f"- request id: `{payload.get('request_id')}`",
+              f"- missing evidence: `{payload.get('permit_missing_evidence')}`",
+              f"- cursor inventory: `{(payload.get('cursor_inventory') or {}).get('status')}`",
+          ]
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as summary:
+              summary.write("\n".join(lines) + "\n")
+          print("PASS: fail-closed STOP, no Cursor POST:", payload["reason"])
           PY

@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 """Protected owner-triggered Cursor dispatch for Haversine Issue #220 only.
 
-Composes issue preflight, public lease competing-writer observation,
-singleton admission, managed_cursor_launch (activation OFF), and optional
-cursor_readonly inventory. Never acquires a lease, alters lease state, or
-POSTs to Cursor. Workflow-injected context is the only dispatch authority
-surface; caller JSON flags are never trusted.
+Routes one owner workflow_dispatch through the existing managed launch
+transaction (managed_cursor_launch.launch_single_approved_issue). The permit is
+derived here from workflow-observed evidence (live lease, live scope preflight,
+GET-only Cursor inventory, /v1/models, /v1/me) plus labelled owner
+attestations from repository variables; caller JSON flags are never trusted.
+While PILOT_ACTIVATION_ENABLED is False no lease writer or Cursor POST client
+is even constructed, so this module cannot acquire a lease or POST.
 """
 from __future__ import annotations
 
@@ -19,12 +21,18 @@ from dataclasses import dataclass
 from typing import Any, Callable, Mapping
 
 from cursor_pr_payload import PayloadError, single_issue_payload
-from github_ref_lease import PREFIX, agent_id_for, check_state, fingerprint
-from managed_cursor_launch import PILOT_ACTIVATION_ENABLED, launch_single_approved_issue
+from cursor_readonly import (
+    CursorReadError, api_key_info_ok, from_environment, global_run_preflight, model_ids,
+)
+from github_ref_lease import (
+    PREFIX, Controller, GitHubRefStore, agent_id_for, check_state, fingerprint,
+)
+from managed_cursor_launch import (
+    PILOT_ACTIVATION_ENABLED, CursorCreateHTTP, launch_single_approved_issue,
+)
 from openhands_issue_contract import PATH, REPO, live_preflight
-from openhands_live_admission import Admission, check_admission
 from openhands_runner_admission_bridge import caller_json_carries_forbidden_attestation
-from singleton_admission import evaluate as singleton_evaluate
+from sequential_handoff import request_id_for_issue
 
 ISSUE = 220
 LEASE_REPO = "DaniilSydorenko/.github"
@@ -131,8 +139,14 @@ def competing_writer_verdict(lease_state: dict[str, Any]) -> dict[str, Any]:
     return {"competing_writer": False, "reason": "lease_idle", "lease_phase": "IDLE"}
 
 
-def request_id_for_dispatch(ctx: ProtectedCursorContext) -> str:
-    return f"cursor-haversine-220-{ctx.workflow_run_id}"
+def request_id_for_dispatch() -> str:
+    """Deterministic per-Issue id shared with sequential_handoff (replay key).
+
+    A per-workflow-run id would mint a fresh request on every dispatch and make
+    the lease replay ledger useless; it would also never match the handoff's
+    proposed_request_id that launch_single_approved_issue requires.
+    """
+    return request_id_for_issue(REPO, ISSUE)
 
 
 def build_proposal(*, request_id: str, main_sha: str) -> dict[str, Any]:
@@ -150,18 +164,67 @@ def build_proposal(*, request_id: str, main_sha: str) -> dict[str, Any]:
         return _stop("cursor_payload_invalid", detail=str(exc))
 
 
-def admission_gates_unmet(main_sha: str) -> dict[str, Any]:
-    admission = Admission(REPO, ISSUE, PATH, main_sha, 1.0)
-    return check_admission(
-        admission,
-        lease=False,
-        writer=False,
-        owner=False,
-        budget=False,
-        executor=False,
-        no_collision=False,
-        no_active_agent=False,
-    )
+# Facts no API can prove. The owner sets these as repository variables; the
+# workflow injects them. They are labelled attestations, never "verified" proof.
+OWNER_ATTESTATIONS = {
+    "verified_cursor_billing": "AI_ENG_ATTEST_CURSOR_SPEND_LIMIT_SET",
+    "verified_external_billing_excluded": "AI_ENG_ATTEST_NO_EXTERNAL_BILLING",
+    "verified_subagents_disabled": "AI_ENG_ATTEST_SUBAGENTS_DISABLED",
+    "verified_launch_route_exclusivity": "AI_ENG_ATTEST_SINGLE_LAUNCH_ROUTE",
+    "verified_owner_security_gates": "AI_ENG_ATTEST_TARGET_BRANCH_PROTECTED",
+    "account_scope_attested": "AI_ENG_ATTEST_CURSOR_KEY_ACCOUNT_SCOPE",
+}
+ATTESTED = "true"
+
+
+def attestations_from_env(environ: Mapping[str, str] | None = None) -> dict[str, bool]:
+    env = os.environ if environ is None else environ
+    return {key: env.get(var) == ATTESTED for key, var in OWNER_ATTESTATIONS.items()}
+
+
+def build_trusted_permit(
+    ctx: ProtectedCursorContext,
+    *,
+    request_id: str,
+    main_sha: str,
+    scope_preflight_passed: bool,
+    attestations: Mapping[str, bool],
+    key_info_ok: bool,
+    live_models: frozenset[str],
+    inventory: Mapping[str, Any] | None,
+) -> tuple[dict[str, Any], list[str]]:
+    """Derive the managed-launch permit from workflow-observed evidence only.
+
+    Returns (permit, missing_evidence). Caller JSON never reaches this function.
+    """
+    account_scope = (attestations.get("account_scope_attested") is True
+                     and key_info_ok is True)
+    flags = {
+        # ctx exists only for an owner workflow_dispatch on main, attempt 1, in
+        # the protected ai-eng-lease-owner environment (validated earlier).
+        "verified_owner_approval": validate_workflow_context(ctx) is None,
+        "verified_exact_scope": scope_preflight_passed is True,
+        "verified_account_scope": account_scope,
+        "verified_model_allowlist": DEFAULT_MODEL in live_models,
+        **{key: attestations.get(key) is True for key in (
+            "verified_cursor_billing", "verified_external_billing_excluded",
+            "verified_subagents_disabled", "verified_launch_route_exclusivity",
+            "verified_owner_security_gates")},
+    }
+    missing = sorted(k for k, v in flags.items() if v is not True)
+    if not isinstance(inventory, Mapping) or inventory.get("status") != "CLEAR":
+        missing.append("cursor_inventory_clear")
+    permit = {
+        **flags,
+        "request_id": request_id,
+        "proposed_request_id": request_id,
+        "repository": REPO,
+        "issue_number": ISSUE,
+        "head_sha": main_sha,
+        "model_id": DEFAULT_MODEL,
+        "model_allowlist": MODEL_ALLOWLIST,
+    }
+    return permit, missing
 
 
 def summarize_launch_attempt(
@@ -178,10 +241,25 @@ def summarize_launch_attempt(
             if isinstance(proposal, dict)
             else None,
         )
+    if state == "STARTED":
+        return {
+            "decision": "STARTED",
+            "reason": launch.get("reason"),
+            "issue": ISSUE,
+            "executor": "cursor",
+            "live_cursor_dispatch_authorized": True,
+            "cursor_post_attempted": True,
+            "pilot_activation_enabled": True,
+            "managed_launch_state": state,
+            "agent_id": launch.get("agent_id"),
+            "run_id": launch.get("run_id"),
+        }
     return _stop(
-        "unexpected_managed_launch_state",
+        "managed_launch_" + str(launch.get("reason") or "stopped"),
         managed_launch_state=state,
         managed_launch_reason=launch.get("reason"),
+        # STOP_LOCK_HELD means a POST may have happened: never report "no POST".
+        cursor_post_attempted=state == "STOP_LOCK_HELD",
     )
 
 
@@ -192,15 +270,20 @@ def run_gates_only(
     lease_state_reader: Callable[[], dict[str, Any]],
     main_sha_reader: Callable[[], str],
     caller_context: Mapping[str, Any] | None = None,
-    cursor_inventory: Callable[[], dict[str, Any]] | None = None,
+    cursor_api: Any = None,
+    attestations: Mapping[str, bool] | None = None,
+    launch_bundle: dict[str, Any] | None = None,
+    controller: Any = None,
+    cursor_create: Any = None,
 ) -> dict[str, Any]:
-    """Owner-triggered audit path. Always fail-closed before any Cursor POST."""
+    """Owner-triggered path through the real managed launch. Fail-closed."""
     blocked = validate_workflow_context(ctx)
     if blocked is not None:
         return blocked
     forbidden = caller_json_carries_forbidden_attestation(caller_context or {})
     if forbidden:
         return _stop("caller_attestation_fields_not_trusted", forbidden_keys=sorted(forbidden))
+    rid = request_id_for_dispatch()
     try:
         lease_state = lease_state_reader()
     except (ValueError, TypeError, KeyError, OSError) as exc:
@@ -216,6 +299,8 @@ def run_gates_only(
             lease_source_issue_url=writer.get("lease_source_issue_url"),
             lease_pr_url=writer.get("lease_pr_url"),
         )
+    if fingerprint(rid) in lease_state.get("consumed_request_hashes", []):
+        return _stop("request_already_consumed", request_id=rid)
     try:
         preflight = issue_preflight()
     except (ValueError, TypeError, KeyError, OSError) as exc:
@@ -233,66 +318,49 @@ def run_gates_only(
         return _stop("default_branch_sha_unavailable", error_type=type(exc).__name__)
     if not isinstance(main_sha, str) or not SHA.fullmatch(main_sha):
         return _stop("invalid_default_branch_sha")
-    admission = admission_gates_unmet(main_sha)
-    if admission.get("live_execution_authorized") is True:
-        return _stop("admission_boundary_leaked_authority")
-    singleton = singleton_evaluate(
-        {
-            "evidence_complete": False,
-            "budget_controls_verified": False,
-            "cursor_on_demand_disabled": False,
-            "external_billing_excluded": False,
-            "model_allowlisted": False,
-            "subagents_disabled": False,
-            "launch_routes_exclusive": False,
-            "request_id": request_id_for_dispatch(ctx),
-            "prior_request_ids": [],
-            "lease": {"verified_atomic": False, "state": "OWNED", "owner_request_id": "other"},
-            "provider_run_inventory_complete": False,
-            "ambiguous_previous_launch": True,
-            "active_run_ids": ["run-active"] if cursor_inventory else [],
-            "scope_authorized": False,
-            "owner_sensitive": True,
-            "attempt_number": 0,
-            "semantic_reconciliation_accepted": False,
-            "main_sha": main_sha,
-            "observed_main_sha": main_sha,
-            "open_prs": [],
-            "intent": {"kind": "NEW_CODE", "issue_approved": False,
-                       "dependency_evidence_complete": False,
-                       "independent_leaf_proven": False, "no_overlap_verified": False},
-        }
-    )
-    inventory_note: dict[str, Any] | None = None
-    if cursor_inventory is not None:
-        try:
-            inventory_note = cursor_inventory()
-        except Exception as exc:  # noqa: BLE001 — inventory is observational only
-            inventory_note = {"status": "STOP", "reason": type(exc).__name__}
-    rid = request_id_for_dispatch(ctx)
     proposal = build_proposal(request_id=rid, main_sha=main_sha)
     if proposal.get("decision") == "STOP":
         return proposal
-    # Call the real managed launch transaction instead of a synthetic result.
-    # While PILOT_ACTIVATION_ENABLED is False it returns DISABLED before touching
-    # GitHub or Cursor; with no trusted bundle/permit it can only STOP.
+
+    # Provider evidence: GET-only. No key => evidence missing, never assumed.
+    attested = dict(attestations or {})
+    inventory: dict[str, Any] | None = None
+    models: frozenset[str] = frozenset()
+    key_ok = False
+    if cursor_api is not None:
+        key_ok = api_key_info_ok(cursor_api)
+        models = model_ids(cursor_api)
+        inventory = global_run_preflight(
+            cursor_api,
+            global_account_scope_verified=attested.get("account_scope_attested") is True
+            and key_ok,
+        )
+        if inventory.get("status") == "BUSY":
+            return _stop("cursor_agent_busy", cursor_inventory=inventory)
+    permit, missing = build_trusted_permit(
+        ctx, request_id=rid, main_sha=main_sha,
+        scope_preflight_passed=True, attestations=attested,
+        key_info_ok=key_ok, live_models=models, inventory=inventory,
+    )
     launch = launch_single_approved_issue(
-        request_id=rid, bundle={}, permit={}, controller=None,
-        cursor_reader=None, cursor_create=None,
+        request_id=rid,
+        bundle=launch_bundle if launch_bundle is not None else {},
+        permit=permit if not missing else {},
+        controller=controller,
+        cursor_reader=cursor_api,
+        cursor_create=cursor_create,
     )
     result = summarize_launch_attempt(launch, proposal=proposal)
     result.update(
         {
+            "request_id": rid,
             "preflight_reason": preflight.get("reason"),
-            "admission_reason": admission.get("reason"),
-            "singleton_decision": singleton.get("decision"),
-            "singleton_reason": singleton.get("reason"),
+            "permit_missing_evidence": missing,
+            "cursor_inventory": inventory,
             "proposal_agent_id": agent_id_for(rid),
             "exact_head_verification": "pending_after_terminal_run",
         }
     )
-    if inventory_note is not None:
-        result["cursor_inventory"] = inventory_note
     return result
 
 
@@ -336,13 +404,34 @@ def live_main_sha() -> str:
     return sha
 
 
+def _live_writers() -> tuple[Any, Any]:
+    """Lease writer and Cursor POST client exist only once activation is ON."""
+    if PILOT_ACTIVATION_ENABLED is not True:
+        return None, None
+    token = os.environ.get("AI_ENG_LEASE_WRITER_TOKEN")
+    key = os.environ.get("CURSOR_API_KEY")
+    if not token or not key:
+        return None, None
+    return (Controller(GitHubRefStore(LEASE_REPO, token, LEASE_REF)),
+            CursorCreateHTTP(key))
+
+
 def run_live_gates_only() -> dict[str, Any]:
     ctx = protected_context_from_env()
+    try:
+        cursor_api = from_environment() if os.environ.get("CURSOR_API_KEY") else None
+    except CursorReadError:
+        cursor_api = None
+    controller, cursor_create = _live_writers()
     return run_gates_only(
         ctx,  # type: ignore[arg-type]
         issue_preflight=live_preflight,
         lease_state_reader=live_lease_state,
         main_sha_reader=live_main_sha,
+        cursor_api=cursor_api,
+        attestations=attestations_from_env(),
+        controller=controller,
+        cursor_create=cursor_create,
     )
 
 

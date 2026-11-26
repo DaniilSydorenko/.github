@@ -33,6 +33,16 @@ def _paths(x: Any) -> bool:
             and len(x) == len(set(x)))
 
 
+def request_id_for_issue(repo: str, issue_number: int) -> str:
+    """Deterministic request id for one Issue: the replay ledger key.
+
+    Stable across scheduler ticks, workflow runs and default-branch HEADs, so a
+    consumed id can never start a second paid run for the same Issue.
+    """
+    digest = hashlib.sha256(f"ai-eng-next-v1:{repo}:issue:{issue_number}".encode()).hexdigest()
+    return "seq-" + digest[:32]
+
+
 def _out(action: str, reason: str, issue: int | None = None,
          request_id: str | None = None, pr: int | None = None) -> dict[str, Any]:
     return {
@@ -169,9 +179,8 @@ def preview_next_after_merge(snapshot: dict[str, Any]) -> dict[str, Any]:
 
         # Stable ACROSS scheduler ticks and changing default HEADs. Not a launch
         # permit: authenticated billing, lease and domain ownership still apply.
-        digest = hashlib.sha256(f"ai-eng-next-v1:{repo}:issue:{n}".encode()).hexdigest()
         return _out("READY_FOR_OWNER_DISPATCH", "preapproved_single_leaf_proposal_only",
-                    issue=n, request_id="seq-" + digest[:32])
+                    issue=n, request_id=request_id_for_issue(repo, n))
     if prs:
         return _out("WAIT", "open_prs_remain_after_queue_acceptance")
     return _out("NO_READY_WORK", "all_approved_queue_items_accepted")
