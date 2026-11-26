@@ -142,11 +142,14 @@ class Controller:
 
     def transition(self, request_id: str, from_phase: str, to_phase: str,
                    *, run_id: str | None = None) -> str:
+        # Releasing a started run is never a plain transition: terminal Cursor/OpenHands
+        # state and owner acceptance are external facts (see release_verified).
+        if to_phase == "IDLE" and from_phase != "RESERVED":
+            raise LeaseError("release requires externally verified terminal/owner acceptance")
         allowed = {
             ("RESERVED", "DISPATCHING"), ("DISPATCHING", "RUNNING"),
             ("DISPATCHING", "BLOCKED"), ("RUNNING", "VERIFYING"),
             ("RUNNING", "BLOCKED"), ("VERIFYING", "BLOCKED"),
-            ("VERIFYING", "IDLE"), ("BLOCKED", "IDLE"),
             ("RESERVED", "IDLE"),
         }
         if (from_phase, to_phase) not in allowed:
@@ -157,10 +160,6 @@ class Controller:
         check_state(old.state)
         if old.state["request_id"] != request_id or old.state["phase"] != from_phase:
             raise LeaseError("owner/phase mismatch")
-        if to_phase == "IDLE" and from_phase != "RESERVED":
-            # A terminal Cursor run and owner-authorized accepted integration are
-            # external facts: proof must be attested by a separate trusted gate.
-            raise LeaseError("release requires externally verified terminal/owner acceptance")
         nxt = {**old.state, "revision": old.state["revision"] + 1, "phase": to_phase}
         if to_phase == "RUNNING":
             nxt["run_id"] = run_id
@@ -211,6 +210,34 @@ class Controller:
                "consumed_request_hashes": list(old.state["consumed_request_hashes"])}
         self.store.advance(old, nxt)
         return "RELEASED"
+
+    def release_rejected(self, request_id: str, *, expected_sha: str, pr_url: str,
+                         provider_terminal: bool, rejection_verified: bool,
+                         manual_approval: bool) -> str:
+        """Owner-authorized release of a REJECTED execution. Not integration.
+
+        rejection_verified: the caller independently observed that the PR in
+        ``pr_url`` is closed unmerged, or (when the lease still holds the source
+        Issue URL) that no PR was produced. The caller binds the exact observed
+        lease commit (CAS) and the exact URL the lease holds. The request id
+        stays consumed, so the rejected request can never run again.
+        """
+        if not (provider_terminal is True and rejection_verified is True
+                and manual_approval is True):
+            raise LeaseError("rejected release proof incomplete")
+        old = self.store.read()
+        check_state(old.state)
+        if (old.sha != expected_sha
+                or old.state["request_id"] != request_id
+                or old.state["phase"] not in ("VERIFYING", "BLOCKED")
+                or old.state.get("pr_url") != pr_url
+                or not isinstance(pr_url, str)
+                or ("/pull/" not in pr_url and pr_url != old.state.get("source_issue_url"))):
+            raise LeaseError("rejected release snapshot mismatch")
+        nxt = {**initial_state(), "revision": old.state["revision"] + 1,
+               "consumed_request_hashes": list(old.state["consumed_request_hashes"])}
+        self.store.advance(old, nxt)
+        return "REJECTED_RELEASED"
 
     def release_rejected_run9(self, *, expected_sha: str, provider_terminal: bool,
                               pr_closed_unmerged: bool, manual_approval: bool) -> str:

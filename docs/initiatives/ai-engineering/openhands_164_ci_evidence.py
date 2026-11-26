@@ -11,21 +11,37 @@ SHA = re.compile(r"[0-9a-f]{40}\Z")
 TERMINAL_CONCLUSIONS = frozenset({"success", "failure", "cancelled", "timed_out", "action_required", "skipped", "stale"})
 NON_PASS = frozenset({"failure", "cancelled", "timed_out", "action_required", "stale"})
 PENDINGISH = frozenset({None, "", "pending", "queued", "waiting", "requested", "in_progress"})
+PAGE_SIZE = 100
+MAX_CHECK_RUN_PAGES = 5
 
 
-def _aggregate_from_runs(runs: list[dict[str, Any]]) -> str:
+def _classify(runs: list[dict[str, Any]]) -> str:
+    """FAILURE beats PENDING beats UNKNOWN beats SUCCESS, independent of run order.
+
+    A red check is final the moment it completes; it must not be hidden behind
+    another check that is still running just because that one was listed first.
+    """
     if not runs:
         return "PENDING"
+    pending = unknown = False
     for run in runs:
         conclusion = run.get("conclusion")
         status = run.get("status")
-        if status in PENDINGISH or conclusion in PENDINGISH:
-            return "PENDING"
         if conclusion in NON_PASS:
             return "FAILURE"
-        if conclusion not in ("success", "skipped"):
-            return "UNKNOWN"
+        if status in PENDINGISH or conclusion in PENDINGISH:
+            pending = True
+        elif conclusion not in ("success", "skipped"):
+            unknown = True
+    if pending:
+        return "PENDING"
+    if unknown:
+        return "UNKNOWN"
     return "SUCCESS"
+
+
+def _aggregate_from_runs(runs: list[dict[str, Any]]) -> str:
+    return _classify(runs)
 
 
 def _security_from_runs(runs: list[dict[str, Any]]) -> str:
@@ -33,16 +49,7 @@ def _security_from_runs(runs: list[dict[str, Any]]) -> str:
                 or "security" in (r.get("name") or "").lower()]
     if not security:
         return "PENDING"
-    for run in security:
-        conclusion = run.get("conclusion")
-        status = run.get("status")
-        if status in PENDINGISH or conclusion in PENDINGISH:
-            return "PENDING"
-        if conclusion in NON_PASS:
-            return "FAILURE"
-        if conclusion not in ("success", "skipped"):
-            return "UNKNOWN"
-    return "SUCCESS"
+    return _classify(security)
 
 
 def exact_head_ci_from_check_runs(
@@ -58,9 +65,17 @@ def exact_head_ci_from_check_runs(
         head_sha = pr.get("head", {}).get("sha") if isinstance(pr, dict) else None
         if not isinstance(head_sha, str) or not SHA.fullmatch(head_sha):
             return None, {"decision": "STOP", "reason": "published_pr_head_unverified"}
-        runs = transport("GET", f"{api}/commits/{head_sha}/check-runs?per_page=100", token)
-        items = runs.get("check_runs") if isinstance(runs, dict) else None
-        if not isinstance(items, list) or len(items) >= 100:
+        items: list[Any] = []
+        for page in range(1, MAX_CHECK_RUN_PAGES + 1):
+            runs = transport("GET", f"{api}/commits/{head_sha}/check-runs?per_page={PAGE_SIZE}&page={page}", token)
+            batch = runs.get("check_runs") if isinstance(runs, dict) else None
+            if not isinstance(batch, list):
+                return None, {"decision": "STOP", "reason": "check_run_inventory_incomplete"}
+            items.extend(batch)
+            if len(batch) < PAGE_SIZE:
+                break
+        else:
+            # Every page was full up to the cap: the inventory may still be incomplete.
             return None, {"decision": "STOP", "reason": "check_run_inventory_incomplete"}
         clean = []
         for run in items:
@@ -99,6 +114,9 @@ def self_test() -> None:
 
     ev, err = exact_head_ci_from_check_runs(9, transport=pending_transport, token="x")
     assert err is None and ev is not None and ev.aggregate == "PENDING"
+    mixed = [{"name": "CI", "status": "in_progress", "conclusion": None},
+             {"name": "Lint", "status": "completed", "conclusion": "failure"}]
+    assert _aggregate_from_runs(mixed) == "FAILURE" == _aggregate_from_runs(mixed[::-1])
     ev2, _ = exact_head_ci_from_check_runs(9, transport=ok_transport, token="x")
     assert ev2 is not None and ev2.verified()
     assert pr_number_from_url("https://github.com/DaniilSydorenko/haversine-geolocation/pull/42") == 42

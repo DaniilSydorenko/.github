@@ -197,6 +197,17 @@ class LeaseTests(unittest.TestCase):
             self.gate.release_verified("issue-pr-284", provider_terminal=True,
                                        integration_accepted=True, manual_approval=True)
 
+    def test_plain_transition_never_releases_a_started_run(self):
+        request = "issue-pr-284"
+        self.gate.acquire(request, PR)
+        self.gate.transition(request, "RESERVED", "DISPATCHING")
+        self.gate.transition(request, "DISPATCHING", "RUNNING", run_id="run-123")
+        self.gate.transition(request, "RUNNING", "VERIFYING")
+        for phase in ("VERIFYING", "BLOCKED", "RUNNING", "DISPATCHING"):
+            with self.subTest(phase=phase), self.assertRaisesRegex(LeaseError, "release requires"):
+                self.gate.transition(request, phase, "IDLE")
+        self.assertEqual(self.store.state["phase"], "VERIFYING")
+
     def test_no_release_without_all_three_proofs(self):
         self.gate.acquire("issue-pr-284", PR)
         self.gate.transition("issue-pr-284", "RESERVED", "DISPATCHING")
@@ -218,6 +229,49 @@ class LeaseTests(unittest.TestCase):
                                                     manual_approval=True), "RELEASED")
         self.assertEqual(self.store.state["phase"], "IDLE")
         self.assertEqual(self.gate.acquire("other-task-99", PR), "ACQUIRED")
+
+    def _verifying(self, request):
+        self.gate.acquire(request, PR)
+        self.gate.transition(request, "RESERVED", "DISPATCHING")
+        self.gate.transition(request, "DISPATCHING", "RUNNING", run_id="run-123")
+        self.gate.transition(request, "RUNNING", "VERIFYING")
+        return self.store.read().sha
+
+    def test_rejected_release_needs_every_proof_and_exact_snapshot(self):
+        sha = self._verifying("rejected-task-284")
+        proofs = {"provider_terminal": True, "rejection_verified": True,
+                  "manual_approval": True}
+        for key in proofs:
+            with self.assertRaises(LeaseError):
+                self.gate.release_rejected("rejected-task-284", expected_sha=sha,
+                                           pr_url=PR, **{**proofs, key: False})
+        for bad in ({"expected_sha": "f" * 40, "pr_url": PR},
+                    {"expected_sha": sha, "pr_url": PR.replace("284", "285")},
+                    {"expected_sha": sha, "pr_url": PR.replace("/pull/", "/issues/")}):
+            with self.assertRaises(LeaseError):
+                self.gate.release_rejected("rejected-task-284", **bad, **proofs)
+        with self.assertRaises(LeaseError):
+            self.gate.release_rejected("someone-else-284", expected_sha=sha,
+                                       pr_url=PR, **proofs)
+        self.assertEqual(self.store.state["phase"], "VERIFYING")
+
+    def test_rejected_release_frees_lease_and_keeps_request_consumed(self):
+        sha = self._verifying("rejected-task-284")
+        self.assertEqual(self.gate.release_rejected(
+            "rejected-task-284", expected_sha=sha, pr_url=PR, provider_terminal=True,
+            rejection_verified=True, manual_approval=True), "REJECTED_RELEASED")
+        self.assertEqual(self.store.state["phase"], "IDLE")
+        self.assertEqual(self.gate.acquire("rejected-task-284", PR), "ALREADY_CONSUMED")
+        self.assertEqual(self.gate.acquire("next-task-285", PR), "ACQUIRED")
+
+    def test_rejected_release_refuses_running_lease(self):
+        self.gate.acquire("still-running-284", PR)
+        self.gate.transition("still-running-284", "RESERVED", "DISPATCHING")
+        self.gate.transition("still-running-284", "DISPATCHING", "RUNNING", run_id="run-1")
+        with self.assertRaises(LeaseError):
+            self.gate.release_rejected("still-running-284", expected_sha=self.store.read().sha,
+                                       pr_url=PR, provider_terminal=True,
+                                       rejection_verified=True, manual_approval=True)
 
     def test_same_request_stays_consumed_after_verified_release(self):
         request = "issue-pr-284"
