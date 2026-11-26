@@ -67,6 +67,33 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  quality-container-smoke:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@v6
+        with:
+          repository: DaniilSydorenko/haversine-geolocation
+          ref: ed69f7c2b16a638f3ce3d6cc7f24203c39247c0a
+          path: quality-target
+          persist-credentials: false
+      - name: Build dependency image and exercise real quality gate
+        run: |
+          set -euo pipefail
+          context="$(mktemp -d)"
+          trap 'rm -rf "$context"' EXIT
+          cp quality-target/package.json quality-target/package-lock.json "$context/"
+          printf '%s\n' 'FROM node:22-bookworm-slim' 'WORKDIR /opt/target' 'COPY package*.json ./' 'RUN npm ci --ignore-scripts --no-audit --no-fund' > "$context/Dockerfile"
+          docker build --iidfile "$context/image-id" "$context"
+          PYTHONPATH=docs/initiatives/ai-engineering python3 - "$(cat "$context/image-id")" <<'PY'
+          import sys
+          from openhands_code_quality import require_quality
+          require_quality("quality-target", image=sys.argv[1])
+          PY
   offline-contract:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
