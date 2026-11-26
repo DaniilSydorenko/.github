@@ -45,7 +45,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: ai-eng-164-single-live-executor
+  group: ai-eng-single-live-executor
   cancel-in-progress: false
 
 jobs:
