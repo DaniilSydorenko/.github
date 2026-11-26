@@ -14,14 +14,13 @@ import json
 import os
 import re
 import sys
-import urllib.error
 import urllib.request
 from dataclasses import dataclass
 from typing import Any, Callable, Mapping
 
 from cursor_pr_payload import PayloadError, single_issue_payload
 from github_ref_lease import PREFIX, agent_id_for, check_state, fingerprint
-from managed_cursor_launch import PILOT_ACTIVATION_ENABLED
+from managed_cursor_launch import PILOT_ACTIVATION_ENABLED, launch_single_approved_issue
 from openhands_issue_contract import PATH, REPO, live_preflight
 from openhands_live_admission import Admission, check_admission
 from openhands_runner_admission_bridge import caller_json_carries_forbidden_attestation
@@ -30,7 +29,6 @@ from singleton_admission import evaluate as singleton_evaluate
 ISSUE = 220
 LEASE_REPO = "DaniilSydorenko/.github"
 LEASE_REF = "ai-eng-cursor-lease-v1"
-LEASE_API = "https://api.github.com/repos/" + LEASE_REPO
 CONTROL_REPO = "DaniilSydorenko/.github"
 CONTROL_ACTOR = "DaniilSydorenko"
 APPROVED_OPERATION = "pilot-cursor-220-dispatch-gates-only"
@@ -203,12 +201,10 @@ def run_gates_only(
     forbidden = caller_json_carries_forbidden_attestation(caller_context or {})
     if forbidden:
         return _stop("caller_attestation_fields_not_trusted", forbidden_keys=sorted(forbidden))
-    if ctx.execute_cursor_requested and PILOT_ACTIVATION_ENABLED is not True:
-        # Explicit owner checkbox alone is never authority; activation stays OFF.
-        pass
     try:
         lease_state = lease_state_reader()
-    except (ValueError, TypeError, KeyError, json.JSONDecodeError) as exc:
+    except (ValueError, TypeError, KeyError, OSError) as exc:
+        # OSError covers urllib HTTPError/URLError and timeouts: fail closed.
         return _stop("lease_state_unreadable", error_type=type(exc).__name__)
     writer = competing_writer_verdict(lease_state)
     if writer["competing_writer"]:
@@ -220,7 +216,10 @@ def run_gates_only(
             lease_source_issue_url=writer.get("lease_source_issue_url"),
             lease_pr_url=writer.get("lease_pr_url"),
         )
-    preflight = issue_preflight()
+    try:
+        preflight = issue_preflight()
+    except (ValueError, TypeError, KeyError, OSError) as exc:
+        return _stop("issue_preflight_unavailable", error_type=type(exc).__name__)
     if not isinstance(preflight, dict):
         return _stop("issue_preflight_invalid")
     if preflight.get("reason") != "scope_preflight_passed_but_live_gates_unverified":
@@ -230,7 +229,7 @@ def run_gates_only(
         )
     try:
         main_sha = main_sha_reader()
-    except (ValueError, TypeError, KeyError) as exc:
+    except (ValueError, TypeError, KeyError, OSError) as exc:
         return _stop("default_branch_sha_unavailable", error_type=type(exc).__name__)
     if not isinstance(main_sha, str) or not SHA.fullmatch(main_sha):
         return _stop("invalid_default_branch_sha")
@@ -274,11 +273,13 @@ def run_gates_only(
     proposal = build_proposal(request_id=rid, main_sha=main_sha)
     if proposal.get("decision") == "STOP":
         return proposal
-    launch = {
-        "state": "DISABLED" if PILOT_ACTIVATION_ENABLED is not True else "STOP",
-        "reason": "owner_activation_not_enabled",
-        "launched": False,
-    }
+    # Call the real managed launch transaction instead of a synthetic result.
+    # While PILOT_ACTIVATION_ENABLED is False it returns DISABLED before touching
+    # GitHub or Cursor; with no trusted bundle/permit it can only STOP.
+    launch = launch_single_approved_issue(
+        request_id=rid, bundle={}, permit={}, controller=None,
+        cursor_reader=None, cursor_create=None,
+    )
     result = summarize_launch_attempt(launch, proposal=proposal)
     result.update(
         {
@@ -295,9 +296,12 @@ def run_gates_only(
     return result
 
 
-def _github_get(path: str) -> dict[str, Any]:
+def _github_get(repo: str, path: str) -> dict[str, Any]:
+    """Unauthenticated public GET; the repository is always explicit."""
+    if repo not in (LEASE_REPO, REPO):
+        raise ValueError("github_repository_not_allowlisted")
     request = urllib.request.Request(
-        (LEASE_API if path.startswith("/git/") else f"https://api.github.com/repos/{REPO}") + path,
+        f"https://api.github.com/repos/{repo}{path}",
         headers={
             "Accept": "application/vnd.github+json",
             "User-Agent": "cursor-protected-dispatch-gates/1",
@@ -312,20 +316,20 @@ def _github_get(path: str) -> dict[str, Any]:
 
 
 def live_lease_state() -> dict[str, Any]:
-    ref = _github_get(f"/git/ref/heads/{LEASE_REF}")
+    ref = _github_get(LEASE_REPO, f"/git/ref/heads/{LEASE_REF}")
     sha = ((ref.get("object") or {}).get("sha"))
     if not isinstance(sha, str):
         raise ValueError("lease_ref_missing")
-    commit = _github_get("/git/commits/" + sha)
+    commit = _github_get(LEASE_REPO, "/git/commits/" + sha)
     return parse_public_lease_state(commit.get("message") or "")
 
 
 def live_main_sha() -> str:
-    repo = _github_get("")
+    repo = _github_get(REPO, "")
     branch = repo.get("default_branch")
     if branch != "master":
         raise ValueError("unexpected_default_branch")
-    ref = _github_get(f"/git/ref/heads/{branch}")
+    ref = _github_get(REPO, f"/git/ref/heads/{branch}")
     sha = ((ref.get("object") or {}).get("sha"))
     if not isinstance(sha, str) or not SHA.fullmatch(sha):
         raise ValueError("invalid_master_sha")

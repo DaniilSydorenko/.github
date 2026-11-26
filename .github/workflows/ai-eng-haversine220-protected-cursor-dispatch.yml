@@ -14,13 +14,15 @@ on:
 permissions:
   contents: read
 
+# Shared with every workflow that can start a paid agent or write the lease.
 concurrency:
-  group: ai-eng-haversine-220-protected-cursor-dispatch
+  group: ai-eng-single-live-executor
   cancel-in-progress: false
 
 jobs:
   protected-cursor-gates:
     if: >-
+      github.event_name == 'workflow_dispatch' &&
       github.repository == 'DaniilSydorenko/.github' &&
       github.actor == 'DaniilSydorenko' &&
       github.ref == 'refs/heads/main' &&
@@ -29,9 +31,10 @@ jobs:
     environment: ai-eng-lease-owner
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
         with:
-          ref: main
+          # Bind the audited code to the exact dispatched revision, not a moving branch.
+          ref: ${{ github.sha }}
           persist-credentials: false
       - name: Protected Cursor dispatch gates (Issue #220)
         env:
