@@ -1,0 +1,129 @@
+name: AI Engineering Cursor Managed Delivery
+
+# Owner workflow_dispatch only. One bounded step per run, chosen by the lease
+# phase (see cursor_delivery_cycle.py). No Cursor POST while
+# PILOT_ACTIVATION_ENABLED is False; nothing in this workflow merges a PR and
+# no job checks out or runs candidate code.
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'advance = next lifecycle step; reject = owner-authorized rejected release'
+        required: true
+        type: choice
+        options: ['advance', 'reject']
+      issue:
+        description: 'Registered task issue (cursor_tasks.TASKS)'
+        required: true
+        type: choice
+        options: ['220']
+      bootstrap:
+        description: 'advance from IDLE with no previous accepted managed merge (owner bootstrap)'
+        type: boolean
+        default: false
+      previous_pr:
+        description: 'advance from IDLE after a previous managed PR (number; verified live)'
+        type: string
+        required: false
+      request_id:
+        description: 'reject: request id held by the lease'
+        type: string
+        required: false
+      expected_lease_sha:
+        description: 'reject: exact lease ref commit SHA you reviewed'
+        type: string
+        required: false
+      pr_url:
+        description: 'reject: exact pr_url held by the lease (PR or source Issue URL)'
+        type: string
+        required: false
+
+permissions:
+  contents: read
+
+# Shared with every workflow that can start a paid agent or write the lease.
+concurrency:
+  group: ai-eng-single-live-executor
+  cancel-in-progress: false
+
+jobs:
+  delivery-step:
+    if: >-
+      github.event_name == 'workflow_dispatch' &&
+      github.repository == 'DaniilSydorenko/.github' &&
+      github.actor == 'DaniilSydorenko' &&
+      github.ref == 'refs/heads/main' &&
+      github.run_attempt == 1
+    runs-on: ubuntu-latest
+    environment: ai-eng-lease-owner
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Mint lease-writer GitHub App token
+        id: lease-app
+        uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349 # v2.2.2
+        with:
+          app-id: ${{ vars.AI_ENG_WRITER_APP_ID }}
+          private-key: ${{ secrets.AI_ENG_WRITER_APP_PRIVATE_KEY }}
+          owner: DaniilSydorenko
+          repositories: .github
+          permission-contents: write
+          # Read-only: managed_cursor_launch audits the lease ref branch protection
+          # (GET /branches/{ref}/protection needs Administration read).
+          permission-administration: read
+      - name: Offline self-test
+        working-directory: docs/initiatives/ai-engineering
+        run: python3 cursor_protected_dispatch.py --self-test
+      - name: One lifecycle step
+        working-directory: docs/initiatives/ai-engineering
+        env:
+          AI_ENG_APPROVED_OPERATION: ${{ inputs.action == 'reject' && 'cursor-lease-reject' || 'cursor-managed-delivery' }}
+          AI_ENG_OWNER_GO_ISSUE: ${{ inputs.issue }}
+          AI_ENG_LEASE_WRITER_TOKEN: ${{ steps.lease-app.outputs.token }}
+          AI_ENG_APPROVED_WRITER_APP: ${{ vars.AI_ENG_APPROVED_WRITER_APP }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CURSOR_API_KEY: ${{ secrets.CURSOR_API_KEY }}
+          AI_ENG_ATTEST_CURSOR_SPEND_LIMIT_SET: ${{ vars.AI_ENG_ATTEST_CURSOR_SPEND_LIMIT_SET }}
+          AI_ENG_ATTEST_NO_EXTERNAL_BILLING: ${{ vars.AI_ENG_ATTEST_NO_EXTERNAL_BILLING }}
+          AI_ENG_ATTEST_SUBAGENTS_DISABLED: ${{ vars.AI_ENG_ATTEST_SUBAGENTS_DISABLED }}
+          AI_ENG_ATTEST_SINGLE_LAUNCH_ROUTE: ${{ vars.AI_ENG_ATTEST_SINGLE_LAUNCH_ROUTE }}
+          AI_ENG_ATTEST_TARGET_BRANCH_PROTECTED: ${{ vars.AI_ENG_ATTEST_TARGET_BRANCH_PROTECTED }}
+          AI_ENG_ATTEST_CURSOR_KEY_ACCOUNT_SCOPE: ${{ vars.AI_ENG_ATTEST_CURSOR_KEY_ACCOUNT_SCOPE }}
+          INPUT_ACTION: ${{ inputs.action }}
+          INPUT_BOOTSTRAP: ${{ inputs.bootstrap }}
+          INPUT_PREVIOUS_PR: ${{ inputs.previous_pr }}
+          INPUT_REQUEST_ID: ${{ inputs.request_id }}
+          INPUT_EXPECTED_LEASE_SHA: ${{ inputs.expected_lease_sha }}
+          INPUT_PR_URL: ${{ inputs.pr_url }}
+        run: |
+          set -euo pipefail
+          args=("$INPUT_ACTION")
+          if [ "$INPUT_ACTION" = "advance" ]; then
+            if [ "$INPUT_BOOTSTRAP" = "true" ]; then args+=(--bootstrap); fi
+            if [ -n "$INPUT_PREVIOUS_PR" ]; then args+=(--previous-pr "$INPUT_PREVIOUS_PR"); fi
+          else
+            args+=(--request-id "$INPUT_REQUEST_ID" --expected-lease-sha "$INPUT_EXPECTED_LEASE_SHA" --pr-url "$INPUT_PR_URL")
+          fi
+          set +e
+          python3 cursor_delivery_cycle.py "${args[@]}" | tee result.json
+          status=${PIPESTATUS[0]}
+          set -e
+          python3 - <<'PY'
+          import json, os
+          r = json.load(open("result.json"))
+          inner = r.get("result") or {}
+          lines = ["### Cursor managed delivery step",
+                   f"- step: `{r.get('step')}` outcome: `{r.get('outcome')}`",
+                   f"- reason: `{r.get('reason') or inner.get('reason')}`",
+                   f"- missing evidence: `{inner.get('permit_missing_evidence')}`",
+                   f"- owner action: `{r.get('owner_action')}`"]
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as fh:
+              fh.write("\n".join(lines) + "\n")
+          PY
+          exit "$status"

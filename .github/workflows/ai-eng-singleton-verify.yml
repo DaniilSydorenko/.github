@@ -37,7 +37,17 @@ on:
       - 'docs/initiatives/ai-engineering/cursor_protected_dispatch.py'
       - 'docs/initiatives/ai-engineering/test_cursor_protected_dispatch.py'
       - '.github/workflows/ai-eng-singleton-verify.yml'
-      - '.github/workflows/ai-eng-haversine220-protected-cursor-dispatch.yml'
+      - 'docs/initiatives/ai-engineering/cursor_tasks.py'
+      - 'docs/initiatives/ai-engineering/cursor_bundle_builder.py'
+      - 'docs/initiatives/ai-engineering/cursor_execution_observer.py'
+      - 'docs/initiatives/ai-engineering/cursor_pr_binding.py'
+      - 'docs/initiatives/ai-engineering/cursor_acceptance.py'
+      - 'docs/initiatives/ai-engineering/cursor_delivery_cycle.py'
+      - 'docs/initiatives/ai-engineering/test_cursor_delivery_cycle.py'
+      - 'docs/initiatives/ai-engineering/cursor_readonly.py'
+      - 'docs/initiatives/ai-engineering/sequential_handoff.py'
+      - 'docs/initiatives/ai-engineering/github_ref_lease.py'
+      - '.github/workflows/ai-eng-cursor-delivery.yml'
   workflow_dispatch:
 
 permissions:
