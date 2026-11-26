@@ -19,7 +19,7 @@ from github_ref_lease import Controller
 from openhands_164_draft_publisher import _PROTECTED_AUTHORITY as PUBLISHER_AUTHORITY
 from openhands_164_draft_publisher import publish_verified_patch
 from openhands_code_delivery import verify_code_handoff, publish_changes
-from openhands_code_quality import require_quality
+from openhands_code_quality import require_quality, QualityFailure
 from openhands_164_code_task import (
     CODE_APPROVED_OPERATION,
     admit_protected_code_task,
@@ -514,14 +514,26 @@ def run_protected_live_wiring(
     code_changes = None
     if config.code_paths:
         try:
-            code_changes = verify_code_handoff(
-                root, base_sha, config.code_paths,
-                quality_check=lambda clean: require_quality(clean, image=os.environ['AI_ENG_QUALITY_IMAGE']),
-            )
+            for attempt in range(3):
+                try:
+                    code_changes = verify_code_handoff(
+                        root, base_sha, config.code_paths,
+                        quality_check=lambda clean: require_quality(clean, image=os.environ['AI_ENG_QUALITY_IMAGE']),
+                    )
+                    break
+                except QualityFailure as exc:
+                    if attempt == 2:
+                        raise
+                    if lease_store.read().state.get("phase") != "RUNNING" or lease_store.read().state.get("request_id") != rid:
+                        raise PatchContractError("repair_lease_changed")
+                    if revalidate_target is not None:
+                        revalidate_target()
+                    executor(root, config.api_key, config.model, issue,
+                             **exec_kwargs, repair_feedback=str(exc))
             if code_task:
                 verify_code_task_acceptance(code_changes, code_spec)
             denied_patch, content_path = None, None
-        except (PatchContractError, OSError, ValueError, subprocess.SubprocessError) as exc:
+        except (PatchContractError, OSError, ValueError, RuntimeError, subprocess.SubprocessError) as exc:
             denied_patch, content_path = _stop("code_handoff_rejected", detail=str(exc)), None
     else:
         denied_patch, content_path = _complete_patch_pipeline(root, base_sha, issue)
