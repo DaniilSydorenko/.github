@@ -36,7 +36,7 @@ def collect_changes(workspace, base_sha, allowed_paths):
     return changes
 
 
-def verify_code_handoff(workspace, base_sha, allowed_paths):
+def verify_code_handoff(workspace, base_sha, allowed_paths, *, quality_check=None):
     """Reconstruct the exact candidate in a clean checkout before publication."""
     import tempfile
     import subprocess
@@ -53,6 +53,10 @@ def verify_code_handoff(workspace, base_sha, allowed_paths):
             path.write_bytes(content.encode("utf-8"))
         if collect_changes(clean, base_sha, allowed_paths) != changes:
             raise PatchContractError("handoff_mismatch")
+        if quality_check is not None:
+            quality_check(clean)
+            if collect_changes(clean, base_sha, allowed_paths) != changes:
+                raise PatchContractError("quality_candidate_changed")
     return changes
 
 def publish_changes(*, issue, base_sha, changes, allowed_paths, token, authority, transport):
