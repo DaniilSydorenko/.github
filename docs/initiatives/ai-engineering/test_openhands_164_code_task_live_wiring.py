@@ -5,6 +5,8 @@ import pathlib
 import subprocess
 import tempfile
 import unittest
+from unittest.mock import patch
+from openhands_164_patch_contract import PatchContractError
 
 from openhands_164_executor import _TRUSTED_AUTHORIZATION
 from openhands_164_live_wiring import (
@@ -90,6 +92,12 @@ class CodeTaskLiveWiringTests(unittest.TestCase):
             self.assertEqual(admission["reason"], "model_handoff_blocked_live_capability_unverified")
 
     def test_mocked_live_code_task_publish(self):
+        self._exercise_publish(False)
+
+    def test_quality_failure_blocks_publish(self):
+        self._exercise_publish(True)
+
+    def _exercise_publish(self, fail_quality):
         calls = {"model": 0, "pull_create": 0}
 
         def fake_executor(root, key, model, issue, *, authorization, **kwargs):
@@ -150,7 +158,11 @@ class CodeTaskLiveWiringTests(unittest.TestCase):
                 target_head_sha=sha,
                 idle_revision=POST_DOC_PILOT_IDLE_LEASE_REVISION,
             )
-            out = run_protected_live_wiring(
+            with patch.dict('os.environ', {'AI_ENG_QUALITY_IMAGE': 'sha256:' + 'a' * 64}), patch(
+                'openhands_164_live_wiring.require_quality',
+                side_effect=PatchContractError('quality_gate_failed:test') if fail_quality else None,
+            ) as quality:
+                out = run_protected_live_wiring(
                 LiveWiringRequest(
                     FIXTURE_ISSUE,
                     "7788",
@@ -174,6 +186,12 @@ class CodeTaskLiveWiringTests(unittest.TestCase):
                 executor=fake_executor,
                 publisher_transport=fake_transport,
             )
+            quality.assert_called_once()
+            if fail_quality:
+                self.assertEqual(out["reason"], "code_handoff_rejected")
+                self.assertEqual(calls["pull_create"], 0)
+                self.assertEqual(store.read().state["phase"], "BLOCKED")
+                return
             self.assertEqual(out["reason"], TERMINAL_PUBLISHED)
             self.assertTrue(out["model_invoked"])
             self.assertTrue(out["github_write"])
