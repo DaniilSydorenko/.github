@@ -55,6 +55,44 @@ def _out(action: str, reason: str, issue: int | None = None,
     }
 
 
+def _previous_gate(previous: Any) -> dict[str, Any] | None:
+    """None when the previous step is proven; otherwise the blocking reply.
+
+    Two explicit kinds only. BOOTSTRAP is the first managed run (or the first
+    after a REJECTED, owner-reconciled execution): it states that there is no
+    previous accepted merge instead of fabricating one, and needs an explicit
+    owner bootstrap authorization plus a verified idle lease and verified absence
+    of open managed PRs. Everything else must be a proven previous merge.
+    """
+    if isinstance(previous, dict) and previous.get("kind") == "BOOTSTRAP":
+        if (previous.get("owner_bootstrap_authorized") is not True
+                or previous.get("lease_idle_verified") is not True
+                or previous.get("no_open_managed_pr_verified") is not True):
+            return _out("STOP", "bootstrap_not_authorized_or_unverified")
+        return None
+    if not isinstance(previous, dict) or not _positive(previous.get("pr_number")):
+        return _out("STOP", "previous_pr_not_identified")
+    if (previous.get("state") != "closed" or previous.get("merged") is not True
+            or not _is_sha(previous.get("head_sha"))
+            or not _is_sha(previous.get("merge_sha"))
+            or previous.get("merge_on_default_verified") is not True):
+        return _out("STOP", "previous_pr_not_proven_integrated")
+    if (previous.get("ci") != "SUCCESS"
+            or previous.get("secret_scan") != "SUCCESS"
+            or previous.get("owner_merge_permission") != "granted"):
+        return _out("STOP", "previous_ci_security_or_merge_authority_missing")
+    if previous.get("owner_visual_acceptance") == "pending":
+        return _out("OWNER_GATE", "previous_visual_acceptance_pending")
+    if previous.get("owner_visual_acceptance") != "accepted":
+        return _out("STOP", "previous_visual_acceptance_unverified")
+    if previous.get("deployment") == "pending":
+        return _out("WAIT", "previous_deployment_pending")
+    if previous.get("deployment") not in ("accepted", "not_required"):
+        return _out("STOP", "previous_deployment_unverified")
+
+    return None
+
+
 def preview_next_after_merge(snapshot: dict[str, Any]) -> dict[str, Any]:
     """Fail-closed one-step projection: validated prior merge -> one next Issue.
 
@@ -75,26 +113,9 @@ def preview_next_after_merge(snapshot: dict[str, Any]) -> dict[str, Any]:
             or snapshot.get("owner_authority_verified") is not True):
         return _out("STOP", "inventory_or_owner_authority_unverified")
 
-    previous = snapshot.get("previous")
-    if not isinstance(previous, dict) or not _positive(previous.get("pr_number")):
-        return _out("STOP", "previous_pr_not_identified")
-    if (previous.get("state") != "closed" or previous.get("merged") is not True
-            or not _is_sha(previous.get("head_sha"))
-            or not _is_sha(previous.get("merge_sha"))
-            or previous.get("merge_on_default_verified") is not True):
-        return _out("STOP", "previous_pr_not_proven_integrated")
-    if (previous.get("ci") != "SUCCESS"
-            or previous.get("secret_scan") != "SUCCESS"
-            or previous.get("owner_merge_permission") != "granted"):
-        return _out("STOP", "previous_ci_security_or_merge_authority_missing")
-    if previous.get("owner_visual_acceptance") == "pending":
-        return _out("OWNER_GATE", "previous_visual_acceptance_pending")
-    if previous.get("owner_visual_acceptance") != "accepted":
-        return _out("STOP", "previous_visual_acceptance_unverified")
-    if previous.get("deployment") == "pending":
-        return _out("WAIT", "previous_deployment_pending")
-    if previous.get("deployment") not in ("accepted", "not_required"):
-        return _out("STOP", "previous_deployment_unverified")
+    blocked = _previous_gate(snapshot.get("previous"))
+    if blocked is not None:
+        return blocked
 
     writer = snapshot.get("writer")
     if not isinstance(writer, dict) or writer.get("inventory_complete") is not True:

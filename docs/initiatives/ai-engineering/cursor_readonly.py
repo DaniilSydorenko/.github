@@ -21,7 +21,9 @@ TOKENS = ("inputTokens", "outputTokens", "cacheWriteTokens",
 
 
 class CursorReadError(RuntimeError):
-    pass
+    def __init__(self, message: str, status: int | None = None):
+        super().__init__(message)
+        self.status = status  # HTTP status when the provider answered, else None
 
 
 class LiveCursorReadOnly:
@@ -45,7 +47,8 @@ class LiveCursorReadOnly:
             with urlopen(req, timeout=12) as response:
                 obj = json.load(response)
         except HTTPError as exc:
-            raise CursorReadError(f"Cursor HTTP {exc.code} (body withheld)") from None
+            raise CursorReadError(f"Cursor HTTP {exc.code} (body withheld)",
+                                  status=exc.code) from None
         except (URLError, TimeoutError, OSError, ValueError, UnicodeError):
             raise CursorReadError("Cursor transport/response unknown") from None
         if not isinstance(obj, dict):

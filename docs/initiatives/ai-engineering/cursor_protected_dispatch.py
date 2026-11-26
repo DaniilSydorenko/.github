@@ -32,16 +32,19 @@ from managed_cursor_launch import (
 )
 from openhands_issue_contract import PATH, REPO, live_preflight
 from openhands_runner_admission_bridge import caller_json_carries_forbidden_attestation
+from cursor_tasks import CursorTask, TASKS, task_for, task_for_issue_number
 from sequential_handoff import request_id_for_issue
 
-ISSUE = 220
+ISSUE = 220  # first pilot; every other task comes from cursor_tasks.TASKS
 LEASE_REPO = "DaniilSydorenko/.github"
 LEASE_REF = "ai-eng-cursor-lease-v1"
 CONTROL_REPO = "DaniilSydorenko/.github"
 CONTROL_ACTOR = "DaniilSydorenko"
-APPROVED_OPERATION = "pilot-cursor-220-dispatch-gates-only"
+APPROVED_OPERATION = "cursor-managed-delivery"
 DEFAULT_MODEL = "composer-2"
 MODEL_ALLOWLIST = frozenset({DEFAULT_MODEL})
+TASK_220 = task_for(REPO, ISSUE)
+assert TASK_220 is not None and TASK_220.allowed_paths == (PATH,)
 SHA = re.compile(r"[0-9a-f]{40}\Z")
 
 
@@ -64,7 +67,7 @@ def _stop(reason: str, **extra: Any) -> dict[str, Any]:
     return {
         "decision": "STOP",
         "reason": reason,
-        "issue": ISSUE,
+        "issue": extra.pop("issue", ISSUE),
         "executor": "cursor",
         "live_cursor_dispatch_authorized": False,
         "cursor_post_attempted": False,
@@ -73,7 +76,22 @@ def _stop(reason: str, **extra: Any) -> dict[str, Any]:
     }
 
 
+def owner_workflow_env_ok(environ: Mapping[str, str] | None = None,
+                          operation: str = APPROVED_OPERATION) -> bool:
+    """Owner workflow_dispatch of main, first attempt, in the control repository."""
+    env = os.environ if environ is None else environ
+    return (env.get("GITHUB_REPOSITORY") == CONTROL_REPO
+            and env.get("GITHUB_ACTOR") == CONTROL_ACTOR
+            and env.get("GITHUB_EVENT_NAME") == "workflow_dispatch"
+            and env.get("GITHUB_REF") == "refs/heads/main"
+            and env.get("GITHUB_RUN_ATTEMPT") == "1"
+            and bool(env.get("GITHUB_RUN_ID"))
+            and env.get("AI_ENG_APPROVED_OPERATION") == operation)
+
+
 def protected_context_from_env() -> ProtectedCursorContext | None:
+    if not owner_workflow_env_ok():
+        return None
     repo = os.environ.get("GITHUB_REPOSITORY")
     actor = os.environ.get("GITHUB_ACTOR")
     ref = os.environ.get("GITHUB_REF")
@@ -87,7 +105,8 @@ def protected_context_from_env() -> ProtectedCursorContext | None:
         return None
     if operation != APPROVED_OPERATION:
         return None
-    if issue_raw != str(ISSUE):
+    task = task_for_issue_number(int(issue_raw)) if (issue_raw or "").isdigit() else None
+    if task is None:
         return None
     if repo != CONTROL_REPO or actor != CONTROL_ACTOR or event != "workflow_dispatch":
         return None
@@ -100,17 +119,21 @@ def protected_context_from_env() -> ProtectedCursorContext | None:
         event_name=event,
         run_attempt=attempt,
         operation=operation,
-        owner_go_issue=ISSUE,
+        owner_go_issue=task.issue,
         workflow_run_id=run_id,
         execute_cursor_requested=execute,
     )
 
 
+def task_for_context(ctx: ProtectedCursorContext | None) -> CursorTask | None:
+    return None if ctx is None else task_for_issue_number(ctx.owner_go_issue)
+
+
 def validate_workflow_context(ctx: ProtectedCursorContext | None) -> dict[str, Any] | None:
     if ctx is None:
         return _stop("protected_workflow_context_missing_or_untrusted")
-    if ctx.owner_go_issue != ISSUE:
-        return _stop("owner_go_issue_not_220")
+    if task_for_context(ctx) is None:
+        return _stop("owner_go_issue_not_registered", issue=ctx.owner_go_issue)
     if ctx.operation != APPROVED_OPERATION:
         return _stop("approved_operation_mismatch")
     return None
@@ -139,26 +162,29 @@ def competing_writer_verdict(lease_state: dict[str, Any]) -> dict[str, Any]:
     return {"competing_writer": False, "reason": "lease_idle", "lease_phase": "IDLE"}
 
 
-def request_id_for_dispatch() -> str:
+def request_id_for_dispatch(task: CursorTask | None = None) -> str:
     """Deterministic per-Issue id shared with sequential_handoff (replay key).
 
     A per-workflow-run id would mint a fresh request on every dispatch and make
     the lease replay ledger useless; it would also never match the handoff's
     proposed_request_id that launch_single_approved_issue requires.
     """
-    return request_id_for_issue(REPO, ISSUE)
+    task = task or TASK_220
+    return request_id_for_issue(task.repository, task.issue)
 
 
-def build_proposal(*, request_id: str, main_sha: str) -> dict[str, Any]:
+def build_proposal(*, request_id: str, main_sha: str,
+                   task: CursorTask | None = None) -> dict[str, Any]:
+    task = task or TASK_220
     try:
         return single_issue_payload(
             request_id=request_id,
-            repository=REPO,
-            issue_number=ISSUE,
+            repository=task.repository,
+            issue_number=task.issue,
             exact_default_sha=main_sha,
-            allowed_paths=[PATH],
-            model_id=DEFAULT_MODEL,
-            model_allowlist=MODEL_ALLOWLIST,
+            allowed_paths=list(task.allowed_paths),
+            model_id=task.model,
+            model_allowlist=frozenset({task.model}),
         )
     except PayloadError as exc:
         return _stop("cursor_payload_invalid", detail=str(exc))
@@ -192,11 +218,13 @@ def build_trusted_permit(
     key_info_ok: bool,
     live_models: frozenset[str],
     inventory: Mapping[str, Any] | None,
+    task: CursorTask | None = None,
 ) -> tuple[dict[str, Any], list[str]]:
     """Derive the managed-launch permit from workflow-observed evidence only.
 
     Returns (permit, missing_evidence). Caller JSON never reaches this function.
     """
+    task = task or TASK_220
     account_scope = (attestations.get("account_scope_attested") is True
                      and key_info_ok is True)
     flags = {
@@ -205,7 +233,7 @@ def build_trusted_permit(
         "verified_owner_approval": validate_workflow_context(ctx) is None,
         "verified_exact_scope": scope_preflight_passed is True,
         "verified_account_scope": account_scope,
-        "verified_model_allowlist": DEFAULT_MODEL in live_models,
+        "verified_model_allowlist": task.model in live_models,
         **{key: attestations.get(key) is True for key in (
             "verified_cursor_billing", "verified_external_billing_excluded",
             "verified_subagents_disabled", "verified_launch_route_exclusivity",
@@ -218,11 +246,11 @@ def build_trusted_permit(
         **flags,
         "request_id": request_id,
         "proposed_request_id": request_id,
-        "repository": REPO,
-        "issue_number": ISSUE,
+        "repository": task.repository,
+        "issue_number": task.issue,
         "head_sha": main_sha,
-        "model_id": DEFAULT_MODEL,
-        "model_allowlist": MODEL_ALLOWLIST,
+        "model_id": task.model,
+        "model_allowlist": frozenset({task.model}),
     }
     return permit, missing
 
@@ -245,7 +273,7 @@ def summarize_launch_attempt(
         return {
             "decision": "STARTED",
             "reason": launch.get("reason"),
-            "issue": ISSUE,
+            "issue": launch.get("issue", ISSUE),
             "executor": "cursor",
             "live_cursor_dispatch_authorized": True,
             "cursor_post_attempted": True,
@@ -273,17 +301,24 @@ def run_gates_only(
     cursor_api: Any = None,
     attestations: Mapping[str, bool] | None = None,
     launch_bundle: dict[str, Any] | None = None,
+    bundle_builder: Callable[..., dict[str, Any]] | None = None,
     controller: Any = None,
     cursor_create: Any = None,
 ) -> dict[str, Any]:
-    """Owner-triggered path through the real managed launch. Fail-closed."""
+    """Owner-triggered path through the real managed launch. Fail-closed.
+
+    bundle_builder(task=, main_sha=, lease_state=, inventory=) returns the
+    {"preview", "handoff"} bundle from live evidence, or a STOP dict.
+    """
     blocked = validate_workflow_context(ctx)
     if blocked is not None:
         return blocked
+    task = task_for_context(ctx)
+    assert task is not None  # validate_workflow_context guarantees it
     forbidden = caller_json_carries_forbidden_attestation(caller_context or {})
     if forbidden:
         return _stop("caller_attestation_fields_not_trusted", forbidden_keys=sorted(forbidden))
-    rid = request_id_for_dispatch()
+    rid = request_id_for_dispatch(task)
     try:
         lease_state = lease_state_reader()
     except (ValueError, TypeError, KeyError, OSError) as exc:
@@ -318,7 +353,7 @@ def run_gates_only(
         return _stop("default_branch_sha_unavailable", error_type=type(exc).__name__)
     if not isinstance(main_sha, str) or not SHA.fullmatch(main_sha):
         return _stop("invalid_default_branch_sha")
-    proposal = build_proposal(request_id=rid, main_sha=main_sha)
+    proposal = build_proposal(request_id=rid, main_sha=main_sha, task=task)
     if proposal.get("decision") == "STOP":
         return proposal
 
@@ -340,11 +375,22 @@ def run_gates_only(
     permit, missing = build_trusted_permit(
         ctx, request_id=rid, main_sha=main_sha,
         scope_preflight_passed=True, attestations=attested,
-        key_info_ok=key_ok, live_models=models, inventory=inventory,
+        key_info_ok=key_ok, live_models=models, inventory=inventory, task=task,
     )
+    bundle = launch_bundle if launch_bundle is not None else {}
+    if not missing and bundle_builder is not None and launch_bundle is None:
+        try:
+            bundle = bundle_builder(task=task, main_sha=main_sha,
+                                    lease_state=lease_state, inventory=inventory)
+        except (ValueError, TypeError, KeyError, OSError) as exc:
+            return _stop("launch_bundle_unavailable", error_type=type(exc).__name__,
+                         request_id=rid, issue=task.issue)
+        if bundle.get("decision") == "STOP":
+            return _stop("launch_bundle_" + str(bundle.get("reason")), request_id=rid,
+                         issue=task.issue, bundle_detail=bundle.get("detail"))
     launch = launch_single_approved_issue(
         request_id=rid,
-        bundle=launch_bundle if launch_bundle is not None else {},
+        bundle=bundle,
         permit=permit if not missing else {},
         controller=controller,
         cursor_reader=cursor_api,
@@ -354,6 +400,7 @@ def run_gates_only(
     result.update(
         {
             "request_id": rid,
+            "issue": task.issue,
             "preflight_reason": preflight.get("reason"),
             "permit_missing_evidence": missing,
             "cursor_inventory": inventory,
@@ -366,7 +413,7 @@ def run_gates_only(
 
 def _github_get(repo: str, path: str) -> dict[str, Any]:
     """Unauthenticated public GET; the repository is always explicit."""
-    if repo not in (LEASE_REPO, REPO):
+    if repo != LEASE_REPO and not any(t.repository == repo for t in TASKS):
         raise ValueError("github_repository_not_allowlisted")
     request = urllib.request.Request(
         f"https://api.github.com/repos/{repo}{path}",
@@ -392,12 +439,13 @@ def live_lease_state() -> dict[str, Any]:
     return parse_public_lease_state(commit.get("message") or "")
 
 
-def live_main_sha() -> str:
-    repo = _github_get(REPO, "")
+def live_main_sha(task: CursorTask | None = None) -> str:
+    task = task or TASK_220
+    repo = _github_get(task.repository, "")
     branch = repo.get("default_branch")
-    if branch != "master":
+    if branch != task.default_branch:
         raise ValueError("unexpected_default_branch")
-    ref = _github_get(REPO, f"/git/ref/heads/{branch}")
+    ref = _github_get(task.repository, f"/git/ref/heads/{branch}")
     sha = ((ref.get("object") or {}).get("sha"))
     if not isinstance(sha, str) or not SHA.fullmatch(sha):
         raise ValueError("invalid_master_sha")
