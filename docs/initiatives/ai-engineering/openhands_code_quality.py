@@ -35,25 +35,45 @@ def run_quality(workspace, *, image):
     root = pathlib.Path(workspace).resolve(strict=True)
     if not root.is_dir() or not re.fullmatch(r"sha256:[0-9a-f]{64}", image):
         raise ValueError("invalid_quality_workspace_or_image")
+    import tempfile
+    import shutil
+    with tempfile.TemporaryDirectory() as tmp:
+        candidate = pathlib.Path(tmp) / "candidate"
+        shutil.copytree(root, candidate, ignore=shutil.ignore_patterns(".git", "node_modules"), symlinks=True)
+        candidate.chmod(0o755)
+        pathlib.Path(tmp).chmod(0o755)
+        return _run_checks(candidate, image)
+
+def _run_checks(root, image):
+    import subprocess
+    import uuid
     results = []
     for name in COMMANDS:
+        container = "ai-eng-quality-" + uuid.uuid4().hex
         command = [
-            "docker", "run", "--rm", "--pull=never", "--network=none",
+            "docker", "run", "--rm", "--name", container, "--pull=never", "--network=none",
             "--cap-drop=ALL", "--security-opt=no-new-privileges",
             "--user=1000:1000", "--read-only", "--pids-limit=256",
             "--memory=2g", "--cpus=2", "--tmpfs=/tmp:rw,exec,size=1g",
             "--mount", f"type=bind,source={root},target=/candidate,readonly",
             "--entrypoint=/bin/sh", image, "-ec",
             'mkdir /tmp/work && cp -R /candidate/. /tmp/work/ && cd /tmp/work && '
-            'ln -s /opt/target/node_modules node_modules && HOME=/tmp npm run "$1"',
+            'cp -R /opt/target/node_modules node_modules && HOME=/tmp npm run "$1"',
             "quality", name,
         ]
         try:
             completed = subprocess.run(command, timeout=180, check=False,
-                                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                                       stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
             results.append(CheckResult(name, completed.returncode))
+            if completed.returncode and completed.stdout:
+                print(completed.stdout[-8000:].decode("utf-8", errors="replace"))
         except subprocess.TimeoutExpired:
             results.append(CheckResult(name, 1, True))
+            try:
+                subprocess.run(["docker", "rm", "-f", container], timeout=15, check=False,
+                               stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            except (OSError, subprocess.TimeoutExpired):
+                pass
         except OSError:
             results.append(CheckResult(name, 1))
         if results[-1].exit_code != 0 or results[-1].timed_out:
