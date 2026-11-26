@@ -19,6 +19,7 @@ from github_ref_lease import Controller
 from openhands_164_draft_publisher import _PROTECTED_AUTHORITY as PUBLISHER_AUTHORITY
 from openhands_164_draft_publisher import publish_verified_patch
 from openhands_code_delivery import verify_code_handoff, publish_changes
+from openhands_code_quality import require_quality
 from openhands_164_code_task import (
     CODE_APPROVED_OPERATION,
     admit_protected_code_task,
@@ -467,6 +468,8 @@ def run_protected_live_wiring(
             return _stop("code_paths_not_trusted")
         if not config.code_paths:
             return _stop("code_paths_missing")
+    if code_task and not re.fullmatch(r'sha256:[0-9a-f]{64}', os.environ.get('AI_ENG_QUALITY_IMAGE', '')):
+        return _stop('quality_image_missing')
     if not config.api_key:
         return _stop("live_api_key_missing")
     if not config.publisher_token:
@@ -511,7 +514,10 @@ def run_protected_live_wiring(
     code_changes = None
     if config.code_paths:
         try:
-            code_changes = verify_code_handoff(root, base_sha, config.code_paths)
+            code_changes = verify_code_handoff(
+                root, base_sha, config.code_paths,
+                quality_check=lambda clean: require_quality(clean, image=os.environ['AI_ENG_QUALITY_IMAGE']),
+            )
             if code_task:
                 verify_code_task_acceptance(code_changes, code_spec)
             denied_patch, content_path = None, None
