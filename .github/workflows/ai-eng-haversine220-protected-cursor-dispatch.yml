@@ -1,0 +1,59 @@
+name: AI Engineering Haversine 220 Protected Cursor Dispatch
+
+# Owner workflow_dispatch only. Gates-only audit by default; no Cursor POST and
+# no lease mutation. Supersedes OpenHands execution path for Issue #220 pilot.
+on:
+  workflow_dispatch:
+    inputs:
+      execute_cursor:
+        description: 'Reserved; live POST remains blocked while PILOT_ACTIVATION_ENABLED is False'
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ai-eng-haversine-220-protected-cursor-dispatch
+  cancel-in-progress: false
+
+jobs:
+  protected-cursor-gates:
+    if: >-
+      github.repository == 'DaniilSydorenko/.github' &&
+      github.actor == 'DaniilSydorenko' &&
+      github.ref == 'refs/heads/main' &&
+      github.run_attempt == 1
+    runs-on: ubuntu-latest
+    environment: ai-eng-lease-owner
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: main
+          persist-credentials: false
+      - name: Protected Cursor dispatch gates (Issue #220)
+        env:
+          AI_ENG_APPROVED_OPERATION: pilot-cursor-220-dispatch-gates-only
+          AI_ENG_OWNER_GO_ISSUE: "220"
+          AI_ENG_EXECUTE_CURSOR: ${{ inputs.execute_cursor }}
+        run: |
+          set -euo pipefail
+          python3 docs/initiatives/ai-engineering/cursor_protected_dispatch.py --self-test
+          python3 docs/initiatives/ai-engineering/openhands_issue_contract.py --self-test
+          result="$(python3 docs/initiatives/ai-engineering/cursor_protected_dispatch.py --gates-only)"
+          echo "$result" | tee cursor220-gates.json
+          python3 - <<'PY'
+          import json, sys
+          with open("cursor220-gates.json", encoding="utf-8") as handle:
+              payload = json.load(handle)
+          assert payload["decision"] == "STOP"
+          assert payload["live_cursor_dispatch_authorized"] is False
+          assert payload["cursor_post_attempted"] is False
+          if payload.get("competing_writer"):
+              print("PASS: competing writer detected; Cursor dispatch blocked")
+          else:
+              assert payload["reason"] == "owner_activation_not_enabled"
+              print("PASS: owner gates-only Cursor path; activation OFF")
+          PY

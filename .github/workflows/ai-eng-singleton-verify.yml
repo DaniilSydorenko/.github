@@ -34,7 +34,10 @@ on:
       - 'docs/initiatives/ai-engineering/openhands_runner_admission_bridge.py'
       - 'docs/initiatives/ai-engineering/test_openhands_runner_admission_bridge.py'
       - 'docs/initiatives/ai-engineering/test_cross_pr_overlay_pin.py'
+      - 'docs/initiatives/ai-engineering/cursor_protected_dispatch.py'
+      - 'docs/initiatives/ai-engineering/test_cursor_protected_dispatch.py'
       - '.github/workflows/ai-eng-singleton-verify.yml'
+      - '.github/workflows/ai-eng-haversine220-protected-cursor-dispatch.yml'
   workflow_dispatch:
 
 permissions:
