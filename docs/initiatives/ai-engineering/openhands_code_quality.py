@@ -1,5 +1,9 @@
 """Offline quality-result contract. No model, credentials or publication authority."""
 from dataclasses import dataclass
+from openhands_164_patch_contract import PatchContractError
+
+class QualityFailure(PatchContractError):
+    pass
 
 COMMANDS = ("typecheck", "test", "build", "quality")
 
@@ -8,6 +12,7 @@ class CheckResult:
     name: str
     exit_code: int
     timed_out: bool = False
+    diagnostics: str = ''
 
 def verify_quality(results):
     """Reject missing, duplicate, reordered, failed or timed-out checks."""
@@ -64,7 +69,7 @@ def _run_checks(root, image):
         try:
             completed = subprocess.run(command, timeout=180, check=False,
                                        stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-            results.append(CheckResult(name, completed.returncode))
+            results.append(CheckResult(name, completed.returncode, diagnostics=(completed.stdout or b'')[-8000:].decode('utf-8', errors='replace')))
             if completed.returncode and completed.stdout:
                 print(completed.stdout[-8000:].decode("utf-8", errors="replace"))
         except subprocess.TimeoutExpired:
@@ -85,7 +90,7 @@ def require_quality(workspace, *, image):
     results = run_quality(workspace, image=image)
     if not verify_quality(results):
         failed = next((r.name for r in results if r.exit_code or r.timed_out), "incomplete")
-        raise PatchContractError("quality_gate_failed:" + failed)
+        raise QualityFailure("quality_gate_failed:" + failed + "\n" + (results[-1].diagnostics if results else ""))
 
 def self_test():
     good = tuple(CheckResult(name, 0) for name in COMMANDS)
