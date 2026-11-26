@@ -60,6 +60,13 @@ def run_quality(workspace, *, image):
             break
     return tuple(results)
 
+def require_quality(workspace, *, image):
+    from openhands_164_patch_contract import PatchContractError
+    results = run_quality(workspace, image=image)
+    if not verify_quality(results):
+        failed = next((r.name for r in results if r.exit_code or r.timed_out), "incomplete")
+        raise PatchContractError("quality_gate_failed:" + failed)
+
 def self_test():
     good = tuple(CheckResult(name, 0) for name in COMMANDS)
     assert verify_quality(good)
@@ -89,6 +96,13 @@ def self_test():
         with patch("subprocess.run", return_value=subprocess.CompletedProcess([], 1)) as run:
             assert not verify_quality(run_quality(root, image=image))
             assert run.call_count == 1
+            from openhands_164_patch_contract import PatchContractError
+            try:
+                require_quality(root, image=image)
+            except PatchContractError:
+                pass
+            else:
+                raise AssertionError("failed quality gate accepted")
     print("PASS: quality result contract and isolated runner fixtures")
 
 if __name__ == "__main__":
