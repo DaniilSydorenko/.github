@@ -23,6 +23,7 @@ from cursor_protected_dispatch import (
     live_main_sha,
     run_gates_only,
 )
+from cursor_readonly import CursorReadError
 from github_ref_lease import PREFIX, check_state, fingerprint
 from managed_cursor_launch import PILOT_ACTIVATION_ENABLED
 
@@ -263,6 +264,24 @@ class CursorProtectedDispatchTests(TestCase):
         result = self._run(cursor_api=self.FakeCursor(models=("composer-2.5",)),
                            attestations=self.ALL_ATTESTED)
         self.assertEqual(result["permit_missing_evidence"], ["verified_model_allowlist"])
+
+    def test_provider_evidence_distinguishes_rejected_key_from_absent_model(self) -> None:
+        absent = self._run(cursor_api=self.FakeCursor(models=("composer-2.5",)),
+                           attestations=self.ALL_ATTESTED)["cursor_provider_evidence"]
+        self.assertEqual(absent, {"api_configured": True, "key_info_ok": True,
+                                  "pinned_model": "composer-2",
+                                  "live_model_ids": ["composer-2.5"]})
+
+        class Rejected:
+            def get_json(self, path, params=None):
+                raise CursorReadError("Cursor HTTP 401 (body withheld)", status=401)
+
+        rejected = self._run(cursor_api=Rejected(),
+                             attestations=self.ALL_ATTESTED)["cursor_provider_evidence"]
+        self.assertEqual(rejected, {"api_configured": True, "key_info_ok": False,
+                                    "pinned_model": "composer-2", "live_model_ids": []})
+        unset = self._run(attestations=self.ALL_ATTESTED)["cursor_provider_evidence"]
+        self.assertFalse(unset["api_configured"])
 
     def test_active_cursor_agent_blocks(self) -> None:
         busy = [{"id": "bc-00000000-0000-0000-0000-000000000009", "status": "ACTIVE"}]

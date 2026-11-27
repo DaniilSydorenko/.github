@@ -406,6 +406,14 @@ def run_gates_only(
             "cursor_inventory": inventory,
             "proposal_agent_id": agent_id_for(rid),
             "exact_head_verification": "pending_after_terminal_run",
+            # Sanitized GET evidence so a missing permit item names its cause
+            # (rejected key vs. pinned model not offered). Public model ids only.
+            "cursor_provider_evidence": {
+                "api_configured": cursor_api is not None,
+                "key_info_ok": key_ok,
+                "pinned_model": task.model,
+                "live_model_ids": sorted(models)[:50],
+            },
         }
     )
     return result
