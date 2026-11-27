@@ -1,10 +1,21 @@
 # AI Engineering Ecosystem — Nine-Phase Roadmap v2
 
 **Status:** OWNER RESEARCH INITIATIVE / NON-ENFORCING / PILOTS 01–03 ACCEPTED / EXECUTION READINESS UNPROVEN  
-**As of:** 2026-11-27 (Cursor managed pilot admission; activation OFF). Earlier dated sections below are preserved history.  
+**As of:** 2026-11-28 (Cursor managed pilot admission; activation OFF). Earlier dated sections below are preserved history.  
 **Owner:** Daniil (personal engineering initiative; not GitHub HQ or a scheduled Autopilot worker)  
 **Canonical strategy for this initiative only:** this file. Product, GitHub HQ, Control Plane, and worker roadmaps keep their own authorities.  
 **Related:** [Operating Rules](OPERATING_RULES.md) · [Budget & Measurement](BUDGET_AND_MEASUREMENT.md)
+
+## 2026-11-28 — Cursor admission: preflight CLEAR, owner decisions recorded
+
+- **`main`:** `6e6840e`. Activation OFF. Lease `IDLE` rev 29 (`df36411`).
+- **Approval-free read-only preflight** [46072375294](https://github.com/DaniilSydorenko/.github/actions/runs/46072375294) succeeded with no approval: key OK, `composer-2.5` offered, account-wide inventory `CLEAR` (282 agents), `missing_excluding_attestations=[]`, no POST. Making it reach that point took #214–#216 (STOP detail, one GET retry, 15-minute timeout).
+- **Resolved:** `NO_EXTERNAL_BILLING`, `SINGLE_LAUNCH_ROUTE`, the #120 budget bound and `composer-2.5` cost (owner decisions, 2026-11-27).
+- **Open (owner-only):**
+  - Set `CURSOR_KEY_ACCOUNT_SCOPE` (evidence in hand).
+  - Accept or reject the subagent residual risk for #220 (#213). The Cursor API exposes no subagent control.
+  - Approve the privileged dry run, which closes #205.
+  - GO #220.
 
 ## 2026-11-27 — Cursor managed pilot: verified baseline, approval tiers, final sequence
 
