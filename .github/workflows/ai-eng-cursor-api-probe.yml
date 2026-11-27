@@ -52,7 +52,9 @@ jobs:
       github.ref == 'refs/heads/main' &&
       github.run_attempt == 1
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    # The account-wide inventory GETs the latest run of every non-archived
+    # agent (282 agents took ~5 min in run 46071637894).
+    timeout-minutes: 15
     permissions:
       contents: read
     defaults:
