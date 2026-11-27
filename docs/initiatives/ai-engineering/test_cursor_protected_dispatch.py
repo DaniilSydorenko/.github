@@ -55,8 +55,9 @@ class CursorProtectedDispatchTests(TestCase):
         }
         self.main_sha = "f" * 40
 
-    def test_pilot_activation_stays_off(self) -> None:
-        self.assertIs(PILOT_ACTIVATION_ENABLED, False)
+    def test_pilot_activation_is_the_reviewed_owner_gate(self) -> None:
+        # #206: flipped only by this separately reviewed, owner-approved PR.
+        self.assertIs(PILOT_ACTIVATION_ENABLED, True)
 
     def test_workflow_self_test_passes_with_activation_on(self) -> None:
         # ai-eng-cursor-delivery.yml runs --self-test before every live step;
@@ -67,6 +68,9 @@ class CursorProtectedDispatchTests(TestCase):
             cursor_protected_dispatch.self_test()
         self.assertIn("activation ON (fail-closed)", out.getvalue())
 
+    # Kill-switch path stays covered after activation (#206): pin it OFF.
+    @patch("managed_cursor_launch.PILOT_ACTIVATION_ENABLED", False)
+    @patch("cursor_protected_dispatch.PILOT_ACTIVATION_ENABLED", False)
     def test_workflow_self_test_passes_with_activation_off(self) -> None:
         with patch("sys.stdout", new_callable=io.StringIO) as out:
             cursor_protected_dispatch.self_test()
@@ -88,6 +92,9 @@ class CursorProtectedDispatchTests(TestCase):
         self.assertIsNotNone(ctx)
         self.assertEqual(ctx.owner_go_issue, 220)
 
+    # Kill-switch path stays covered after activation (#206): pin it OFF.
+    @patch("managed_cursor_launch.PILOT_ACTIVATION_ENABLED", False)
+    @patch("cursor_protected_dispatch.PILOT_ACTIVATION_ENABLED", False)
     def test_gates_only_disabled_launch(self) -> None:
         result = run_gates_only(
             self.ctx,
@@ -179,6 +186,9 @@ class CursorProtectedDispatchTests(TestCase):
             self.assertEqual(result["decision"], "STOP", field)
             self.assertFalse(result["cursor_post_attempted"], field)
 
+    # Kill-switch path stays covered after activation (#206): pin it OFF.
+    @patch("managed_cursor_launch.PILOT_ACTIVATION_ENABLED", False)
+    @patch("cursor_protected_dispatch.PILOT_ACTIVATION_ENABLED", False)
     def test_gates_path_goes_through_real_managed_launch(self) -> None:
         calls = []
         real = cursor_protected_dispatch.launch_single_approved_issue
@@ -333,6 +343,9 @@ class CursorProtectedDispatchTests(TestCase):
         self.assertEqual(out["decision"], "STOP")
         self.assertTrue(out["cursor_post_attempted"])
 
+    # Kill-switch path stays covered after activation (#206): pin it OFF.
+    @patch("managed_cursor_launch.PILOT_ACTIVATION_ENABLED", False)
+    @patch("cursor_protected_dispatch.PILOT_ACTIVATION_ENABLED", False)
     def test_no_writers_constructed_while_activation_off(self) -> None:
         env = {"AI_ENG_LEASE_WRITER_TOKEN": "t", "CURSOR_API_KEY": "k"}
         with patch.dict("os.environ", env):

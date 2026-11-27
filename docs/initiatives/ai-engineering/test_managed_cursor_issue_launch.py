@@ -76,6 +76,9 @@ class OneIssueTests(TestCase):
         args.update(changes)
         return launch_single_approved_issue(**args)
 
+    # Kill-switch path stays covered after activation (#206): pin it OFF.
+    @patch("managed_cursor_launch.PILOT_ACTIVATION_ENABLED", False)
+    @patch("cursor_protected_dispatch.PILOT_ACTIVATION_ENABLED", False)
     def test_default_kill_switch_blocks_all_network_and_state(self):
         r = self.run_one()
         self.assertEqual(r["state"], "DISABLED")

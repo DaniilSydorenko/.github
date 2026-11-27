@@ -213,6 +213,9 @@ class TwoIssueCycleTests(TestCase):
             self.assertEqual(self.store.state["phase"], "VERIFYING")
             self.assertEqual(len(self.provider.created), 1)
 
+    # Kill-switch path stays covered after activation (#206): pin it OFF.
+    @patch("managed_cursor_launch.PILOT_ACTIVATION_ENABLED", False)
+    @patch("cursor_protected_dispatch.PILOT_ACTIVATION_ENABLED", False)
     def test_real_dispatch_stays_killed_even_when_simulated_preconditions_pass(self):
         args = snapshot()
         result = self.dispatch(args)

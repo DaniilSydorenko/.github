@@ -21,7 +21,7 @@ from lease_ruleset_candidate import ReadOnly as RulesetReader, public_readonly_p
 from preview_one import preview_one
 from sequential_handoff import preview_next_after_merge
 
-PILOT_ACTIVATION_ENABLED = False
+PILOT_ACTIVATION_ENABLED = True
 
 
 def _trusted_lease_ref_audit(controller: Controller) -> bool:
