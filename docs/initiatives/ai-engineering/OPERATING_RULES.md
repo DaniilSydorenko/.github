@@ -26,6 +26,14 @@ For #164 only, this section supersedes older planning, cadence, delegation-disco
 - Finish #192, recover the lease, execute #217, review the actual snippet and exact-head CI. #226 and all platform expansion are deferred until owner acceptance. Escalate an actual owner-only action once, with exact instructions.
 - Report only changed code/PR, test result, actual blocker and next action. If no mutation is possible, state the concrete tool or authority limitation; do not imply progress.
 
+## Cursor pilot approval tiers (2026-11-27)
+
+Details are in [DELIVERY_PLAN_164.md](DELIVERY_PLAN_164.md#approval-model).
+
+- **Diagnostics use the read-only preflight**, which needs no approval: `ai-eng-cursor-api-probe.yml` in environment `cursor-readonly-preflight`. That environment must never hold the lease-writer App key, the ruleset token or owner attestations.
+- **Privileged runs use `ai-eng-lease-owner`**, which keeps its required reviewer. One approval covers one bounded lifecycle chain, with at most one dispatch per run, and the chain stops at the first owner decision. Do not dispatch a privileged run only to read evidence.
+- **Activation, attestations, budget and model cost, rulesets/security and merges stay owner-only.** Request them once, as one batch, with exact commands or links.
+
 
 **Scope:** owner-initiated ChatGPT ↔ GitHub ↔ Cursor Cloud experiments and later explicitly adopted adapters only.  
 **Status:** initiative-local **execution contract**; **NOT** new central GRS enforcement, a real-time global lock until verified, Autopilot policy, delegated merge power or permission to modify another repository.  

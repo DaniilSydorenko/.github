@@ -28,13 +28,24 @@ from cursor_execution_observer import (
 )
 from cursor_pr_binding import PR_URL, discover_and_verify
 from cursor_protected_dispatch import (
-    LEASE_REF, LEASE_REPO, attestations_from_env, owner_workflow_env_ok,
+    APPROVED_OPERATION, LEASE_REF, LEASE_REPO, OWNER_ATTESTATIONS, ProtectedCursorContext,
+    attestations_from_env, live_lease_state, owner_workflow_env_ok,
     protected_context_from_env, run_gates_only, task_for_context,
 )
-from cursor_tasks import TASKS, CursorTask, task_for
+from cursor_readonly import global_run_preflight
+from cursor_tasks import TASKS, CursorTask, task_for, task_for_issue_number
 from github_ref_lease import Controller, GitHubRefStore, LeaseError, fingerprint
 
 REJECT_OPERATION = "cursor-lease-reject"
+# Owner-free diagnostics job (ai-eng-cursor-api-probe.yml). Distinct operation:
+# protected_context_from_env() rejects it, so it can never drive a privileged step.
+READONLY_OPERATION = "cursor-readonly-preflight"
+# Permit items only the privileged environment's owner attestations can satisfy.
+# The read-only job cannot see those variables, so it reports them separately.
+ATTESTATION_GATED = frozenset(OWNER_ATTESTATIONS) | {"verified_account_scope",
+                                                     "cursor_inventory_clear"}
+# One owner-approved privileged run may chain lifecycle steps up to this bound.
+MAX_STEPS_PER_RUN = 10
 
 
 def _out(step: str, outcome: str, **fields: Any) -> dict[str, Any]:
@@ -226,14 +237,37 @@ def _live() -> tuple[Any, Any, Any] | None:
     return GitHubRefStore(LEASE_REPO, token, LEASE_REF), LiveGitHub(gh_token), cursor_api
 
 
+def _readonly_main() -> dict[str, Any]:
+    """No lease-writer token is read; a present one is refused (wrong job)."""
+    from cursor_readonly import CursorReadError, from_environment
+    from trusted_github_evidence import LiveGitHub
+
+    if os.environ.get("AI_ENG_LEASE_WRITER_TOKEN"):
+        return _out("preflight", "STOP", reason="writer_credential_in_readonly_job")
+    if readonly_context_from_env() is None:
+        return _out("preflight", "STOP", reason="readonly_workflow_context_missing_or_untrusted")
+    gh_token = os.environ.get("GH_TOKEN")
+    if not gh_token:
+        return _out("preflight", "STOP", reason="github_token_missing")
+    try:
+        cursor_api = from_environment() if os.environ.get("CURSOR_API_KEY") else None
+    except CursorReadError:
+        cursor_api = None
+    gh = LiveGitHub(gh_token)
+    return readonly_preflight(
+        lease_state_reader=live_lease_state, cursor_api=cursor_api,
+        dispatch=_live_dispatch(gh, cursor_api, bootstrap=True, previous_pr=None, readonly=True))
+
+
 def _live_dispatch(gh: Any, cursor_api: Any, *, bootstrap: bool,
-                   previous_pr: int | None) -> Callable[[Mapping[str, Any]], dict[str, Any]]:
+                   previous_pr: int | None,
+                   readonly: bool = False) -> Callable[[Mapping[str, Any]], dict[str, Any]]:
     from cursor_protected_dispatch import _live_writers, live_main_sha
     from openhands_issue_contract import live_preflight
     from trusted_github_evidence import collect_task_evidence
 
     def dispatch(lease_state: Mapping[str, Any]) -> dict[str, Any]:
-        ctx = protected_context_from_env()
+        ctx = readonly_context_from_env() if readonly else protected_context_from_env()
         task = task_for_context(ctx)
         if task is None:
             return {"decision": "STOP", "reason": "protected_workflow_context_missing_or_untrusted"}
@@ -254,14 +288,123 @@ def _live_dispatch(gh: Any, cursor_api: Any, *, bootstrap: bool,
                                        owner_bootstrap_authorized=bootstrap,
                                        previous_pr_number=previous_pr)
 
-        controller, cursor_create = _live_writers()
+        # Read-only: no writer, no POST client, no attestations, whatever the
+        # activation flag or environment says. The permit can never be complete.
+        controller, cursor_create = (None, None) if readonly else _live_writers()
         return run_gates_only(
             ctx, issue_preflight=preflight, lease_state_reader=lambda: dict(lease_state),
             main_sha_reader=lambda: live_main_sha(task), cursor_api=cursor_api,
-            attestations=attestations_from_env(), bundle_builder=builder,
+            attestations={} if readonly else attestations_from_env(), bundle_builder=builder,
             controller=controller, cursor_create=cursor_create)
 
     return dispatch
+
+
+def readonly_context_from_env() -> ProtectedCursorContext | None:
+    """Owner/main/attempt-1 context for the owner-free diagnostics job.
+
+    Requires AI_ENG_APPROVED_OPERATION == READONLY_OPERATION, so the privileged
+    context reader rejects the same environment. The gate evaluation sees the
+    privileged operation only to report what that run would check; readonly
+    dispatch passes no writer and no attestations, so nothing can launch.
+    """
+    if not owner_workflow_env_ok(operation=READONLY_OPERATION):
+        return None
+    raw = os.environ.get("AI_ENG_OWNER_GO_ISSUE", "")
+    task = task_for_issue_number(int(raw)) if raw.isdigit() else None
+    if task is None:
+        return None
+    return ProtectedCursorContext(
+        repository=os.environ["GITHUB_REPOSITORY"], actor=os.environ["GITHUB_ACTOR"],
+        ref=os.environ["GITHUB_REF"], event_name=os.environ["GITHUB_EVENT_NAME"],
+        run_attempt=os.environ["GITHUB_RUN_ATTEMPT"], operation=APPROVED_OPERATION,
+        owner_go_issue=task.issue, workflow_run_id=os.environ["GITHUB_RUN_ID"],
+        execute_cursor_requested=False)
+
+
+def readonly_preflight(*, lease_state_reader: Callable[[], Mapping[str, Any]],
+                       cursor_api: Any,
+                       dispatch: Callable[[Mapping[str, Any]], dict[str, Any]]) -> dict[str, Any]:
+    """Owner-free diagnostics: public lease read, gates, GET-only provider evidence.
+
+    Never acquires or writes the lease and never POSTs (see readonly dispatch).
+    Attestation-gated permit items are reported apart from the rest, because
+    only the privileged environment holds the owner attestations.
+    """
+    try:
+        state = lease_state_reader()
+    except (ValueError, TypeError, KeyError, OSError) as exc:
+        return _out("preflight", "STOP", reason="lease_state_unreadable",
+                    error_type=type(exc).__name__, read_only=True)
+    phase = state.get("phase")
+    gates = None
+    if phase == "IDLE":
+        r = dispatch(state)
+        missing = list(r.get("permit_missing_evidence") or [])
+        gates = {
+            "decision": r.get("decision"), "reason": r.get("reason"),
+            "cursor_post_attempted": r.get("cursor_post_attempted"),
+            "request_id": r.get("request_id"),
+            "missing_excluding_attestations": sorted(m for m in missing
+                                                     if m not in ATTESTATION_GATED),
+            "attestation_gated_items": sorted(m for m in missing if m in ATTESTATION_GATED),
+            "cursor_provider_evidence": r.get("cursor_provider_evidence"),
+        }
+    # Observation only: never feeds a permit (the privileged run re-reads it
+    # under the account-scope attestation before any launch).
+    inventory = (global_run_preflight(cursor_api, global_account_scope_verified=True)
+                 if cursor_api is not None else None)
+    return _out("preflight", "READ_ONLY", read_only=True, lease_phase=phase,
+                lease_revision=state.get("revision"), lease_request_id=state.get("request_id"),
+                gates=gates, cursor_inventory_observed=inventory,
+                attestations="evaluated_only_in_privileged_run")
+
+
+def _progressing(result: Mapping[str, Any]) -> bool:
+    """True only when the next lifecycle step needs no owner decision."""
+    step, outcome = result.get("step"), result.get("outcome")
+    if step == "dispatch":
+        return (result.get("result") or {}).get("decision") == "STARTED"
+    if step == "reconcile":
+        return outcome == "RUNNING"
+    if step == "observe":
+        return outcome == "VERIFYING" or (
+            outcome == "HOLD" and (result.get("observation") or {}).get("state") == "IN_PROGRESS")
+    return False
+
+
+def advance_until_owner_action(
+        *, max_steps: int,
+        advance_once: Callable[[Callable[[Mapping[str, Any]], dict[str, Any]]], dict[str, Any]],
+        dispatch: Callable[[Mapping[str, Any]], dict[str, Any]]) -> dict[str, Any]:
+    """Chain lifecycle steps inside ONE owner-approved privileged run.
+
+    Bounded standing authorization: the deployment approval covers dispatch ->
+    observe -> verify for the registered task, and stops at the first step that
+    needs the owner (merge, reject, ambiguity) or at max_steps. At most one
+    dispatch per run: a later IDLE lease (e.g. after release) never launches.
+    """
+    if type(max_steps) is not int or not 1 <= max_steps <= MAX_STEPS_PER_RUN:
+        return _out("advance", "STOP", reason="invalid_step_budget")
+    dispatched: list[bool] = []
+
+    def dispatch_once(state: Mapping[str, Any]) -> dict[str, Any]:
+        if dispatched:
+            return {"decision": "STOP", "reason": "one_dispatch_per_run",
+                    "cursor_post_attempted": False}
+        dispatched.append(True)
+        return dispatch(state)
+
+    trail: list[dict[str, Any]] = []
+    result: dict[str, Any] = {}
+    for _ in range(max_steps):
+        result = advance_once(dispatch_once)
+        trail.append({"step": result.get("step"), "outcome": result.get("outcome"),
+                      "reason": result.get("reason")
+                      or (result.get("result") or {}).get("reason")})
+        if not _progressing(result):
+            break
+    return {**result, "lifecycle_steps": trail}
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -271,11 +414,17 @@ def main(argv: list[str] | None = None) -> int:
     adv.add_argument("--bootstrap", action="store_true")
     adv.add_argument("--previous-pr", type=int)
     adv.add_argument("--max-polls", type=int, default=10)
+    adv.add_argument("--max-steps", type=int, default=1)
     rej = sub.add_parser("reject")
     rej.add_argument("--request-id", required=True)
     rej.add_argument("--expected-lease-sha", required=True)
     rej.add_argument("--pr-url", required=True)
+    sub.add_parser("preflight")
     args = parser.parse_args(argv)
+    if args.action == "preflight":
+        result = _readonly_main()
+        print(json.dumps(result, sort_keys=True, default=str))
+        return 0 if result.get("outcome") == "READ_ONLY" else 3
     live = _live()
     if live is None:
         print(json.dumps(_out("setup", "STOP", reason="github_tokens_missing"), sort_keys=True))
@@ -285,11 +434,15 @@ def main(argv: list[str] | None = None) -> int:
         if protected_context_from_env() is None:
             result = _out("advance", "STOP", reason="protected_workflow_context_missing_or_untrusted")
         else:
-            result = advance(store=store, gh=gh, cursor_api=cursor_api,
-                             ctx=protected_context_from_env(), attestations=attestations_from_env(),
-                             dispatch=_live_dispatch(gh, cursor_api, bootstrap=args.bootstrap,
-                                                     previous_pr=args.previous_pr),
-                             max_polls=args.max_polls)
+            ctx = protected_context_from_env()
+            result = advance_until_owner_action(
+                max_steps=args.max_steps,
+                advance_once=lambda once: advance(
+                    store=store, gh=gh, cursor_api=cursor_api, ctx=ctx,
+                    attestations=attestations_from_env(), dispatch=once,
+                    max_polls=args.max_polls),
+                dispatch=_live_dispatch(gh, cursor_api, bootstrap=args.bootstrap,
+                                        previous_pr=args.previous_pr))
     else:
         result = reject(store=store, gh=gh, cursor_api=cursor_api, request_id=args.request_id,
                         expected_lease_sha=args.expected_lease_sha, pr_url=args.pr_url,

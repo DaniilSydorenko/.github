@@ -48,6 +48,7 @@ on:
       - 'docs/initiatives/ai-engineering/sequential_handoff.py'
       - 'docs/initiatives/ai-engineering/github_ref_lease.py'
       - '.github/workflows/ai-eng-cursor-delivery.yml'
+      - '.github/workflows/ai-eng-cursor-api-probe.yml'
   workflow_dispatch:
 
 permissions:

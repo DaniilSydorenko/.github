@@ -1,7 +1,7 @@
 name: AI Engineering Cursor API Read-Only Probe
 
-# No cron, no API POST, no model inference and no repository write.
-# Manual account GET only after owner configures a restricted Cursor API key.
+# No cron, no API POST, no model inference, no lease or repository write.
+# Owner workflow_dispatch read-only preflight; needs no deployment approval.
 on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
@@ -9,6 +9,7 @@ on:
       - 'docs/initiatives/ai-engineering/cursor_api_probe.py'
       - 'docs/initiatives/ai-engineering/test_cursor_api_probe.py'
       - '.github/workflows/ai-eng-cursor-api-probe.yml'
+      - 'docs/initiatives/ai-engineering/cursor_delivery_cycle.py'
   workflow_dispatch:
 
 permissions:
@@ -36,17 +37,22 @@ jobs:
         run: python3 -m unittest -v test_cursor_api_probe test_cursor_readonly
 
   manual-probe:
-    # Configure GitHub Environment cursor-readonly-preflight with main-only
-    # deployment branches, required owner reviewer, and environment-scoped
-    # CURSOR_API_KEY before any manual provider GET. Do NOT use repo secrets.
+    # Owner-free read-only preflight (no deployment approval). Environment
+    # cursor-readonly-preflight: deployment branches = main only, NO required
+    # reviewers, holds only an environment-scoped CURSOR_API_KEY. It must never
+    # hold the lease-writer App key, ruleset token or owner attestations; those
+    # stay in the reviewer-gated ai-eng-lease-owner environment. This job mints
+    # no App token, so it cannot write the lease, and the read-only code path
+    # builds no Cursor POST client (cursor_delivery_cycle.readonly_preflight).
     environment: cursor-readonly-preflight
     if: >-
       github.event_name == 'workflow_dispatch' &&
       github.repository == 'DaniilSydorenko/.github' &&
       github.actor == 'DaniilSydorenko' &&
-      github.ref == 'refs/heads/main'
+      github.ref == 'refs/heads/main' &&
+      github.run_attempt == 1
     runs-on: ubuntu-latest
-    timeout-minutes: 3
+    timeout-minutes: 5
     permissions:
       contents: read
     defaults:
@@ -55,9 +61,34 @@ jobs:
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
-          ref: main
+          ref: ${{ github.sha }}
           persist-credentials: false
-      - name: Get sanitized account-visible Cursor agents, no inference
+      - name: Read-only admission preflight (GitHub + Cursor GET only)
         env:
+          AI_ENG_APPROVED_OPERATION: cursor-readonly-preflight
+          AI_ENG_OWNER_GO_ISSUE: '220'
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CURSOR_API_KEY: ${{ secrets.CURSOR_API_KEY }}
-        run: python3 cursor_api_probe.py
+        run: |
+          set -euo pipefail
+          set +e
+          python3 cursor_delivery_cycle.py preflight | tee result.json
+          status=${PIPESTATUS[0]}
+          set -e
+          python3 - <<'PY'
+          import json, os
+          r = json.load(open("result.json"))
+          g = r.get("gates") or {}
+          ev = g.get("cursor_provider_evidence") or {}
+          inv = r.get("cursor_inventory_observed") or {}
+          lines = ["### Cursor read-only preflight (no approval, no POST, no lease write)",
+                   f"- outcome: `{r.get('outcome')}` reason: `{r.get('reason') or g.get('reason')}`",
+                   f"- lease: `{r.get('lease_phase')}` revision `{r.get('lease_revision')}`",
+                   f"- key_info_ok: `{ev.get('key_info_ok')}` pinned model `{ev.get('pinned_model')}` offered: `{ev.get('pinned_model') in (ev.get('live_model_ids') or [])}`",
+                   f"- cursor inventory (observation): `{inv.get('status')}` `{inv.get('reason')}`",
+                   f"- missing (non-attestation): `{g.get('missing_excluding_attestations')}`",
+                   f"- attestation-gated (privileged run only): `{g.get('attestation_gated_items')}`"]
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as fh:
+              fh.write("\n".join(lines) + "\n")
+          PY
+          exit "$status"

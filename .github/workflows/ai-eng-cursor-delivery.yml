@@ -1,7 +1,10 @@
 name: AI Engineering Cursor Managed Delivery
 
-# Owner workflow_dispatch only. One bounded step per run, chosen by the lease
-# phase (see cursor_delivery_cycle.py). No Cursor POST while
+# Owner workflow_dispatch only. One deployment approval covers a bounded chain
+# of lifecycle steps (dispatch -> observe -> verify), stopping at the first step
+# that needs the owner (see cursor_delivery_cycle.advance_until_owner_action):
+# at most one dispatch per run, at most --max-steps steps.
+# Routine read-only checks run without approval in ai-eng-cursor-api-probe.yml. No Cursor POST while
 # PILOT_ACTIVATION_ENABLED is False; nothing in this workflow merges a PR and
 # no job checks out or runs candidate code.
 on:
@@ -56,7 +59,8 @@ jobs:
       github.run_attempt == 1
     runs-on: ubuntu-latest
     environment: ai-eng-lease-owner
-    timeout-minutes: 15
+    # < 60 min: the lease-writer App token minted below expires after one hour.
+    timeout-minutes: 50
     permissions:
       contents: read
       actions: read
@@ -107,6 +111,7 @@ jobs:
           if [ "$INPUT_ACTION" = "advance" ]; then
             if [ "$INPUT_BOOTSTRAP" = "true" ]; then args+=(--bootstrap); fi
             if [ -n "$INPUT_PREVIOUS_PR" ]; then args+=(--previous-pr "$INPUT_PREVIOUS_PR"); fi
+            args+=(--max-steps 8)
           else
             args+=(--request-id "$INPUT_REQUEST_ID" --expected-lease-sha "$INPUT_EXPECTED_LEASE_SHA" --pr-url "$INPUT_PR_URL")
           fi
@@ -122,7 +127,8 @@ jobs:
                    f"- step: `{r.get('step')}` outcome: `{r.get('outcome')}`",
                    f"- reason: `{r.get('reason') or inner.get('reason')}`",
                    f"- missing evidence: `{inner.get('permit_missing_evidence')}`",
-                   f"- owner action: `{r.get('owner_action')}`"]
+                   f"- owner action: `{r.get('owner_action')}`",
+                   f"- lifecycle steps this run: `{r.get('lifecycle_steps')}`"]
           with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as fh:
               fh.write("\n".join(lines) + "\n")
           PY

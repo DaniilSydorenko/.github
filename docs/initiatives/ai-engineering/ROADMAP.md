@@ -1,10 +1,32 @@
 # AI Engineering Ecosystem — Nine-Phase Roadmap v2
 
 **Status:** OWNER RESEARCH INITIATIVE / NON-ENFORCING / PILOTS 01–03 ACCEPTED / EXECUTION READINESS UNPROVEN  
-**As of:** 2026-10-30 (saved lease ruleset readback; launch still blocked)  
+**As of:** 2026-11-27 (Cursor managed pilot admission; activation OFF). Earlier dated sections below are preserved history.  
 **Owner:** Daniil (personal engineering initiative; not GitHub HQ or a scheduled Autopilot worker)  
 **Canonical strategy for this initiative only:** this file. Product, GitHub HQ, Control Plane, and worker roadmaps keep their own authorities.  
 **Related:** [Operating Rules](OPERATING_RULES.md) · [Budget & Measurement](BUDGET_AND_MEASUREMENT.md)
+
+## 2026-11-27 — Cursor managed pilot: verified baseline, approval tiers, final sequence
+
+**Status: ADMISSION IN PROGRESS / ACTIVATION OFF.** The canonical, current plan is [DELIVERY_PLAN_164.md](DELIVERY_PLAN_164.md). This entry summarizes it; it is not live authorization.
+
+- **Verified:**
+  - Protected dry run [46058665166](https://github.com/DaniilSydorenko/.github/actions/runs/46058665166) stopped at `owner_activation_not_enabled` with no POST and no lease write.
+  - The Cursor key authenticates (`GET /v1/me`).
+  - `GET /v1/models` lists `composer-2.5` and no longer lists `composer-2`, so the task is repinned (#210).
+  - The lease is `IDLE`, revision 29.
+  - The workflow self-test stays valid with activation ON (#209).
+- **Approval tiers** (smallest change on existing workflows):
+  - *Read-only preflight:* `ai-eng-cursor-api-probe.yml` in environment `cursor-readonly-preflight`. No reviewer, no App or lease-writer credentials, no POST path, no attestations.
+  - *Privileged lifecycle:* `ai-eng-cursor-delivery.yml` in reviewer-gated `ai-eng-lease-owner`. One approval covers a bounded dispatch→observe→verify chain, with at most one dispatch per run, stopping at the first owner decision.
+  - *Owner-only:* activation, attestations, budget and model cost, security/ruleset changes, merge and reject.
+- **Remaining owner blockers:**
+  - Attestations not yet set: account scope (can be cross-checked against the read-only inventory), external billing, launch-route exclusivity (operational commitment plus technical detection), and subagents (a provider control may not exist; a pilot-only accepted-risk proposal is documented and not implemented).
+  - The #120 per-run budget decision.
+  - `composer-2.5` cost approval at GO.
+  - The activation PR.
+- **Budget distinction:** included usage is an account ceiling. Token consumption is measured after the run. Charged cost is `UNKNOWN`. There is no per-run cap.
+- **Sequence:** read-only preflight → attestations → privileged dry run (#205) → activation PR and GO → one managed #220 E2E (#206) → sequential next task (#207).
 
 ## 2026-10-30 — Dedicated App owner-only read-only preflight implemented (no live authority)
 
