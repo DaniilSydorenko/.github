@@ -27,6 +27,7 @@ from cursor_readonly import (
 from github_ref_lease import (
     PREFIX, Controller, GitHubRefStore, agent_id_for, check_state, fingerprint,
 )
+import managed_cursor_launch  # flag read at call time in self_test
 from managed_cursor_launch import (
     PILOT_ACTIVATION_ENABLED, CursorCreateHTTP, launch_single_approved_issue,
 )
@@ -534,7 +535,16 @@ def self_test() -> None:
     )
     assert out["decision"] == "STOP"
     assert out["live_cursor_dispatch_authorized"] is False
-    assert out["reason"] == "owner_activation_not_enabled"
+    assert out.get("cursor_post_attempted") is not True
+    # The workflow runs this before every live step, so it must hold with the
+    # flag in either state: OFF stops first; ON must still fail closed here
+    # because no provider evidence or owner attestation is supplied.
+    assert out["reason"] == (
+        "managed_launch_trusted_owner_finance_or_scope_proof_missing"
+        if managed_cursor_launch.PILOT_ACTIVATION_ENABLED is True
+        else "owner_activation_not_enabled"
+    )
+    assert out["permit_missing_evidence"], "self-test fixture must never be admissible"
     assert out.get("competing_writer") is not True
 
     blocked = run_gates_only(
@@ -571,7 +581,9 @@ def self_test() -> None:
 
     msg = PREFIX + json.dumps(idle, separators=(",", ":"))
     assert parse_public_lease_state(msg)["phase"] == "IDLE"
-    print("PASS: cursor protected dispatch gates-only fixtures; activation OFF")
+    print("PASS: cursor protected dispatch gates-only fixtures; activation "
+          + ("ON (fail-closed)" if managed_cursor_launch.PILOT_ACTIVATION_ENABLED is True
+             else "OFF"))
 
 
 def main() -> int:
