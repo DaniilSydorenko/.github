@@ -57,6 +57,20 @@ class CursorProtectedDispatchTests(TestCase):
     def test_pilot_activation_stays_off(self) -> None:
         self.assertIs(PILOT_ACTIVATION_ENABLED, False)
 
+    def test_workflow_self_test_passes_with_activation_on(self) -> None:
+        # ai-eng-cursor-delivery.yml runs --self-test before every live step;
+        # flipping activation must not abort the run there (#206), and the
+        # evidence-free fixture must still fail closed without a POST.
+        with patch("managed_cursor_launch.PILOT_ACTIVATION_ENABLED", True), \
+                patch("sys.stdout", new_callable=io.StringIO) as out:
+            cursor_protected_dispatch.self_test()
+        self.assertIn("activation ON (fail-closed)", out.getvalue())
+
+    def test_workflow_self_test_passes_with_activation_off(self) -> None:
+        with patch("sys.stdout", new_callable=io.StringIO) as out:
+            cursor_protected_dispatch.self_test()
+        self.assertIn("activation OFF", out.getvalue())
+
     def test_env_context_requires_owner_operation(self) -> None:
         env = {
             "GITHUB_REPOSITORY": "DaniilSydorenko/.github",
