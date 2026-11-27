@@ -23,6 +23,25 @@ from sequential_handoff import preview_next_after_merge
 
 PILOT_ACTIVATION_ENABLED = False
 
+# The only permit gate an owner may accept as residual risk instead of proving
+# it, and only for the registered pilot task: (risk id, repository, issue).
+# For use only if Cursor exposes no subagent control; see DELIVERY_PLAN_164.md.
+ACCEPTABLE_RISKS = {
+    "verified_subagents_disabled": (
+        "subagents_unblocked_accepted_task_220",
+        "DaniilSydorenko/haversine-geolocation", 220),
+}
+
+
+def _gate_ok(permit: dict[str, Any], key: str) -> bool:
+    if permit.get(key) is True:
+        return True
+    spec = ACCEPTABLE_RISKS.get(key)
+    risks = permit.get("accepted_residual_risks")
+    return (spec is not None and isinstance(risks, tuple) and spec[0] in risks
+            and permit.get("repository") == spec[1]
+            and permit.get("issue_number") == spec[2])
+
 
 def _trusted_lease_ref_audit(controller: Controller) -> bool:
     """Never accept permit flags as proof of immutable, exclusive ref custody.
@@ -268,7 +287,7 @@ def launch_single_approved_issue(*, request_id: str, bundle: dict[str, Any],
         "verified_model_allowlist", "verified_subagents_disabled",
         "verified_owner_security_gates",
     )
-    if any(permit.get(k) is not True for k in required):
+    if not all(_gate_ok(permit, k) for k in required):
         return _result("STOP", "trusted_owner_finance_or_scope_proof_missing")
     if (permit.get("request_id") != request_id
             or not isinstance(permit.get("model_allowlist"), frozenset)):
