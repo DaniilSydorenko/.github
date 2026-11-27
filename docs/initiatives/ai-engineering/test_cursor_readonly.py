@@ -2,8 +2,8 @@
 import unittest
 from unittest.mock import MagicMock, patch
 
-from cursor_readonly import (CursorReadError, LiveCursorReadOnly,
-                             global_run_preflight, token_usage_readonly)
+from cursor_readonly import (CursorReadError, LiveCursorReadOnly, api_key_info_ok,
+                             global_run_preflight, model_ids, token_usage_readonly)
 
 A = "bc-00000000-0000-0000-0000-000000000001"
 B = "bc-00000000-0000-0000-0000-000000000002"
@@ -144,7 +144,8 @@ class CursorInventoryTests(unittest.TestCase):
     def test_reader_rejects_write_paths(self):
         reader = LiveCursorReadOnly("test-key")
         for path in ("/v1/admin/billing", "/v1/agents/../secrets",
-                     "/v1/agents?limit=100"):
+                     "/v1/agents?limit=100", "/v1/models/../me", "/v1/models?x=1",
+                     "/v1/meta", "/v1/modelsX"):
             with self.subTest(path=path), self.assertRaises(CursorReadError):
                 reader.get_json(path)
 
@@ -157,6 +158,43 @@ class CursorInventoryTests(unittest.TestCase):
                 urlopen.return_value = response
                 self.assertEqual(reader.get_json("/v1/agents"), {"items": []})
                 self.assertEqual(urlopen.call_args.args[0].get_method(), "GET")
+
+
+    def test_reader_allows_only_exact_models_and_me_paths(self):
+        reader = LiveCursorReadOnly("test-key")
+        with patch("cursor_readonly.urlopen") as urlopen, \
+                patch("cursor_readonly.json.load", return_value={}):
+            response = MagicMock()
+            response.__enter__.return_value = response
+            urlopen.return_value = response
+            for path in ("/v1/models", "/v1/me"):
+                self.assertEqual(reader.get_json(path), {})
+                self.assertEqual(urlopen.call_args.args[0].get_method(), "GET")
+
+    def test_model_ids_are_exact_ids_not_aliases(self):
+        api = MagicMock()
+        api.get_json.return_value = {"items": [
+            {"id": "composer-2", "aliases": ["composer-latest", "composer"]}]}
+        self.assertEqual(model_ids(api), frozenset({"composer-2"}))
+
+    def test_model_ids_fail_closed(self):
+        for body in ({}, {"items": []}, {"items": [{"id": ""}]}, {"items": ["x"]},
+                     {"items": [{"displayName": "no id"}]}):
+            api = MagicMock()
+            api.get_json.return_value = body
+            self.assertEqual(model_ids(api), frozenset(), body)
+        api = MagicMock()
+        api.get_json.side_effect = CursorReadError("down")
+        self.assertEqual(model_ids(api), frozenset())
+
+    def test_api_key_info(self):
+        api = MagicMock()
+        api.get_json.return_value = {"apiKeyName": "ci", "createdAt": "2026-04-13T18:30:00.000Z"}
+        self.assertTrue(api_key_info_ok(api))
+        api.get_json.return_value = {"error": "unauthorized"}
+        self.assertFalse(api_key_info_ok(api))
+        api.get_json.side_effect = CursorReadError("HTTP 401")
+        self.assertFalse(api_key_info_ok(api))
 
 
 if __name__ == "__main__":

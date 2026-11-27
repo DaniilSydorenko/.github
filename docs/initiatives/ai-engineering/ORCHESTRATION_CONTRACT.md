@@ -16,6 +16,15 @@ adding ordinary protection here is not accepted proof of exclusive writer.
 Last live evidence: `ai-eng-cursor-lease-v1` `protected:false`, protection
 endpoint inaccessible to current integration and no effective rulesets.
 
+Update 2026-11-27 (#203): the lease ref is now protected by two active
+exact-ref rulesets (`ai-eng-lease-immutable`: deletion + non_fast_forward,
+no bypass; `ai-eng-lease-writer`: update, sole bypass = writer App). It has no
+classic branch protection (`/branches/{ref}/protection` is 404), so
+`_trusted_lease_ref_audit` uses the authenticated G3 ruleset audit
+(`lease_ruleset_candidate`, admin-read `AI_ENG_RULESET_AUDIT_TOKEN`, App id
+`AI_ENG_WRITER_APP_ID`) shared with the OpenHands protected pilot. Any other
+shape, hidden bypass inventory or missing credential still fails closed.
+
 GitHub HQ [Issue #108](https://github.com/DaniilSydorenko/.github/issues/108)
 owns the minimal supported enforcement decision and real admin/API evidence.
 Do not weaken `_trusted_lease_ref_audit`, fake `restrictions.apps`, or

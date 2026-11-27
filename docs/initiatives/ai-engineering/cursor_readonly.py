@@ -21,7 +21,9 @@ TOKENS = ("inputTokens", "outputTokens", "cacheWriteTokens",
 
 
 class CursorReadError(RuntimeError):
-    pass
+    def __init__(self, message: str, status: int | None = None):
+        super().__init__(message)
+        self.status = status  # HTTP status when the provider answered, else None
 
 
 class LiveCursorReadOnly:
@@ -33,7 +35,8 @@ class LiveCursorReadOnly:
         self._key = key
 
     def get_json(self, path: str, params: dict | None = None) -> dict:
-        if not path.startswith("/v1/agents") or "?" in path or ".." in path:
+        if ((not path.startswith("/v1/agents") and path not in ("/v1/models", "/v1/me"))
+                or "?" in path or ".." in path):
             raise CursorReadError("unapproved Cursor API path")
         suffix = ("?" + urlencode(params)) if params else ""
         req = Request("https://api.cursor.com" + path + suffix,
@@ -44,7 +47,8 @@ class LiveCursorReadOnly:
             with urlopen(req, timeout=12) as response:
                 obj = json.load(response)
         except HTTPError as exc:
-            raise CursorReadError(f"Cursor HTTP {exc.code} (body withheld)") from None
+            raise CursorReadError(f"Cursor HTTP {exc.code} (body withheld)",
+                                  status=exc.code) from None
         except (URLError, TimeoutError, OSError, ValueError, UnicodeError):
             raise CursorReadError("Cursor transport/response unknown") from None
         if not isinstance(obj, dict):
@@ -118,6 +122,29 @@ def global_run_preflight(api, *, global_account_scope_verified: bool,
     except (CursorReadError, KeyError, TypeError):
         return {"status": "STOP", "reason": "cursor_inventory_incomplete",
                 "can_launch": False}
+
+
+def model_ids(api) -> frozenset[str]:
+    """Exact model ids from GET /v1/models (aliases deliberately excluded)."""
+    try:
+        items = api.get_json("/v1/models").get("items")
+        if not isinstance(items, list) or not items:
+            raise CursorReadError("model list empty or malformed")
+        ids = [m.get("id") for m in items if isinstance(m, dict)]
+        if len(ids) != len(items) or not all(isinstance(i, str) and i for i in ids):
+            raise CursorReadError("model id malformed")
+        return frozenset(ids)
+    except (CursorReadError, AttributeError, TypeError):
+        return frozenset()
+
+
+def api_key_info_ok(api) -> bool:
+    """GET /v1/me answers for this key. Proves a live key, NOT account-wide scope."""
+    try:
+        info = api.get_json("/v1/me")
+    except CursorReadError:
+        return False
+    return isinstance(info.get("apiKeyName"), str) and isinstance(info.get("createdAt"), str)
 
 
 def token_usage_readonly(api, agent_id: str, run_id: str) -> dict:
