@@ -104,6 +104,24 @@ class CursorInventoryTests(unittest.TestCase):
         api.get_json.return_value = {"items": [{"id": A, "status": "UNKNOWN"}]}
         self.assertEqual(global_run_preflight(api, global_account_scope_verified=True)["status"], "STOP")
 
+    def test_stop_detail_names_cause_without_provider_content(self):
+        api = MagicMock()
+        api.get_json.return_value = {"items": [{"id": A, "status": "PAUSED"}]}
+        d = global_run_preflight(api, global_account_scope_verified=True)
+        self.assertEqual((d["status"], d["detail"], d["agents_checked"]),
+                         ("STOP", "unknown agent status PAUSED", 1))
+        api.get_json.return_value = {"items": [{"id": A, "status": "secret body <x>"}]}
+        d = global_run_preflight(api, global_account_scope_verified=True)
+        self.assertEqual(d["detail"], "unknown agent status <non-enum>")
+        api.get_json.return_value = {"items": [{"id": "agent-1", "status": "ACTIVE"}]}
+        d = global_run_preflight(api, global_account_scope_verified=True)
+        self.assertEqual((d["detail"], d["agents_checked"]),
+                         ("unknown or duplicated agent identity", 0))
+        api.get_json.side_effect = CursorReadError("Cursor HTTP 403 (body withheld)", status=403)
+        d = global_run_preflight(api, global_account_scope_verified=True)
+        self.assertEqual(d["detail"], "Cursor HTTP 403 (body withheld)")
+        self.assertFalse(d["can_launch"])
+
     def test_transport_error_stops(self):
         api = MagicMock()
         api.get_json.side_effect = CursorReadError("API inaccessible")
