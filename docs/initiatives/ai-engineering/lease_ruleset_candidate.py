@@ -1,9 +1,10 @@
 """Read-only candidate audit for a personal-repo GitHub ruleset lease.
 
-This is deliberately NOT a launch gate. Two distinct ACTIVE, exact-ref rulesets
-may provide exclusive App updates plus no-force/no-delete, but GitHub admin
-readback and positive/negative provider tests are still mandatory before the
-existing classic-protection launch guard can ever be revised.
+CANDIDATE is not dispatch authority by itself. Two distinct ACTIVE, exact-ref
+rulesets may provide exclusive App updates plus no-force/no-delete. This audit
+is the lease-custody condition of both the OpenHands G3 gate and
+managed_cursor_launch._trusted_lease_ref_audit (the lease ref has no classic
+branch protection); every other owner, provider and budget gate still applies.
 
 Never print bypass actor inventory, API tokens, or private product metadata.
 """

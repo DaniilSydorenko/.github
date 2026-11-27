@@ -74,9 +74,6 @@ jobs:
           owner: DaniilSydorenko
           repositories: .github
           permission-contents: write
-          # Read-only: managed_cursor_launch audits the lease ref branch protection
-          # (GET /branches/{ref}/protection needs Administration read).
-          permission-administration: read
       - name: Offline self-test
         working-directory: docs/initiatives/ai-engineering
         run: python3 cursor_protected_dispatch.py --self-test
@@ -86,7 +83,10 @@ jobs:
           AI_ENG_APPROVED_OPERATION: ${{ inputs.action == 'reject' && 'cursor-lease-reject' || 'cursor-managed-delivery' }}
           AI_ENG_OWNER_GO_ISSUE: ${{ inputs.issue }}
           AI_ENG_LEASE_WRITER_TOKEN: ${{ steps.lease-app.outputs.token }}
-          AI_ENG_APPROVED_WRITER_APP: ${{ vars.AI_ENG_APPROVED_WRITER_APP }}
+          # Lease-custody audit (managed_cursor_launch._trusted_lease_ref_audit):
+          # same admin-read ruleset token and App id as the OpenHands G3 audit.
+          AI_ENG_WRITER_APP_ID: ${{ vars.AI_ENG_WRITER_APP_ID }}
+          AI_ENG_RULESET_AUDIT_TOKEN: ${{ secrets.AI_ENG_RULESET_AUDIT_TOKEN }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CURSOR_API_KEY: ${{ secrets.CURSOR_API_KEY }}
           AI_ENG_ATTEST_CURSOR_SPEND_LIMIT_SET: ${{ vars.AI_ENG_ATTEST_CURSOR_SPEND_LIMIT_SET }}

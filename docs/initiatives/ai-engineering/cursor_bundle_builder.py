@@ -100,6 +100,7 @@ def previous_merge_evidence(gh: Any, task: CursorTask, pr_number: int) -> dict[s
     runs = check_runs_at(gh, repo, head)
     ci = required_checks_state(runs, task.required_checks) if runs is not None else "UNKNOWN"
     secret = (required_checks_state(runs, ("Gitleaks",)) if runs is not None else "UNKNOWN")
+    owner_merged = pr.get("merged") is True and (pr.get("merged_by") or {}).get("login") == OWNER
     return {
         "pr_number": pr_number,
         "state": pr.get("state"),
@@ -109,10 +110,10 @@ def previous_merge_evidence(gh: Any, task: CursorTask, pr_number: int) -> dict[s
         "merge_on_default_verified": on_default,
         "ci": ci,
         "secret_scan": secret,
-        "owner_merge_permission": "granted"
-        if (pr.get("merged_by") or {}).get("login") == OWNER else "missing",
-        "owner_visual_acceptance": "accepted"
-        if owner_approved_at(gh, repo, pr_number, head) else "pending",
+        "owner_merge_permission": "granted" if owner_merged else "missing",
+        # The owner's own merge of the PR is the acceptance act: managed Cursor
+        # PRs are owner-authored and GitHub forbids self-approval.
+        "owner_visual_acceptance": "accepted" if owner_merged else "pending",
         # Haversine is a library: merge is the delivery, there is no deployment.
         "deployment": "not_required",
     }
@@ -160,11 +161,21 @@ def build_launch_bundle(
         return _stop("issue_not_open_or_identity_mismatch", state=facts.get("issue_state"))
     if not (isinstance(main_sha, str) and SHA.fullmatch(main_sha)) or facts.get("default_sha") != main_sha:
         return _stop("default_sha_moved_between_reads")
-    if facts.get("related_prs"):
-        # Existing related PRs are integration work (launch_single_approved_pr),
-        # never a fresh Cursor run.
+    related = facts.get("related_prs")
+    if (not isinstance(related, list) or facts.get("linked_pr_inventory_truncated") is not False
+            or facts.get("issue_events_pagination_complete") is not True
+            or facts.get("related_prs_files_pagination_complete") is not True):
+        return _stop("related_pr_inventory_unverified")
+    # Only a PR verifiably closed WITHOUT merge is history (rejected work, e.g.
+    # an abandoned earlier attempt). Open or merged related PRs are integration
+    # work (launch_single_approved_pr), never a fresh Cursor run; a record with
+    # unknown state/merge evidence blocks too.
+    blocking = [p for p in related
+                if not (isinstance(p, dict) and p.get("state") == "closed"
+                        and p.get("merged") is False)]
+    if blocking:
         return _stop("related_prs_exist_review_first",
-                     prs=[p.get("number") for p in facts["related_prs"]])
+                     prs=[p.get("number") if isinstance(p, dict) else None for p in blocking])
     if lease_state.get("phase") != "IDLE":
         return _stop("lease_not_idle")
     open_prs = open_pull_requests(gh, task.repository)

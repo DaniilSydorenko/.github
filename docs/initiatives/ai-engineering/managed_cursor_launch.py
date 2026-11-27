@@ -16,7 +16,8 @@ from urllib.request import Request, urlopen
 from cursor_pr_payload import existing_pr_payload, single_issue_payload
 from cursor_readonly import global_run_preflight
 from github_ref_lease import Controller, GitHubRefStore, LeaseError, agent_id_for
-from lease_ref_protection import REPO as LEASE_REPO, REF as LEASE_REF, public_readonly_probe
+from lease_ref_protection import REPO as LEASE_REPO, REF as LEASE_REF
+from lease_ruleset_candidate import ReadOnly as RulesetReader, public_readonly_probe
 from preview_one import preview_one
 from sequential_handoff import preview_next_after_merge
 
@@ -26,25 +27,33 @@ PILOT_ACTIVATION_ENABLED = False
 def _trusted_lease_ref_audit(controller: Controller) -> bool:
     """Never accept permit flags as proof of immutable, exclusive ref custody.
 
-    Only the actual authenticated GH ref store may supply evidence. Owner
-    must provision an explicitly approved single GitHub App as writer; unknown
-    effective protections or API permissions => False. This is one necessary
-    condition, NOT total proof of account exclusivity or financial safety.
+    The lease ref is protected by repository rulesets, not classic branch
+    protection (GET /branches/{ref}/protection is 404 for it), so this uses the
+    same authenticated G3 ruleset audit as the OpenHands protected pilot: two
+    active exact-ref rulesets, no bypass on no-force/no-delete, and exactly the
+    approved GitHub App (AI_ENG_WRITER_APP_ID) as sole update bypass. Bypass
+    actors are only visible to an admin-read token (AI_ENG_RULESET_AUDIT_TOKEN).
+    Missing token/App id, hidden bypass inventory or any other shape => False.
+    This is one necessary condition, NOT total proof of account exclusivity or
+    financial safety.
     """
     store = controller.store
     if (not isinstance(store, GitHubRefStore)
             or store.api != "https://api.github.com/repos/" + LEASE_REPO
             or store.ref != LEASE_REF):
         return False
-    expected_writer_app = os.getenv("AI_ENG_APPROVED_WRITER_APP")
-    try:
-        result = public_readonly_probe(
-            lambda path: store._call("GET", path),
-            approved_writer_app=expected_writer_app,
-        )
-    except (LeaseError, ValueError, TypeError):
+    raw_app_id = os.getenv("AI_ENG_WRITER_APP_ID", "")
+    audit_token = os.getenv("AI_ENG_RULESET_AUDIT_TOKEN", "")
+    if not (raw_app_id.isdecimal() and len(raw_app_id) <= 15 and int(raw_app_id) > 0
+            and audit_token):
         return False
-    return result.get("status") == "VERIFIED"
+    try:
+        result = public_readonly_probe(RulesetReader(audit_token), int(raw_app_id))
+    except (LeaseError, ValueError, TypeError, KeyError, OSError):
+        return False
+    return (result.get("status") == "CANDIDATE"
+            and result.get("reason")
+            == "ruleset_shape_passed_live_bypass_and_cas_proofs_still_required")
 
 
 class LaunchUncertain(RuntimeError):

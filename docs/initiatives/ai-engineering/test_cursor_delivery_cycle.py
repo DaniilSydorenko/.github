@@ -100,11 +100,12 @@ def check(name, conclusion="success", status="completed"):
 
 
 def gh_routes(*, pr=None, files=(PATH,), checks=None, reviews=None, open_prs=None,
-              compare="ahead", head=HEAD):
+              compare="ahead", head=HEAD, merge_compare=None):
     pr = pr if pr is not None else pr_body(head=head)
     checks = checks if checks is not None else [check(n) for n in TASK.required_checks]
-    reviews = reviews if reviews is not None else [
-        {"user": {"login": OWNER}, "state": "APPROVED", "commit_id": head}]
+    # Managed Cursor PRs are authored by the owner account, so by default there
+    # is no owner approval at all (GitHub forbids self-approval).
+    reviews = reviews if reviews is not None else []
     open_list = open_prs if open_prs is not None else (
         [{"number": 301, "head": {"ref": "cursor/doc-220"}}] if pr["state"] == "open" else [])
     return {
@@ -113,6 +114,8 @@ def gh_routes(*, pr=None, files=(PATH,), checks=None, reviews=None, open_prs=Non
         f"/repos/{REPO}/pulls/301/reviews": reviews,
         f"/repos/{REPO}/commits/{pr['head']['sha']}/check-runs": {"check_runs": checks},
         f"/repos/{REPO}/compare/{START}...{pr['head']['sha']}": {"status": compare, "behind_by": 0},
+        f"/repos/{REPO}/compare/{MERGE}...master": merge_compare or {"status": "ahead",
+                                                                    "behind_by": 0},
         f"/repos/{REPO}/pulls": open_list,
     }
 
@@ -234,18 +237,29 @@ class BindingTests(unittest.TestCase):
 
 
 class AcceptanceTests(unittest.TestCase):
-    def status(self, **kw):
-        return evaluate(FakeGH(gh_routes(**kw)), TASK, pr_number=301,
-                        bound_head_sha=kw.get("head", HEAD))["status"]
+    def result(self, routes=None, bound=HEAD, **kw):
+        return evaluate(FakeGH(routes or gh_routes(**kw)), TASK, pr_number=301,
+                        bound_head_sha=bound)
 
-    def test_eligible_needs_ci_and_owner_approval_on_exact_head(self):
-        self.assertEqual(self.status(), "INTEGRATION_ELIGIBLE")
-        self.assertEqual(self.status(reviews=[]), "PENDING_REVIEW")
-        self.assertEqual(self.status(reviews=[{"user": {"login": OWNER}, "state": "APPROVED",
-                                               "commit_id": HEAD2}]), "PENDING_REVIEW")
-        self.assertEqual(self.status(reviews=[{"user": {"login": "cursor[bot]"},
-                                               "state": "APPROVED", "commit_id": HEAD}]),
-                         "PENDING_REVIEW")
+    def status(self, **kw):
+        return self.result(**kw)["status"]
+
+    MERGED = dict(state="closed", merged=True, merged_by=OWNER)
+
+    def test_owner_authored_pr_is_eligible_without_self_approval(self):
+        out = self.result()  # no reviews at all: the owner authored the PR
+        self.assertEqual((out["status"], out["reason"]),
+                         ("INTEGRATION_ELIGIBLE", "ready_for_owner_review_and_merge"))
+        self.assertIs(out["owner_approved_exact_head"], False)
+        self.assertEqual((out["exact_head"], out["ci"]), (HEAD, "SUCCESS"))
+        # An approval (possible for a non-owner-authored PR) is informational only.
+        approved = self.result(reviews=[{"user": {"login": OWNER}, "state": "APPROVED",
+                                         "commit_id": HEAD}])
+        self.assertEqual(approved["status"], "INTEGRATION_ELIGIBLE")
+        self.assertIs(approved["owner_approved_exact_head"], True)
+
+    def test_eligible_is_never_integrated_and_needs_green_exact_head_ci(self):
+        self.assertNotEqual(self.status(), "INTEGRATED")
         self.assertEqual(self.status(checks=[check("Test and build")]), "PENDING_CI")
         self.assertEqual(self.status(checks=[check("Test and build", None, "in_progress"),
                                              check("Gitleaks")]), "PENDING_CI")
@@ -254,20 +268,57 @@ class AcceptanceTests(unittest.TestCase):
         self.assertEqual(self.status(checks=[check(n) for n in TASK.required_checks]
                                      + [check("Benchmarks", "failure")]), "REJECTED")
         self.assertEqual(self.status(files=("src/x.ts",)), "REJECTED")
+        self.assertEqual(self.status(pr=pr_body(state=None)), "STOP")
 
-    def test_head_moved_and_merge_evidence(self):
-        moved = evaluate(FakeGH(gh_routes(head=HEAD2)), TASK, pr_number=301, bound_head_sha=HEAD)
-        self.assertEqual(moved["reason"], "pr_head_moved_after_binding")
-        merged = pr_body(state="closed", merged=True, merged_by=OWNER)
-        self.assertEqual(self.status(pr=merged), "INTEGRATED")
-        by_bot = pr_body(state="closed", merged=True, merged_by="cursor[bot]")
-        self.assertEqual(self.status(pr=by_bot), "STOP")
+    def test_stale_head_is_never_accepted(self):
+        for pr in (pr_body(head=HEAD2), pr_body(head=HEAD2, **self.MERGED)):
+            with self.subTest(state=pr["state"]):
+                out = self.result(routes=gh_routes(pr=pr), bound=HEAD)
+                self.assertEqual((out["status"], out["reason"]),
+                                 ("STOP", "pr_head_moved_after_binding"))
+
+    def test_owner_merge_of_verified_head_is_integrated(self):
+        out = self.result(pr=pr_body(**self.MERGED))  # still no approval review
+        self.assertEqual((out["status"], out["merged_by"], out["merge_sha"]),
+                         ("INTEGRATED", OWNER, MERGE))
+
+    def test_unauthorized_or_unverified_merge_keeps_lease(self):
+        cases = {
+            "merged_by_non_owner": dict(pr=pr_body(state="closed", merged=True,
+                                                   merged_by="cursor[bot]")),
+            "merged_by_non_owner ": dict(pr=pr_body(state="closed", merged=True, merged_by=None)),
+            "merged_without_green_exact_head_ci": dict(
+                pr=pr_body(**self.MERGED), checks=[check("Test and build", "failure"),
+                                                   check("Gitleaks")]),
+            "merged_without_green_exact_head_ci ": dict(
+                pr=pr_body(**self.MERGED), checks=[check("Gitleaks")]),
+            "merge_commit_not_on_default_branch": dict(
+                pr=pr_body(**self.MERGED), merge_compare={"status": "diverged", "behind_by": 3}),
+            "merge_commit_not_on_default_branch ": dict(
+                pr={**pr_body(**self.MERGED), "merge_commit_sha": None}),
+        }
+        for reason, kw in cases.items():
+            with self.subTest(reason):
+                out = self.result(**kw)
+                self.assertEqual((out["status"], out["reason"]), ("STOP", reason.strip()))
+
+    def test_missing_evidence_fails_closed(self):
+        routes = gh_routes(pr=pr_body(**self.MERGED))
+        routes[f"/repos/{REPO}/commits/{HEAD}/check-runs"] = {"message": "rate limited"}
+        self.assertEqual(self.result(routes=routes)["reason"], "check_run_inventory_incomplete")
+        routes = gh_routes(pr=pr_body(**self.MERGED))
+        routes[f"/repos/{REPO}/pulls/301/files"] = {"message": "error"}
+        self.assertEqual(self.result(routes=routes)["reason"], "pr_file_inventory_incomplete")
+        routes = gh_routes()
+        routes[f"/repos/{REPO}/pulls/301"] = None
+        self.assertEqual(self.result(routes=routes)["reason"], "pr_unreadable")
         self.assertEqual(self.status(pr=pr_body(state="closed")), "REJECTED")
 
 
 def collected(**facts):
     base = {"repo": REPO, "issue_number": TASK.issue, "issue_state": "open", "default_sha": START,
             "related_prs": [], "linked_pr_inventory_truncated": False,
+            "issue_events_pagination_complete": True,
             "related_prs_files_pagination_complete": True}
     base.update(facts)
     return {"status": "OBSERVED", "missing_capabilities": [], "observed_facts": base}
@@ -302,8 +353,6 @@ class BundleTests(unittest.TestCase):
     def test_stops(self):
         self.assertEqual(self.build(gh=bundle_gh(open_prs=[{"number": 233}]))["reason"],
                          "target_repository_has_open_prs")
-        self.assertEqual(self.build(collected=collected(related_prs=[{"number": 5}]))["reason"],
-                         "related_prs_exist_review_first")
         self.assertEqual(self.build(main_sha=HEAD)["reason"], "default_sha_moved_between_reads")
         self.assertEqual(self.build(collected=collected(issue_state="closed"))["reason"],
                          "issue_not_open_or_identity_mismatch")
@@ -314,26 +363,68 @@ class BundleTests(unittest.TestCase):
                    "observed_facts": {}}
         self.assertEqual(self.build(collected=partial)["reason"], "github_collection_incomplete")
 
+    def related(self, *records, **facts):
+        return self.build(collected=collected(related_prs=list(records), **facts))
+
+    def test_closed_unmerged_related_pr_is_history_not_a_blocker(self):
+        b = self.related({"number": 224, "state": "closed", "merged": False})
+        self.assertEqual(preview_one(b["preview"])["decision"], "READY_FOR_OWNER_DISPATCH")
+        self.assertEqual(preview_next_after_merge(b["handoff"])["action"],
+                         "READY_FOR_OWNER_DISPATCH")
+
+    def test_open_merged_or_unknown_related_prs_still_block(self):
+        closed = {"number": 224, "state": "closed", "merged": False}
+        cases = {
+            "open": ({"number": 5, "state": "open", "merged": False}, [5]),
+            "merged": ({"number": 6, "state": "closed", "merged": True}, [6]),
+            "state_unknown": ({"number": 7, "state": None, "merged": False}, [7]),
+            "merge_unknown": ({"number": 8, "state": "closed"}, [8]),
+            "merge_not_bool": ({"number": 9, "state": "closed", "merged": "false"}, [9]),
+            "bare_record": ({"number": 10}, [10]),
+            "not_a_record": ("#11", [None]),
+        }
+        for name, (record, prs) in cases.items():
+            with self.subTest(name):
+                out = self.related(closed, record)
+                self.assertEqual((out["reason"], out["detail"]["prs"]),
+                                 ("related_prs_exist_review_first", prs))
+
+    def test_incomplete_related_inventory_fails_closed(self):
+        for facts in (dict(related_prs=None), dict(linked_pr_inventory_truncated=True),
+                      dict(linked_pr_inventory_truncated=None),
+                      dict(issue_events_pagination_complete=False),
+                      dict(issue_events_pagination_complete=None),
+                      dict(related_prs_files_pagination_complete=False)):
+            with self.subTest(facts):
+                self.assertEqual(self.build(collected=collected(**facts))["reason"],
+                                 "related_pr_inventory_unverified")
+
     def previous_gh(self, **pr_kw):
-        pr = pr_body(state="closed", merged=True, merged_by=OWNER, **pr_kw)
+        pr = pr_body(**{"state": "closed", "merged": True, "merged_by": OWNER, **pr_kw})
+        # No reviews route: acceptance must not depend on an (impossible) self-approval.
         extra = {
             f"/repos/{REPO}/pulls/301": pr,
             f"/repos/{REPO}/compare/{MERGE}...master": {"status": "ahead"},
             f"/repos/{REPO}/commits/{HEAD}/check-runs": {"check_runs": [
                 check(n) for n in TASK.required_checks]},
-            f"/repos/{REPO}/pulls/301/reviews": [
-                {"user": {"login": OWNER}, "state": "APPROVED", "commit_id": HEAD}],
         }
         return bundle_gh(extra=extra)
 
     def test_previous_merge_is_verified_live(self):
         b = self.build(gh=self.previous_gh(), owner_bootstrap_authorized=False,
                        previous_pr_number=301)
+        previous = b["handoff"]["previous"]
+        self.assertEqual((previous["owner_merge_permission"], previous["owner_visual_acceptance"]),
+                         ("granted", "accepted"))
         self.assertEqual(preview_next_after_merge(b["handoff"])["action"], "READY_FOR_OWNER_DISPATCH")
-        not_owner = self.build(gh=self.previous_gh(), owner_bootstrap_authorized=False,
-                               previous_pr_number=301)
-        not_owner["handoff"]["previous"]["owner_merge_permission"] = "missing"
-        self.assertEqual(preview_next_after_merge(not_owner["handoff"])["action"], "STOP")
+        for kw in (dict(merged_by="cursor[bot]"), dict(merged_by=None),
+                   dict(merged=False, merged_by=OWNER)):
+            with self.subTest(kw):
+                other = self.build(gh=self.previous_gh(**kw), owner_bootstrap_authorized=False,
+                                   previous_pr_number=301)
+                self.assertEqual(other["handoff"]["previous"]["owner_visual_acceptance"], "pending")
+                self.assertNotEqual(preview_next_after_merge(other["handoff"])["action"],
+                                    "READY_FOR_OWNER_DISPATCH")
 
 
 class FakeCreate:
@@ -400,14 +491,24 @@ class LifecycleTests(unittest.TestCase):
     def test_full_cycle_running_to_released(self):
         store = lease_in("RUNNING")
         self.assertEqual(self.step(store)["outcome"], "VERIFYING")
-        ready = self.step(store, FakeGH(gh_routes()))
+        ready = self.step(store, FakeGH(gh_routes()))  # owner-authored PR, no approval
         self.assertEqual(ready["outcome"], "INTEGRATION_READY", ready)
         self.assertEqual(store.state["pr_url"], PR)
+        self.assertEqual(store.state["phase"], "VERIFYING")  # eligible is not accepted
         merged = gh_routes(pr=pr_body(state="closed", merged=True, merged_by=OWNER), open_prs=[])
         done = self.step(store, FakeGH(merged))
         self.assertEqual(done["outcome"], "RELEASED", done)
         self.assertEqual(store.state["phase"], "IDLE")
         self.assertIn(fingerprint(RID), store.state["consumed_request_hashes"])
+
+    def test_non_owner_merge_never_releases_lease(self):
+        store = lease_in("VERIFYING", pr_url=PR)
+        bot = gh_routes(pr=pr_body(state="closed", merged=True, merged_by="cursor[bot]"),
+                        open_prs=[])
+        out = self.step(store, FakeGH(bot))
+        self.assertEqual((out["outcome"], out["acceptance"]["reason"]),
+                         ("HOLD", "merged_by_non_owner"))
+        self.assertEqual(store.state["phase"], "VERIFYING")
 
     def test_uncertain_provider_keeps_lease(self):
         for cursor in (FakeCursor(run_status="RUNNING"), FakeCursor(run_status="PAUSED"),
@@ -567,8 +668,6 @@ class SequentialTests(unittest.TestCase):
             f"/repos/{REPO}/compare/{MERGE}...master": {"status": "ahead"},
             f"/repos/{REPO}/commits/{HEAD}/check-runs": {"check_runs": [
                 check(n) for n in TASK.required_checks]},
-            f"/repos/{REPO}/pulls/301/reviews": [
-                {"user": {"login": OWNER}, "state": "APPROVED", "commit_id": HEAD}],
         }
         facts = collected(issue_number=240)
         with patch.object(builder, "queue_for", lambda repo: queue):

@@ -5,7 +5,8 @@ from unittest import TestCase, main
 from unittest.mock import patch
 from urllib.error import HTTPError
 
-from github_ref_lease import Controller, agent_id_for
+from github_ref_lease import Controller, GitHubRefStore, agent_id_for
+from lease_ref_protection import REF as LEASE_REF, REPO as LEASE_REPO
 from managed_cursor_launch import (
     CursorCreateHTTP, LaunchUncertain, launch_single_approved_pr,
 )
@@ -267,6 +268,97 @@ class ManagedLaunchTests(TestCase):
             with self.assertRaises(LaunchUncertain):
                 t.create(payload)
         self.assertEqual(call.call_count, 1)
+
+
+class LeaseRulesetCustodyTests(TestCase):
+    """Production _trusted_lease_ref_audit against the live ruleset shape (no network).
+
+    The live lease ref has no classic branch protection (its /protection
+    endpoint is 404); custody is two exact-ref rulesets with the writer App as
+    the only update bypass. Anything else must fail closed.
+    """
+    APP_ID = 5535339
+    BRANCH = {"name": LEASE_REF, "protected": True, "commit": {"sha": "a" * 40}}
+    BASE = {"target": "branch", "source_type": "Repository", "source": LEASE_REPO,
+            "enforcement": "active",
+            "conditions": {"ref_name": {"include": ["refs/heads/" + LEASE_REF], "exclude": []}}}
+
+    def rulesets(self, app_id=APP_ID, hide_bypass=False):
+        update = {**self.BASE, "id": 26090757, "name": "ai-eng-lease-writer",
+                  "rules": [{"type": "update"}],
+                  "bypass_actors": [{"actor_id": app_id, "actor_type": "Integration",
+                                     "bypass_mode": "always"}]}
+        guard = {**self.BASE, "id": 26170483, "name": "ai-eng-lease-immutable",
+                 "rules": [{"type": "deletion"}, {"type": "non_fast_forward"}],
+                 "bypass_actors": []}
+        main_rule = {**self.BASE, "id": 26173339, "name": "ai-eng-hq-main-protection",
+                     "conditions": {"ref_name": {"include": ["refs/heads/main"], "exclude": []}},
+                     "rules": [{"type": "deletion"}, {"type": "non_fast_forward"},
+                               {"type": "pull_request"}], "bypass_actors": []}
+        details = [update, guard, main_rule]
+        if hide_bypass:
+            details = [{k: v for k, v in r.items() if k != "bypass_actors"} for r in details]
+        return details
+
+    def reader(self, details, calls, fail=None):
+        branch = self.BRANCH
+
+        class Reader:
+            def __init__(self, token):
+                calls.append(("token", token))
+
+            def get(self, path):
+                calls.append(path)
+                if fail is not None:
+                    raise fail
+                if path == f"/branches/{LEASE_REF}":
+                    return dict(branch)
+                if path == "/rulesets?includes_parents=false&per_page=100":
+                    return [{"id": d["id"]} for d in details]
+                return next(d for d in details if path == f"/rulesets/{d['id']}")
+        return Reader
+
+    def audit(self, *, env=None, details=None, fail=None, store=None):
+        from managed_cursor_launch import _trusted_lease_ref_audit
+        calls = []
+        env = {"AI_ENG_WRITER_APP_ID": str(self.APP_ID),
+               "AI_ENG_RULESET_AUDIT_TOKEN": "audit-token"} if env is None else env
+        store = store or GitHubRefStore(LEASE_REPO, "writer-token", LEASE_REF)
+        with patch.dict("os.environ", env, clear=True), \
+                patch("managed_cursor_launch.RulesetReader",
+                      self.reader(self.rulesets() if details is None else details, calls, fail)):
+            return _trusted_lease_ref_audit(Controller(store)), calls
+
+    def test_live_ruleset_shape_with_approved_app_is_trusted(self):
+        ok, calls = self.audit()
+        self.assertTrue(ok)
+        self.assertIn(("token", "audit-token"), calls)  # admin-read token, not the writer token
+        self.assertNotIn(f"/branches/{LEASE_REF}/protection", calls)
+
+    def test_fails_closed_on_missing_or_wrong_evidence(self):
+        cases = {
+            "wrong_app": dict(details=self.rulesets(app_id=1234)),
+            "hidden_bypass_inventory": dict(details=self.rulesets(hide_bypass=True)),
+            "guard_ruleset_missing": dict(details=self.rulesets()[:1] + self.rulesets()[2:]),
+            "missing_token": dict(env={"AI_ENG_WRITER_APP_ID": str(self.APP_ID)}),
+            "missing_app_id": dict(env={"AI_ENG_RULESET_AUDIT_TOKEN": "audit-token"}),
+            "non_numeric_app_id": dict(env={"AI_ENG_WRITER_APP_ID": "lease-writer",
+                                            "AI_ENG_RULESET_AUDIT_TOKEN": "audit-token"}),
+            "zero_app_id": dict(env={"AI_ENG_WRITER_APP_ID": "0",
+                                     "AI_ENG_RULESET_AUDIT_TOKEN": "audit-token"}),
+            "http_404": dict(fail=HTTPError("u", 404, "Not Found", {}, None)),
+            "transport_error": dict(fail=OSError("down")),
+            "untrusted_store": dict(store=MemoryGitRef()),
+            "other_ref_store": dict(store=GitHubRefStore(LEASE_REPO, "t", "other-lease-ref")),
+        }
+        for name, kw in cases.items():
+            with self.subTest(name):
+                ok, _ = self.audit(**kw)
+                self.assertFalse(ok)
+
+    def test_missing_credentials_never_reach_github(self):
+        _, calls = self.audit(env={})
+        self.assertEqual(calls, [])
 
 
 if __name__ == "__main__":
