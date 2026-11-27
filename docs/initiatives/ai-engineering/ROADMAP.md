@@ -32,7 +32,7 @@
   - *Privileged lifecycle:* `ai-eng-cursor-delivery.yml` in reviewer-gated `ai-eng-lease-owner`. One approval covers a bounded dispatch→observe→verify chain, with at most one dispatch per run, stopping at the first owner decision.
   - *Owner-only:* activation, attestations, budget and model cost, security/ruleset changes, merge and reject.
 - **Remaining owner blockers:**
-  - Attestations not yet set: account scope (can be cross-checked against the read-only inventory), external billing, launch-route exclusivity (operational commitment plus technical detection), and subagents (a provider control may not exist; a pilot-only accepted-risk proposal is documented and not implemented).
+  - Attestations not yet set: account scope (can be cross-checked against the read-only inventory), external billing, launch-route exclusivity (operational commitment plus technical detection), and subagents (a provider control may not exist; a pilot-only accepted-risk policy, bound to #220, is a Draft PR awaiting owner review).
   - The #120 per-run budget decision.
   - `composer-2.5` cost approval at GO.
   - The activation PR.

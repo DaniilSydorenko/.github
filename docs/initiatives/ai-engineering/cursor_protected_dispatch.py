@@ -198,8 +198,12 @@ OWNER_ATTESTATIONS = {
     "verified_launch_route_exclusivity": "AI_ENG_ATTEST_SINGLE_LAUNCH_ROUTE",
     "verified_owner_security_gates": "AI_ENG_ATTEST_TARGET_BRANCH_PROTECTED",
     "account_scope_attested": "AI_ENG_ATTEST_CURSOR_KEY_ACCOUNT_SCOPE",
+    # Not an attestation of a control: the owner accepts the risk, set only if
+    # Cursor offers no subagent setting; effective for the #220 task only.
+    "subagent_risk_accepted_task_220": "AI_ENG_ACCEPT_SUBAGENT_RISK_TASK_220",
 }
 ATTESTED = "true"
+SUBAGENT_RISK = "subagents_unblocked_accepted_task_220"
 
 
 def attestations_from_env(environ: Mapping[str, str] | None = None) -> dict[str, bool]:
@@ -238,7 +242,15 @@ def build_trusted_permit(
             "verified_subagents_disabled", "verified_launch_route_exclusivity",
             "verified_owner_security_gates")},
     }
-    missing = sorted(k for k, v in flags.items() if v is not True)
+    # Pilot-only residual risk: never satisfies the "verified" flag (which stays
+    # False and is reported as such); it only waives it for the registered
+    # #220 task. Any other task, including #207, still needs the attestation.
+    subagent_risk = (flags["verified_subagents_disabled"] is not True
+                     and attestations.get("subagent_risk_accepted_task_220") is True
+                     and (task.repository, task.issue)
+                     == (TASK_220.repository, TASK_220.issue))
+    missing = sorted(k for k, v in flags.items() if v is not True
+                     and not (k == "verified_subagents_disabled" and subagent_risk))
     if not isinstance(inventory, Mapping) or inventory.get("status") != "CLEAR":
         missing.append("cursor_inventory_clear")
     permit = {
@@ -250,6 +262,7 @@ def build_trusted_permit(
         "head_sha": main_sha,
         "model_id": task.model,
         "model_allowlist": frozenset({task.model}),
+        "accepted_residual_risks": (SUBAGENT_RISK,) if subagent_risk else (),
     }
     return permit, missing
 
@@ -402,6 +415,7 @@ def run_gates_only(
             "issue": task.issue,
             "preflight_reason": preflight.get("reason"),
             "permit_missing_evidence": missing,
+            "accepted_residual_risks": list(permit["accepted_residual_risks"]),
             "cursor_inventory": inventory,
             "proposal_agent_id": agent_id_for(rid),
             "exact_head_verification": "pending_after_terminal_run",
