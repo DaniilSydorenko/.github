@@ -18,7 +18,9 @@ HAVERSINE = "DaniilSydorenko/haversine-geolocation"
 # npm run quality, typecheck, test and build in the target repository's own CI
 # (unprivileged GitHub runner, none of our credentials).
 HAVERSINE_REQUIRED_CHECKS = ("Test and build", "Gitleaks")
-DEFAULT_MODEL = "composer-2"
+# Exact id from live GET /v1/models (run 46058665166, 2026-11-27): "composer-2"
+# is no longer offered; "composer-2.5" is its in-family successor.
+DEFAULT_MODEL = "composer-2.5"
 
 
 @dataclass(frozen=True)

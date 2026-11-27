@@ -42,8 +42,6 @@ LEASE_REF = "ai-eng-cursor-lease-v1"
 CONTROL_REPO = "DaniilSydorenko/.github"
 CONTROL_ACTOR = "DaniilSydorenko"
 APPROVED_OPERATION = "cursor-managed-delivery"
-DEFAULT_MODEL = "composer-2"
-MODEL_ALLOWLIST = frozenset({DEFAULT_MODEL})
 TASK_220 = task_for(REPO, ISSUE)
 assert TASK_220 is not None and TASK_220.allowed_paths == (PATH,)
 SHA = re.compile(r"[0-9a-f]{40}\Z")
