@@ -16,6 +16,7 @@ from urllib.request import Request, urlopen
 AGENT = re.compile(r"bc-[0-9a-fA-F-]{36}\Z")
 RUN = re.compile(r"run-[0-9a-fA-F-]{36}\Z")
 TERMINAL = {"FINISHED", "ERROR", "CANCELLED", "EXPIRED"}
+ENUM = re.compile(r"[A-Z_]{1,40}\Z")
 TOKENS = ("inputTokens", "outputTokens", "cacheWriteTokens",
           "cacheReadTokens", "totalTokens")
 
@@ -99,7 +100,7 @@ def global_run_preflight(api, *, global_account_scope_verified: bool,
                 if status == "ARCHIVED":
                     continue
                 if status != "IDLE":
-                    raise CursorReadError("unknown agent status")
+                    raise CursorReadError("unknown agent status " + _enum(status))
                 latest = agent.get("latestRunId")
                 if not isinstance(latest, str) or not RUN.fullmatch(latest):
                     raise CursorReadError("latest run unavailable")
@@ -110,7 +111,7 @@ def global_run_preflight(api, *, global_account_scope_verified: bool,
                     return {"status": "BUSY", "reason": "cursor_run_not_terminal",
                             "can_launch": False, "active_agent": ident}
                 if run.get("status") not in TERMINAL:
-                    raise CursorReadError("unknown run status")
+                    raise CursorReadError("unknown run status " + _enum(run.get("status")))
             cursor = page.get("nextCursor")
             if cursor is None:
                 return {"status": "CLEAR", "reason": "no_active_cursor_agents",
@@ -119,9 +120,18 @@ def global_run_preflight(api, *, global_account_scope_verified: bool,
                 raise CursorReadError("invalid/cyclic pagination")
             seen_cursors.add(cursor)
         raise CursorReadError("pagination incomplete")
-    except (CursorReadError, KeyError, TypeError):
+    except (CursorReadError, KeyError, TypeError) as exc:
+        # Fail closed. detail carries only our own literals, an HTTP status
+        # code or a provider enum: never a response body, id or key.
         return {"status": "STOP", "reason": "cursor_inventory_incomplete",
-                "can_launch": False}
+                "can_launch": False, "agents_checked": len(seen_agents),
+                "detail": str(exc) if isinstance(exc, CursorReadError)
+                else type(exc).__name__}
+
+
+def _enum(value: object) -> str:
+    """Provider status for diagnostics, only if it is a plain enum token."""
+    return value if isinstance(value, str) and ENUM.fullmatch(value) else "<non-enum>"
 
 
 def model_ids(api) -> frozenset[str]:
