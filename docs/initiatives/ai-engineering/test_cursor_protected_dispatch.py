@@ -8,6 +8,7 @@ from unittest import TestCase, main
 from unittest.mock import patch
 
 import cursor_protected_dispatch
+from cursor_tasks import DEFAULT_MODEL
 
 from cursor_protected_dispatch import (
     APPROVED_OPERATION,
@@ -213,7 +214,7 @@ class CursorProtectedDispatchTests(TestCase):
     ALL_ATTESTED = {key: True for key in OWNER_ATTESTATIONS}
 
     class FakeCursor:
-        def __init__(self, models=("composer-2",), agents=()):
+        def __init__(self, models=(DEFAULT_MODEL,), agents=()):
             self.models, self.agents, self.calls = models, list(agents), []
 
         def get_json(self, path, params=None):
@@ -275,16 +276,16 @@ class CursorProtectedDispatchTests(TestCase):
         self.assertEqual(result["permit_missing_evidence"], ["verified_cursor_billing"])
 
     def test_model_must_exist_in_live_cursor_model_list(self) -> None:
-        result = self._run(cursor_api=self.FakeCursor(models=("composer-2.5",)),
+        result = self._run(cursor_api=self.FakeCursor(models=("composer-2",)),
                            attestations=self.ALL_ATTESTED)
         self.assertEqual(result["permit_missing_evidence"], ["verified_model_allowlist"])
 
     def test_provider_evidence_distinguishes_rejected_key_from_absent_model(self) -> None:
-        absent = self._run(cursor_api=self.FakeCursor(models=("composer-2.5",)),
+        absent = self._run(cursor_api=self.FakeCursor(models=("composer-2",)),
                            attestations=self.ALL_ATTESTED)["cursor_provider_evidence"]
         self.assertEqual(absent, {"api_configured": True, "key_info_ok": True,
-                                  "pinned_model": "composer-2",
-                                  "live_model_ids": ["composer-2.5"]})
+                                  "pinned_model": DEFAULT_MODEL,
+                                  "live_model_ids": ["composer-2"]})
 
         class Rejected:
             def get_json(self, path, params=None):
@@ -293,7 +294,7 @@ class CursorProtectedDispatchTests(TestCase):
         rejected = self._run(cursor_api=Rejected(),
                              attestations=self.ALL_ATTESTED)["cursor_provider_evidence"]
         self.assertEqual(rejected, {"api_configured": True, "key_info_ok": False,
-                                    "pinned_model": "composer-2", "live_model_ids": []})
+                                    "pinned_model": DEFAULT_MODEL, "live_model_ids": []})
         unset = self._run(attestations=self.ALL_ATTESTED)["cursor_provider_evidence"]
         self.assertFalse(unset["api_configured"])
 

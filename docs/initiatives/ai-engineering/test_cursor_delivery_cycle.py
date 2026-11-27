@@ -16,7 +16,7 @@ from cursor_protected_dispatch import (
     run_gates_only,
 )
 from cursor_readonly import CursorReadError
-from cursor_tasks import TASKS, CursorTask, validate_registry
+from cursor_tasks import DEFAULT_MODEL, TASKS, CursorTask, validate_registry
 from github_ref_lease import Controller, fingerprint
 from preview_one import preview_one
 from sequential_handoff import preview_next_after_merge
@@ -56,7 +56,7 @@ class FakeCursor:
     """GET-only provider fake. Has no create/post method on purpose."""
 
     def __init__(self, *, run_status="FINISHED", agent_status="IDLE", branches=None,
-                 agent_missing=False, fail_reads=0, models=("composer-2",), agents=()):
+                 agent_missing=False, fail_reads=0, models=(DEFAULT_MODEL,), agents=()):
         self.run_status, self.agent_status = run_status, agent_status
         self.branches = branches if branches is not None else [
             {"repoUrl": "github.com/" + REPO, "branch": "cursor/doc-220", "prUrl": PR}]
