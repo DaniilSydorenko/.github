@@ -653,6 +653,217 @@ class CliTests(unittest.TestCase):
         self.assertEqual(store.state["phase"], "RUNNING")
 
 
+class SingleApprovalChainTests(unittest.TestCase):
+    """One owner-approved privileged run chains steps; never dispatches twice."""
+
+    def chain(self, store, create, gh, cursor, max_steps=8):
+        from cursor_delivery_cycle import advance_until_owner_action
+
+        def builder(*, task, main_sha, lease_state, inventory):
+            return build_launch_bundle(bundle_gh(), task, collected=collected(), main_sha=main_sha,
+                                       lease_state=lease_state, owner_bootstrap_authorized=True)
+
+        def dispatch(state):
+            return run_gates_only(
+                CTX, issue_preflight=lambda: {
+                    "reason": "scope_preflight_passed_but_live_gates_unverified"},
+                lease_state_reader=lambda: store.read().state, main_sha_reader=lambda: START,
+                cursor_api=cursor, attestations=ALL_ATTESTED, bundle_builder=builder,
+                controller=Controller(store), cursor_create=create)
+
+        with patch.object(managed_cursor_launch, "PILOT_ACTIVATION_ENABLED", True), \
+                patch.object(managed_cursor_launch, "_trusted_lease_ref_audit", lambda c: True):
+            return advance_until_owner_action(
+                max_steps=max_steps, dispatch=dispatch,
+                advance_once=lambda once: advance(
+                    store=store, gh=gh, cursor_api=cursor, ctx=CTX, attestations=ALL_ATTESTED,
+                    dispatch=once, max_polls=2, interval_s=0, sleep=lambda _: None))
+
+    def test_one_approval_runs_dispatch_observe_verify_then_stops_for_owner_merge(self):
+        store, create = MemoryGitRef(), FakeCreate()
+        out = self.chain(store, create, FakeGH(gh_routes()), FakeCursor())
+        self.assertEqual(out["outcome"], "INTEGRATION_READY", out)
+        self.assertEqual([s["outcome"] for s in out["lifecycle_steps"]],
+                         ["DISPATCH_ATTEMPTED", "VERIFYING", "INTEGRATION_READY"])
+        self.assertEqual(len(create.calls), 1)
+        self.assertEqual(store.state["phase"], "VERIFYING")  # owner merge still required
+
+    def test_running_provider_is_observed_until_step_budget_without_new_dispatch(self):
+        import datetime
+
+        class Progressing(FakeCursor):  # provider reports fresh progress
+            def get_json(self, path, params=None):
+                out = super().get_json(path, params)
+                if "/runs/" in path:
+                    out["updatedAt"] = datetime.datetime.now(datetime.timezone.utc).strftime(
+                        "%Y-%m-%dT%H:%M:%SZ")
+                return out
+
+        store, create = MemoryGitRef(), FakeCreate()
+        out = self.chain(store, create, FakeGH({}), Progressing(run_status="RUNNING"), max_steps=3)
+        self.assertEqual([s["outcome"] for s in out["lifecycle_steps"]],
+                         ["DISPATCH_ATTEMPTED", "HOLD", "HOLD"])
+        self.assertEqual((len(create.calls), store.state["phase"]), (1, "RUNNING"))
+        stale = self.chain(lease_in("RUNNING"), FakeCreate(), FakeGH({}),
+                           FakeCursor(run_status="RUNNING"))
+        self.assertEqual(len(stale["lifecycle_steps"]), 1)  # stale run => owner, not loop
+
+    def test_released_idle_lease_in_same_run_never_dispatches_again(self):
+        from cursor_delivery_cycle import advance_until_owner_action
+        calls = []
+
+        def advance_once(once):
+            # Script: IDLE twice in one run (e.g. a release mid-run).
+            return {"step": "dispatch", "outcome": "DISPATCH_ATTEMPTED", "result": once({})}
+
+        def dispatch(state):
+            calls.append(state)
+            return {"decision": "STARTED"}
+
+        out = advance_until_owner_action(max_steps=5, advance_once=advance_once,
+                                         dispatch=dispatch)
+        self.assertEqual(len(calls), 1)
+        self.assertEqual(out["result"]["reason"], "one_dispatch_per_run")
+        self.assertEqual(len(out["lifecycle_steps"]), 2)
+
+    def test_activation_off_or_owner_action_stops_after_one_step(self):
+        from cursor_delivery_cycle import advance_until_owner_action
+        for result in ({"step": "dispatch", "outcome": "DISPATCH_ATTEMPTED",
+                        "result": {"decision": "STOP", "reason": "owner_activation_not_enabled"}},
+                       {"step": "verify", "outcome": "OWNER_ACTION"},
+                       {"step": "reconcile", "outcome": "BLOCKED"},
+                       {"step": "observe", "outcome": "HOLD",
+                        "observation": {"state": "STALE"}}):
+            out = advance_until_owner_action(max_steps=8, advance_once=lambda once: result,
+                                             dispatch=lambda s: self.fail("no dispatch"))
+            self.assertEqual(len(out["lifecycle_steps"]), 1, result)
+
+    def test_step_budget_is_bounded(self):
+        from cursor_delivery_cycle import MAX_STEPS_PER_RUN, advance_until_owner_action
+        for bad in (0, MAX_STEPS_PER_RUN + 1, "8", True):
+            out = advance_until_owner_action(max_steps=bad, advance_once=lambda o: self.fail(),
+                                             dispatch=lambda s: self.fail())
+            self.assertEqual(out["reason"], "invalid_step_budget")
+
+
+class ReadOnlyPreflightTests(unittest.TestCase):
+    OWNER_ENV = {**CliTests.OWNER_ENV, "AI_ENG_OWNER_GO_ISSUE": str(TASK.issue)}
+
+    def test_readonly_context_is_separate_from_privileged_context(self):
+        from cursor_delivery_cycle import READONLY_OPERATION, readonly_context_from_env
+        from cursor_protected_dispatch import protected_context_from_env
+        with patch.dict("os.environ", {**self.OWNER_ENV,
+                                       "AI_ENG_APPROVED_OPERATION": READONLY_OPERATION},
+                        clear=True):
+            self.assertIsNone(protected_context_from_env())
+            ctx = readonly_context_from_env()
+            self.assertEqual((ctx.owner_go_issue, ctx.execute_cursor_requested),
+                             (TASK.issue, False))
+        with patch.dict("os.environ", {**self.OWNER_ENV,
+                                       "AI_ENG_APPROVED_OPERATION": APPROVED_OPERATION},
+                        clear=True):
+            self.assertIsNone(readonly_context_from_env())
+        with patch.dict("os.environ", {**self.OWNER_ENV, "GITHUB_ACTOR": "someone",
+                                       "AI_ENG_APPROVED_OPERATION": READONLY_OPERATION},
+                        clear=True):
+            self.assertIsNone(readonly_context_from_env())
+
+    def test_readonly_dispatch_never_builds_writers_even_with_activation_on(self):
+        import cursor_delivery_cycle as cycle
+        cursor = FakeCursor(agents=[])
+        env = {**self.OWNER_ENV, "AI_ENG_APPROVED_OPERATION": cycle.READONLY_OPERATION,
+               "AI_ENG_LEASE_WRITER_TOKEN": "must-not-be-used", "CURSOR_API_KEY": "k",
+               **{v: "true" for v in OWNER_ATTESTATIONS.values()}}  # must be ignored
+
+        def no_writers():
+            raise AssertionError("read-only path constructed a writer")
+
+        with patch.object(managed_cursor_launch, "PILOT_ACTIVATION_ENABLED", True), \
+                patch("cursor_protected_dispatch._live_writers", no_writers), \
+                patch("cursor_protected_dispatch.live_main_sha", lambda task=None: START), \
+                patch("openhands_issue_contract.live_preflight", lambda: {
+                    "reason": "scope_preflight_passed_but_live_gates_unverified"}), \
+                patch("trusted_github_evidence.collect_task_evidence",
+                      lambda *a, **k: {"status": "OBSERVED"}), \
+                patch.dict("os.environ", env, clear=True):
+            out = cycle.readonly_preflight(
+                lease_state_reader=lambda: MemoryGitRef().read().state, cursor_api=cursor,
+                dispatch=cycle._live_dispatch(FakeGH({}), cursor, bootstrap=True,
+                                              previous_pr=None, readonly=True))
+        gates = out["gates"]
+        self.assertEqual((out["outcome"], out["read_only"]), ("READ_ONLY", True))
+        self.assertFalse(gates["cursor_post_attempted"])
+        self.assertEqual(gates["reason"], "managed_launch_trusted_owner_finance_or_scope_proof_missing")
+        self.assertEqual(gates["missing_excluding_attestations"], [])
+        self.assertIn("verified_subagents_disabled", gates["attestation_gated_items"])
+        self.assertTrue(gates["cursor_provider_evidence"]["key_info_ok"])
+        self.assertEqual(out["cursor_inventory_observed"]["status"], "CLEAR")
+        self.assertNotIn("/v1/agents/create", cursor.calls)
+
+    def test_readonly_reports_non_attestation_gaps_and_busy_lease(self):
+        from cursor_delivery_cycle import readonly_preflight
+        out = readonly_preflight(
+            lease_state_reader=lambda: {"phase": "IDLE", "revision": 29},
+            cursor_api=None,
+            dispatch=lambda s: {"decision": "STOP", "reason": "owner_activation_not_enabled",
+                                "permit_missing_evidence": ["verified_model_allowlist",
+                                                            "verified_account_scope"]})
+        self.assertEqual(out["gates"]["missing_excluding_attestations"],
+                         ["verified_model_allowlist"])
+        self.assertIsNone(out["cursor_inventory_observed"])
+        held = readonly_preflight(lease_state_reader=lambda: {"phase": "RUNNING"},
+                                  cursor_api=None, dispatch=lambda s: self.fail("no gates"))
+        self.assertEqual((held["lease_phase"], held["gates"]), ("RUNNING", None))
+        broken = readonly_preflight(lease_state_reader=lambda: (_ for _ in ()).throw(OSError()),
+                                    cursor_api=None, dispatch=lambda s: self.fail())
+        self.assertEqual(broken["reason"], "lease_state_unreadable")
+
+    def test_cli_preflight_refuses_writer_credential_and_untrusted_context(self):
+        import cursor_delivery_cycle as cycle
+        with patch.object(cycle, "_live", lambda: self.fail("privileged setup")), \
+                patch.dict("os.environ", {**self.OWNER_ENV, "AI_ENG_LEASE_WRITER_TOKEN": "x",
+                                          "AI_ENG_APPROVED_OPERATION": cycle.READONLY_OPERATION},
+                           clear=True):
+            self.assertEqual(cycle.main(["preflight"]), 3)
+        with patch.object(cycle, "_live", lambda: self.fail("privileged setup")), \
+                patch.dict("os.environ", {**self.OWNER_ENV, "GH_TOKEN": "t",
+                                          "AI_ENG_APPROVED_OPERATION": APPROVED_OPERATION},
+                           clear=True):
+            self.assertEqual(cycle.main(["preflight"]), 3)
+
+
+class WorkflowBoundaryTests(unittest.TestCase):
+    """Static checks: privileged credentials stay out of the approval-free job."""
+
+    @staticmethod
+    def workflow(name):
+        import os
+        root = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..")
+        with open(os.path.join(root, ".github", "workflows", name), encoding="utf-8") as fh:
+            return fh.read()
+
+    def test_readonly_job_has_no_privileged_credentials(self):
+        text = self.workflow("ai-eng-cursor-api-probe.yml")
+        job = "\n".join(line for line in text[text.index("  manual-probe:"):].splitlines()
+                        if not line.lstrip().startswith("#"))
+        self.assertIn("environment: cursor-readonly-preflight", job)
+        self.assertIn("cursor_delivery_cycle.py preflight", job)
+        for forbidden in ("ai-eng-lease-owner", "create-github-app-token",
+                          "AI_ENG_WRITER_APP_PRIVATE_KEY", "AI_ENG_RULESET_AUDIT_TOKEN",
+                          "AI_ENG_LEASE_WRITER_TOKEN", "AI_ENG_ATTEST_", "contents: write",
+                          "cursor-managed-delivery"):
+            self.assertNotIn(forbidden, job, forbidden)
+
+    def test_privileged_job_keeps_reviewed_environment_and_bounded_chain(self):
+        import re
+        text = self.workflow("ai-eng-cursor-delivery.yml")
+        self.assertIn("environment: ai-eng-lease-owner", text)
+        self.assertIn("group: ai-eng-single-live-executor", text)
+        self.assertIn("args+=(--max-steps 8)", text)
+        timeout = int(re.search(r"timeout-minutes: (\d+)", text).group(1))
+        self.assertLess(timeout, 60)  # App installation token lifetime
+
+
 class SequentialTests(unittest.TestCase):
     def test_next_registered_task_after_verified_previous_merge(self):
         import cursor_bundle_builder as builder
