@@ -10,6 +10,18 @@ The #164 pilot is **complete** (#206 and #207 accepted). Current work is the **o
 - **Confidentiality:** this repository, its refs and its Actions logs are **public**. Never store or log metadata of private repositories here: issue numbers, paths, branches, PRs, SHAs or task text (for example `listing-kit` or `engineering-handbook`).
 - **Unchanged:** every security, domain-authority, budget, approval and writer-coordination rule below. Never fabricate evidence; `UNKNOWN` cost stays `UNKNOWN`.
 
+### Low-burn execution rules (permanent, [#226 coordinator](https://github.com/DaniilSydorenko/.github/issues/226#issuecomment-7239297720))
+
+- Maximize accepted outcomes per unit of model usage, not the number of operations.
+- Read current mandatory guidance and the active issue/PR once. Retrieve only relevant code ranges and failing log excerpts; do not load historical documents or full successful CI logs unless needed. Bound command output.
+- Prefer deterministic tools. No redundant CI polling, unchanged re-checks, speculative refactors, extra agents or paid measurement-only runs.
+- Model choice (subject to owner selection): Sonnet for routine implementation; Opus only for genuinely difficult security or authorization review.
+- Keep required security checks, tests and exact-head CI intact.
+- Critical path: #226 (#228), then #229 → #234. Defer nonblocking inventory and performance tuning.
+- **Branch hygiene:** branch every PR from current `main`, never from an unmerged feature branch; stage explicit paths; before merging, check that `gh pr view N --json files` matches the intended scope (incidents #222 and #235).
+- Before context or session exhaustion, persist a short handoff in the active issue. Report only actual changes, evidence, blockers and the next action.
+- These rules are coordination, not launch or merge authorization.
+
 The 2026-11-25 sections below are **historical pilot guidance**, kept for audit. Where they conflict with this section on process (such as "one coherent fix per round"), this section wins. On security and authority they still apply.
 
 
