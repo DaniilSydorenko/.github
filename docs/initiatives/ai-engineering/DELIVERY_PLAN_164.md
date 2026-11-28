@@ -18,10 +18,14 @@ Current objective: accept one managed Cursor task end to end (Haversine #220 →
 | Tokens | input 110,474 / output 9,584 / cache read 613,568 / cache write 0 / total 733,626; charged cost `UNKNOWN` ([46090702636](https://github.com/DaniilSydorenko/.github/actions/runs/46090702636)) |
 
 - **Not verified:** the model variant. `composer-2.5` was sent without `params`, so its default variant ran. The agent self-reports `composer-2.5-fast`, and the API exposes no field for the model actually used.
-- **#207: in preparation, no agent launched.**
-  - Haversine #217 and #226 are already implemented on `master`. #232's premise is wrong: with a huge radius, `distance()` throws before `nearest()` compares anything.
-  - Next task: Haversine [#235](https://github.com/DaniilSydorenko/haversine-geolocation/issues/235). A V1-style positional unit (`distance(a, b, 'm')`) is silently returned in kilometres, contrary to the documented contract. Fix in `src/v2/distance.ts`, with Vitest regressions.
-  - The task-specific admission is a Draft PR awaiting owner review. The #220 subagent waiver does not carry over.
+- **#207: accepted and closed (2026-11-28).** The second managed task, Haversine #235 (a V2 options-validation fix with Vitest regressions), ran end to end on the fixed infrastructure with **no repair**:
+  - launch [46136598547](https://github.com/DaniilSydorenko/.github/actions/runs/46136598547): one approval, exactly one dispatch, through to `INTEGRATION_READY`;
+  - PR #236, exact head `ed8f9a7`, the 3 allowed files, 10/10 checks green;
+  - owner merge `0de9a82`;
+  - release [46140091447](https://github.com/DaniilSydorenko/.github/actions/runs/46140091447) `RELEASED`; lease `IDLE` **r41**, 8 replay hashes;
+  - tokens 1,377,248; charged cost `UNKNOWN`.
+- **Reconciled:** #108 closed (lease rulesets active and read back); #154 closed as superseded by the Cursor path; #120 open with 2 of 3 measured runs. Both residual-risk variables are deleted.
+- **Pilot milestone complete.** Next: operational completion Phase 1, the dynamic ordered queue ([owner-approved roadmap](https://github.com/DaniilSydorenko/.github/issues/207#issuecomment-7231706196)). Known item for Phase 1: the public, unauthenticated lease read can hit the runner rate limit (preflight [46138457389](https://github.com/DaniilSydorenko/.github/actions/runs/46138457389)); use an authenticated read.
 
 ## Admission baseline (2026-11-28, before #206)
 

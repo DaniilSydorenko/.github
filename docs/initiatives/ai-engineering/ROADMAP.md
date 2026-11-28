@@ -1,10 +1,17 @@
 # AI Engineering Ecosystem — Nine-Phase Roadmap v2
 
 **Status:** OWNER RESEARCH INITIATIVE / NON-ENFORCING / PILOTS 01–03 ACCEPTED / EXECUTION READINESS UNPROVEN  
-**As of:** 2026-11-28 (#206 accepted: first managed Cursor task end to end; #207 in preparation). Earlier dated sections below are preserved history.  
+**As of:** 2026-11-28 (pilot milestone complete: #206 and #207 accepted; next operational Phase 1, dynamic queue). Earlier dated sections below are preserved history.  
 **Owner:** Daniil (personal engineering initiative; not GitHub HQ or a scheduled Autopilot worker)  
 **Canonical strategy for this initiative only:** this file. Product, GitHub HQ, Control Plane, and worker roadmaps keep their own authorities.  
 **Related:** [Operating Rules](OPERATING_RULES.md) · [Budget & Measurement](BUDGET_AND_MEASUREMENT.md)
+
+## 2026-11-28 — Milestone: two consecutive managed tasks accepted (#207)
+
+- **Second task:** Haversine #235 → one dispatch → PR #236 (3 files, real fix plus Vitest regressions, 10/10 checks) → owner merge `0de9a82` → `RELEASED` → lease `IDLE` r41. No infrastructure repair was needed. Tokens 1,377,248; cost `UNKNOWN`.
+- **Closed:** #207, #108 (rulesets verified), #154 (superseded).
+- **Open:** #120 (2 of 3 measured runs).
+- **Next:** operational completion per the owner-approved roadmap. Phase 1 is a durable, owner-controlled ordered queue, reusing the lease, CAS, replay and admission mechanisms.
 
 ## 2026-11-28 — Milestone: first managed Cursor task accepted (#206)
 
