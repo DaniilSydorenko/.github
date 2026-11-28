@@ -864,6 +864,67 @@ class WorkflowBoundaryTests(unittest.TestCase):
         self.assertLess(timeout, 60)  # App installation token lifetime
 
 
+class StartingShaSourceTests(unittest.TestCase):
+    """Live run 46087972278: the provider did not echo a usable startingRef."""
+
+    class EchoCursor(FakeCursor):
+        def __init__(self, repos):
+            super().__init__()
+            self.repos = repos
+
+        def get_json(self, path, params=None):
+            if path == f"/v1/agents/{AGENT}":
+                return {"id": AGENT, "status": "ACTIVE", "latestRunId": RUN, "repos": self.repos}
+            return super().get_json(path, params)
+
+    def verify(self, repos, routes):
+        store = lease_in("VERIFYING")
+        return advance(store=store, gh=FakeGH(routes), cursor_api=self.EchoCursor(repos),
+                       ctx=CTX, attestations=ALL_ATTESTED, dispatch=lambda s: self.fail("no"),
+                       max_polls=2, interval_s=0, sleep=lambda _: None), store
+
+    MASTER = f"/repos/{REPO}/git/ref/heads/master"
+
+    def test_scheme_less_provider_url_still_uses_echo(self):
+        out, _ = self.verify([{"url": "github.com/" + REPO + ".git", "startingRef": START}],
+                             gh_routes())
+        self.assertEqual((out["outcome"], out["starting_sha_source"]),
+                         ("INTEGRATION_READY", "provider_echo"), out)
+
+    def test_missing_echo_falls_back_to_github_default_head(self):
+        routes = {**gh_routes(), self.MASTER: {"object": {"sha": START}}}
+        out, store = self.verify([{"url": "https://github.com/" + REPO}], routes)
+        self.assertEqual(out["outcome"], "INTEGRATION_READY", out)
+        self.assertEqual((out["starting_sha"], out["starting_sha_source"],
+                          out["provider_starting_ref"]),
+                         (START, "github_default_branch_head", "absent"))
+        self.assertEqual(store.state["pr_url"], PR)
+
+    def test_branch_name_echo_is_not_trusted_as_sha(self):
+        routes = {**gh_routes(), self.MASTER: {"object": {"sha": START}}}
+        out, _ = self.verify([{"url": "https://github.com/" + REPO, "startingRef": "master"}],
+                             routes)
+        self.assertEqual((out["starting_sha_source"], out["provider_starting_ref"]),
+                         ("github_default_branch_head", "not_a_full_sha"))
+
+    def test_moved_default_branch_fails_closed(self):
+        routes = {**gh_routes(), self.MASTER: {"object": {"sha": MERGE}},
+                  f"/repos/{REPO}/compare/{MERGE}...{HEAD}": {"status": "diverged",
+                                                             "behind_by": 1}}
+        out, store = self.verify([], routes)
+        self.assertNotIn(out["outcome"], ("INTEGRATION_READY", "RELEASED"), out)
+        self.assertEqual(out["provider_starting_ref"], "repo_not_reported")
+        self.assertEqual(store.state["phase"], "VERIFYING")
+        self.assertEqual(store.state["pr_url"], ISSUE_URL)  # nothing bound
+        self.assertEqual(out["detail"]["reason"], "pr_head_not_descended_from_starting_sha")
+
+    def test_no_source_at_all_holds(self):
+        out, store = self.verify([], {})
+        self.assertEqual((out["outcome"], out["reason"], out["provider_starting_ref"]),
+                         ("HOLD", "starting_sha_unverifiable", "repo_not_reported"))
+        self.assertEqual(store.state["phase"], "VERIFYING")
+
+
 class SequentialTests(unittest.TestCase):
     def test_next_registered_task_after_verified_previous_merge(self):
         import cursor_bundle_builder as builder
