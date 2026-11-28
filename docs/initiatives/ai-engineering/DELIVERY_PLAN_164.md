@@ -2,6 +2,24 @@
 
 Current objective: accept one managed Cursor task end to end (Haversine #220 → reviewed PR → owner merge → lease released). Then run the next registered task in sequence (#207). Tracking: HQ #205 (admission and dry run) → #206 (activation and first E2E) → #207 (sequential proof). Budget evidence: #120. Lease and protection: #108.
 
+
+## Operational completion checklist
+
+The canonical status, kept in sync with GitHub. The [owner-approved roadmap](https://github.com/DaniilSydorenko/.github/issues/207#issuecomment-7231706196) is frozen. Operating mode: **Maximum Safe Throughput** (see `AGENTS.md`). Status legend: implemented / offline-tested / merged / live-verified / blocked / deferred.
+
+| Phase | Issue | Status (2026-11-28) | Next action |
+|---|---|---|---|
+| 0: Engineering infrastructure (pilot) | #205, #206, #207 | **accepted**: 2 managed tasks integrated, lease `IDLE` r41, 8 replay hashes | none (reopen only on a real regression) |
+| 1: Dynamic queue | #226 | part 1 **merged** (#227 `8a9a6ff`); part 2 **offline-tested, CI green, waiting for owner merge** (#228 head `56a0f4d`); public targets only | owner merges #228 → one live `submit-queue` and read-back (no POST) |
+| 2: Automatic task preparation | #229 | not started; depends on #226 | read-only `prepare` in the probe |
+| 3: Batch authorization and autonomous execution | #230 | not started; the approval-model change needs an owner decision | after #226 and #229 |
+| 4: Auto-merge policy and bounded repair | #231 | not started; the policy needs explicit owner approval | after #230 |
+| 5: Multi-repo, private control plane, latency, #120 | #232, #120 | **blocked**: `listing-kit` and `engineering-handbook` are private, and HQ is public. A private control plane is an owner decision | owner decision on the private control repository |
+| 6: Control contract and private Control Center | #233 | not started; hosting and authorization design to be confirmed by the owner before provisioning | after #230 |
+| 7: Final acceptance (5 LADVERO issues) | #234 | not started | after phases 1–6 |
+
+**Confidentiality rule:** this repository, its refs and its Actions logs are public. Queue, lease and log data for private repositories must never be stored here (enforced in `cursor_queue` since #228).
+
 ## Current status (2026-11-28)
 
 - **#205: closed.** The activation-OFF dry run [46081552315](https://github.com/DaniilSydorenko/.github/actions/runs/46081552315) had `permit_missing_evidence=[]`.

@@ -1,10 +1,17 @@
 # AI Engineering Ecosystem — Nine-Phase Roadmap v2
 
 **Status:** OWNER RESEARCH INITIATIVE / NON-ENFORCING / PILOTS 01–03 ACCEPTED / EXECUTION READINESS UNPROVEN  
-**As of:** 2026-11-28 (pilot milestone complete: #206 and #207 accepted; next operational Phase 1, dynamic queue). Earlier dated sections below are preserved history.  
+**As of:** 2026-11-28. Operational completion in progress; the canonical status table is [DELIVERY_PLAN_164.md § Operational completion checklist](DELIVERY_PLAN_164.md#operational-completion-checklist). Everything below the first dated section is **history**. Earlier dated sections below are preserved history.  
 **Owner:** Daniil (personal engineering initiative; not GitHub HQ or a scheduled Autopilot worker)  
 **Canonical strategy for this initiative only:** this file. Product, GitHub HQ, Control Plane, and worker roadmaps keep their own authorities.  
 **Related:** [Operating Rules](OPERATING_RULES.md) · [Budget & Measurement](BUDGET_AND_MEASUREMENT.md)
+
+## 2026-11-28 — Operational completion started (current)
+
+- **Frozen phases** (owner-approved roadmap): queue #226 → preparation #229 → autonomous execution #230 → merge and repair #231 → multi-repo, private control plane and latency #232 (+ #120) → control contract and UI #233 → final five-issue acceptance #234.
+- **Queue (#226):** core merged (#227). Wiring (#228) is green and waiting for the owner merge.
+- **Privacy correction:** private targets (`listing-kit`, `engineering-handbook`) are refused on the public HQ control plane. #232 holds the owner decision on a private control plane.
+- **Mode:** Maximum Safe Throughput. Several sequential PRs per session, one writer, and owner gates unchanged.
 
 ## 2026-11-28 — Milestone: two consecutive managed tasks accepted (#207)
 
