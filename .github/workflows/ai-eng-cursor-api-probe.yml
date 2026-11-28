@@ -68,7 +68,7 @@ jobs:
       - name: Read-only admission preflight (GitHub + Cursor GET only)
         env:
           AI_ENG_APPROVED_OPERATION: cursor-readonly-preflight
-          AI_ENG_OWNER_GO_ISSUE: '235'
+          AI_ENG_OWNER_GO_ISSUE: ''  # empty = evaluate the head of the owner queue (#226)
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CURSOR_API_KEY: ${{ secrets.CURSOR_API_KEY }}
         run: |
