@@ -24,25 +24,23 @@ from sequential_handoff import preview_next_after_merge
 PILOT_ACTIVATION_ENABLED = True
 
 # The only permit gate an owner may accept as residual risk instead of proving
-# it; each entry is bound to one registered task: (risk id, repository, issue).
+# it, and only for the registered pilot task: (risk id, repository, issue).
 # For use only if Cursor exposes no subagent control; see DELIVERY_PLAN_164.md.
 ACCEPTABLE_RISKS = {
-    "verified_subagents_disabled": frozenset({
-        ("subagents_unblocked_accepted_task_220", "DaniilSydorenko/haversine-geolocation", 220),
-        ("subagents_unblocked_accepted_task_235", "DaniilSydorenko/haversine-geolocation", 235),
-    }),
+    "verified_subagents_disabled": (
+        "subagents_unblocked_accepted_task_220",
+        "DaniilSydorenko/haversine-geolocation", 220),
 }
 
 
 def _gate_ok(permit: dict[str, Any], key: str) -> bool:
     if permit.get(key) is True:
         return True
+    spec = ACCEPTABLE_RISKS.get(key)
     risks = permit.get("accepted_residual_risks")
-    if not isinstance(risks, tuple):
-        return False
-    return any(risk in risks and permit.get("repository") == repo
-               and permit.get("issue_number") == issue
-               for risk, repo, issue in ACCEPTABLE_RISKS.get(key, ()))
+    return (spec is not None and isinstance(risks, tuple) and spec[0] in risks
+            and permit.get("repository") == spec[1]
+            and permit.get("issue_number") == spec[2])
 
 
 def _trusted_lease_ref_audit(controller: Controller) -> bool:

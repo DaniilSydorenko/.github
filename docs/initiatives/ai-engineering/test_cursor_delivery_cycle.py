@@ -325,9 +325,8 @@ def collected(**facts):
 
 
 def bundle_gh(open_prs=(), extra=None):
-    # The bundle reads every registered task in the queue; later tasks are open.
     routes = {f"/repos/{REPO}/pulls": list(open_prs),
-              **{f"/repos/{REPO}/issues/{t.issue}": {"state": "open"} for t in TASKS}}
+              f"/repos/{REPO}/issues/{TASK.issue}": {"state": "open"}}
     routes.update(extra or {})
     return FakeGH(routes)
 
