@@ -70,65 +70,87 @@ def from_environment() -> LiveCursorReadOnly:
     return LiveCursorReadOnly(key)
 
 
+RUN_READ_CONCURRENCY = 6  # bounded parallel GETs; same evidence, same fail-closed result
+
+
+def _read_run(api, ident: str, latest: str) -> dict:
+    run = api.get_json(f"/v1/agents/{ident}/runs/{latest}")
+    if not isinstance(run, dict) or run.get("agentId") != ident or run.get("id") != latest:
+        raise CursorReadError("run identity mismatch")
+    return run
+
+
 def global_run_preflight(api, *, global_account_scope_verified: bool,
-                         max_pages: int = 10) -> dict:
+                         max_pages: int = 10,
+                         concurrency: int = RUN_READ_CONCURRENCY) -> dict:
     """Return STOP/BUSY/CLEAR observational result; never authorizes dispatch.
 
     Caller must attest full account scope independently of any untrusted Issue.
     Agent status ACTIVE prevents another run; IDLE needs latest run terminal.
+    Every page is validated in full first; the latest runs of its IDLE agents
+    are then read with bounded concurrency (the slow part: one GET per agent)
+    and judged in list order, so the result equals the sequential scan. No
+    agent is skipped and nothing is cached: each call is a fresh observation.
     """
+    from concurrent.futures import ThreadPoolExecutor
+
     if global_account_scope_verified is not True:
         return {"status": "STOP", "reason": "account_scope_unverified",
                 "can_launch": False}
     if type(max_pages) is not int or max_pages < 1 or max_pages > 20:
         return {"status": "STOP", "reason": "invalid_page_budget", "can_launch": False}
+    if type(concurrency) is not int or not 1 <= concurrency <= 16:
+        return {"status": "STOP", "reason": "invalid_concurrency", "can_launch": False}
     seen_agents, seen_cursors = set(), set()
     cursor, phase = None, "list"
     try:
-        for _ in range(max_pages):
-            params = {"limit": "100"}
-            if cursor:
-                params["cursor"] = cursor
-            phase = "list"
-            page = api.get_json("/v1/agents", params)
-            items = page.get("items")
-            if not isinstance(items, list):
-                raise CursorReadError("agent list not an array")
-            for agent in items:
-                if not isinstance(agent, dict):
-                    raise CursorReadError("invalid agent entry")
-                ident, status = agent.get("id"), agent.get("status")
-                if not isinstance(ident, str) or not AGENT.fullmatch(ident) or ident in seen_agents:
-                    raise CursorReadError("unknown or duplicated agent identity")
-                seen_agents.add(ident)
-                if status == "ACTIVE":
-                    return {"status": "BUSY", "reason": "cursor_agent_active",
-                            "can_launch": False, "active_agent": ident}
-                if status == "ARCHIVED":
-                    continue
-                if status != "IDLE":
-                    raise CursorReadError("unknown agent status " + _enum(status))
-                latest = agent.get("latestRunId")
-                if not isinstance(latest, str) or not RUN.fullmatch(latest):
-                    raise CursorReadError("latest run unavailable")
+        with ThreadPoolExecutor(max_workers=concurrency) as pool:
+            for _ in range(max_pages):
+                params = {"limit": "100"}
+                if cursor:
+                    params["cursor"] = cursor
+                phase = "list"
+                page = api.get_json("/v1/agents", params)
+                items = page.get("items")
+                if not isinstance(items, list):
+                    raise CursorReadError("agent list not an array")
+                idle: list[tuple[str, str]] = []
+                for agent in items:
+                    if not isinstance(agent, dict):
+                        raise CursorReadError("invalid agent entry")
+                    ident, status = agent.get("id"), agent.get("status")
+                    if not isinstance(ident, str) or not AGENT.fullmatch(ident) or ident in seen_agents:
+                        raise CursorReadError("unknown or duplicated agent identity")
+                    seen_agents.add(ident)
+                    if status == "ACTIVE":
+                        return {"status": "BUSY", "reason": "cursor_agent_active",
+                                "can_launch": False, "active_agent": ident}
+                    if status == "ARCHIVED":
+                        continue
+                    if status != "IDLE":
+                        raise CursorReadError("unknown agent status " + _enum(status))
+                    latest = agent.get("latestRunId")
+                    if not isinstance(latest, str) or not RUN.fullmatch(latest):
+                        raise CursorReadError("latest run unavailable")
+                    idle.append((ident, latest))
                 phase = "run"
-                run = api.get_json(f"/v1/agents/{ident}/runs/{latest}")
-                if run.get("agentId") != ident or run.get("id") != latest:
-                    raise CursorReadError("run identity mismatch")
-                if run.get("status") in ("CREATING", "RUNNING", "WAITING_FOR_BACKGROUND_WORK"):
-                    return {"status": "BUSY", "reason": "cursor_run_not_terminal",
-                            "can_launch": False, "active_agent": ident}
-                if run.get("status") not in TERMINAL:
-                    raise CursorReadError("unknown run status " + _enum(run.get("status")))
-            cursor = page.get("nextCursor")
-            if cursor is None:
-                return {"status": "CLEAR", "reason": "no_active_cursor_agents",
-                        "can_launch": False, "observed_agents": len(seen_agents)}
-            if not isinstance(cursor, str) or not cursor or cursor in seen_cursors:
-                raise CursorReadError("invalid/cyclic pagination")
-            seen_cursors.add(cursor)
-        raise CursorReadError("pagination incomplete")
-    except (CursorReadError, KeyError, TypeError) as exc:
+                futures = [pool.submit(_read_run, api, ident, latest) for ident, latest in idle]
+                for (ident, _latest), future in zip(idle, futures):
+                    run = future.result()  # a worker's CursorReadError fails the scan closed
+                    if run.get("status") in ("CREATING", "RUNNING", "WAITING_FOR_BACKGROUND_WORK"):
+                        return {"status": "BUSY", "reason": "cursor_run_not_terminal",
+                                "can_launch": False, "active_agent": ident}
+                    if run.get("status") not in TERMINAL:
+                        raise CursorReadError("unknown run status " + _enum(run.get("status")))
+                cursor = page.get("nextCursor")
+                if cursor is None:
+                    return {"status": "CLEAR", "reason": "no_active_cursor_agents",
+                            "can_launch": False, "observed_agents": len(seen_agents)}
+                if not isinstance(cursor, str) or not cursor or cursor in seen_cursors:
+                    raise CursorReadError("invalid/cyclic pagination")
+                seen_cursors.add(cursor)
+            raise CursorReadError("pagination incomplete")
+    except (CursorReadError, KeyError, TypeError, AttributeError) as exc:
         # Fail closed. detail carries only our own literals, an HTTP status
         # code or a provider enum: never a response body, id or key.
         return {"status": "STOP", "reason": "cursor_inventory_incomplete",
