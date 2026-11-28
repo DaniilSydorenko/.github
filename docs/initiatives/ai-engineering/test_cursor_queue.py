@@ -58,7 +58,7 @@ class TreeRef:
             return self.sha
 
 
-def spec(repo=LK, issues=(1, 7, 5), **kw):
+def spec(repo=HV, issues=(1, 7, 5), **kw):
     s = {"schema": 1, "queue_id": "lk-first-batch", "repository": repo, "default_branch": "main",
          "model": DEFAULT_MODEL, "accept_subagent_risk": False, "max_launches": len(issues),
          "tasks": [{"issue": n, "order": i + 1, "allowed_paths": [f"src/f{n}.ts", f"test/f{n}.spec.ts"],
@@ -92,6 +92,8 @@ class QueueSpecTests(unittest.TestCase):
             "extra_key": {**spec(), "admin": True},
             "order_gap": {**spec(), "tasks": [{**t, "order": t["order"] * 2} for t in spec()["tasks"]]},
             "risk_not_bool": spec(accept_subagent_risk="yes"),
+            "private_listing_kit": spec(repo=LK),
+            "private_handbook": spec(repo="DaniilSydorenko/engineering-handbook"),
         }
         for name, s in bad.items():
             with self.subTest(name), self.assertRaises(q.QueueError):
@@ -110,8 +112,8 @@ class QueueSpecTests(unittest.TestCase):
     def test_cross_repository_issue_numbers_do_not_collide(self):
         from sequential_handoff import request_id_for_issue
         self.assertNotEqual(request_id_for_issue(LK, 235), request_id_for_issue(HV, 235))
-        a, b = q.validate_spec(spec(repo=LK, issues=(235,))), q.validate_spec(spec(repo=HV, issues=(235,)))
-        self.assertNotEqual((a[0].repository, a[0].issue), (b[0].repository, b[0].issue))
+        a = q.validate_spec(spec(repo=HV, issues=(235,)))[0]
+        self.assertEqual(q.task_identity(a), (HV, 235))
 
 
 class QueueStorageTests(unittest.TestCase):
@@ -122,7 +124,7 @@ class QueueStorageTests(unittest.TestCase):
             q.submit(store, spec(issues=(2,)), expected_queue_revision=None, **AUTH)
         doc = q.submit(store, spec(issues=(2,)), expected_queue_revision=1, **AUTH)
         self.assertEqual(doc["revision"], 2)
-        Controller(store).acquire("req-00000001", "https://github.com/DaniilSydorenko/listing-kit/issues/2")
+        Controller(store).acquire("req-00000001", "https://github.com/DaniilSydorenko/haversine-geolocation/issues/2")
         with self.assertRaisesRegex(q.QueueError, "IDLE"):
             q.submit(store, spec(issues=(3,)), expected_queue_revision=2, **AUTH)
 
@@ -139,13 +141,13 @@ class QueueStorageTests(unittest.TestCase):
         store = TreeRef()
         doc = q.submit(store, spec(), expected_queue_revision=None, **AUTH)
         gate, rid = Controller(store), "req-00000001"
-        issue = "https://github.com/DaniilSydorenko/listing-kit/issues/1"
+        issue = "https://github.com/DaniilSydorenko/haversine-geolocation/issues/1"
         gate.acquire(rid, issue)
         gate.transition(rid, "RESERVED", "DISPATCHING")
         gate.transition(rid, "DISPATCHING", "RUNNING", run_id="run-1")
         gate.transition(rid, "RUNNING", "VERIFYING")
         gate.bind_generated_pr(rid, expected_issue_url=issue,
-                               generated_pr_url="https://github.com/DaniilSydorenko/listing-kit/pull/9")
+                               generated_pr_url="https://github.com/DaniilSydorenko/haversine-geolocation/pull/9")
         gate.release_verified(rid, provider_terminal=True, integration_accepted=True,
                               manual_approval=True)
         self.assertEqual(store.state["phase"], "IDLE")
@@ -175,7 +177,7 @@ class QueueStorageTests(unittest.TestCase):
         store = TreeRef()
         doc = q.submit(store, spec(), expected_queue_revision=None, **AUTH)
         store.race = lambda: Controller(store).acquire(
-            "req-00000001", "https://github.com/DaniilSydorenko/listing-kit/issues/1")
+            "req-00000001", "https://github.com/DaniilSydorenko/haversine-geolocation/issues/1")
         out = q.set_progress(store, 1, "RUNNING", {}, expected_spec_digest=doc["spec_digest"])
         self.assertEqual(store.state["phase"], "RESERVED")  # the racing lease write survived
         self.assertEqual(out["progress"]["1"]["state"], "RUNNING")

@@ -354,93 +354,75 @@ class CursorProtectedDispatchTests(TestCase):
 
 
 class SubagentResidualRiskTests(TestCase):
-    """Pilot-only accepted risk (#205): waives, never verifies, the subagent gate for #220 only."""
+    """Queue-level accepted risk (#226): waives, never verifies, only for a bound queue task."""
 
     def setUp(self) -> None:
         import dataclasses
-        from cursor_protected_dispatch import SUBAGENT_RISK, TASK_220, build_trusted_permit
-        self.risk, self.build, self.task = SUBAGENT_RISK, build_trusted_permit, TASK_220
+        from cursor_protected_dispatch import QUEUE_SUBAGENT_RISK, TASK_220, build_trusted_permit
+        self.risk, self.build, self.task = QUEUE_SUBAGENT_RISK, build_trusted_permit, TASK_220
         self.other_task = dataclasses.replace(TASK_220, issue=221, order=2)
         CursorProtectedDispatchTests.setUp(self)  # reuse self.ctx fixture
         self.base = {k: True for k in OWNER_ATTESTATIONS}
         self.base["verified_subagents_disabled"] = False
+        self.binding = {"spec_digest": "d" * 64, "repository": TASK_220.repository,
+                        "issue": TASK_220.issue, "accept_subagent_risk": True}
 
-    def _permit(self, attestations, task=None):
+    def _permit(self, attestations=None, task=None, binding="default"):
         return self.build(
             self.ctx, request_id="seq-x", main_sha="f" * 40, scope_preflight_passed=True,
-            attestations=attestations, key_info_ok=True,
+            attestations=self.base if attestations is None else attestations, key_info_ok=True,
             live_models=frozenset({self.task.model}), inventory={"status": "CLEAR"},
-            task=task or self.task)
+            task=task or self.task,
+            queue_binding=self.binding if binding == "default" else binding)
 
-    def test_accepted_risk_waives_gate_for_task_220_but_never_marks_verified(self) -> None:
-        permit, missing = self._permit(self.base)
+    def test_queue_acceptance_waives_gate_but_never_marks_verified(self) -> None:
+        permit, missing = self._permit()
         self.assertEqual(missing, [])
         self.assertIs(permit["verified_subagents_disabled"], False)
         self.assertEqual(permit["accepted_residual_risks"], (self.risk,))
+        self.assertEqual(permit["queue_spec_digest"], "d" * 64)
 
-    def test_acceptance_does_not_extend_to_any_other_task(self) -> None:
-        permit, missing = self._permit(self.base, task=self.other_task)
-        self.assertEqual(missing, ["verified_subagents_disabled"])
-        self.assertEqual(permit["accepted_residual_risks"], ())
+    def test_no_waiver_without_queue_or_with_flag_false(self) -> None:
+        for binding in (None, {**self.binding, "accept_subagent_risk": False},
+                        {**self.binding, "spec_digest": "short"}):
+            with self.subTest(binding):
+                permit, missing = self._permit(binding=binding)
+                self.assertEqual(missing, ["verified_subagents_disabled"])
+                self.assertEqual(permit["accepted_residual_risks"], ())
 
-    def test_without_acceptance_gate_stays_missing(self) -> None:
-        permit, missing = self._permit({**self.base, "subagent_risk_accepted_task_220": False})
+    def test_binding_for_another_task_or_repository_never_carries_over(self) -> None:
+        permit, missing = self._permit(task=self.other_task)
         self.assertEqual(missing, ["verified_subagents_disabled"])
-        self.assertEqual(permit["accepted_residual_risks"], ())
+        permit, missing = self._permit(binding={**self.binding, "repository": "x/y"})
+        self.assertEqual(missing, ["verified_subagents_disabled"])
+
+    def test_no_environment_variable_can_accept_the_risk(self) -> None:
+        self.assertFalse(any("ACCEPT_SUBAGENT_RISK" in v for v in OWNER_ATTESTATIONS.values()))
+        env = {"AI_ENG_ACCEPT_SUBAGENT_RISK_TASK_220": "true",
+               "AI_ENG_ACCEPT_SUBAGENT_RISK_TASK_235": "true"}
+        self.assertEqual(set(attestations_from_env(env)), set(OWNER_ATTESTATIONS))
+        permit, missing = self._permit(binding=None)
+        self.assertEqual(missing, ["verified_subagents_disabled"])
 
     def test_real_attestation_records_no_residual_risk(self) -> None:
-        permit, missing = self._permit({k: True for k in OWNER_ATTESTATIONS})
-        self.assertEqual(missing, [])
-        self.assertEqual(permit["accepted_residual_risks"], ())
+        permit, missing = self._permit(attestations={k: True for k in OWNER_ATTESTATIONS})
+        self.assertEqual((missing, permit["accepted_residual_risks"]), ([], ()))
 
-    def test_acceptance_needs_exact_true_env(self) -> None:
-        for value in ("True", "1", "yes", ""):
-            env = {"AI_ENG_ACCEPT_SUBAGENT_RISK_TASK_220": value}
-            self.assertIs(attestations_from_env(env)["subagent_risk_accepted_task_220"], False)
-        self.assertIs(attestations_from_env(
-            {"AI_ENG_ACCEPT_SUBAGENT_RISK_TASK_220": "true"})["subagent_risk_accepted_task_220"], True)
-
-    def test_launch_gate_accepts_risk_only_for_bound_task_and_only_subagents(self) -> None:
+    def test_launch_gate_requires_risk_digest_and_matching_task(self) -> None:
         from managed_cursor_launch import _gate_ok
         ok = {"accepted_residual_risks": (self.risk,), "verified_subagents_disabled": False,
-              "repository": self.task.repository, "issue_number": 220}
+              "repository": self.task.repository, "issue_number": 220,
+              "queue_spec_digest": "d" * 64, "queue_task": (self.task.repository, 220)}
         self.assertTrue(_gate_ok(ok, "verified_subagents_disabled"))
-        self.assertFalse(_gate_ok({**ok, "issue_number": 221}, "verified_subagents_disabled"))
-        self.assertFalse(_gate_ok({**ok, "repository": "x/y"}, "verified_subagents_disabled"))
-        self.assertFalse(_gate_ok({**ok, "accepted_residual_risks": [self.risk]},
-                                  "verified_subagents_disabled"))
-        self.assertFalse(_gate_ok({**ok, "accepted_residual_risks": ()},
-                                  "verified_subagents_disabled"))
+        for broken in ({"issue_number": 221}, {"repository": "x/y"}, {"queue_spec_digest": None},
+                       {"queue_task": (self.task.repository, 235)},
+                       {"accepted_residual_risks": [self.risk]}, {"accepted_residual_risks": ()}):
+            with self.subTest(broken):
+                self.assertFalse(_gate_ok({**ok, **broken}, "verified_subagents_disabled"))
         for other in ("verified_cursor_billing", "verified_external_billing_excluded",
                       "verified_launch_route_exclusivity", "verified_account_scope",
                       "verified_model_allowlist", "verified_owner_security_gates"):
             self.assertFalse(_gate_ok(ok, other), other)
-
-    def test_launch_gate_and_permit_agree_on_risk_id_and_target(self) -> None:
-        from cursor_protected_dispatch import SUBAGENT_RISK_KEYS, subagent_risk_id
-        from managed_cursor_launch import ACCEPTABLE_RISKS
-        self.assertEqual(ACCEPTABLE_RISKS, {"verified_subagents_disabled": frozenset(
-            (subagent_risk_id(i), self.task.repository, i) for i in SUBAGENT_RISK_KEYS)})
-        self.assertEqual(set(SUBAGENT_RISK_KEYS.values()) - set(OWNER_ATTESTATIONS), set())
-
-    def test_waiver_never_carries_over_between_tasks(self) -> None:
-        from cursor_tasks import task_for_issue_number
-        from managed_cursor_launch import _gate_ok
-        from cursor_protected_dispatch import subagent_risk_id
-        task_235 = task_for_issue_number(235)
-        only_220 = {**self.base, "subagent_risk_accepted_task_235": False}
-        permit, missing = self._permit(only_220, task=task_235)
-        self.assertEqual(missing, ["verified_subagents_disabled"])
-        self.assertEqual(permit["accepted_residual_risks"], ())
-        only_235 = {**self.base, "subagent_risk_accepted_task_220": False}
-        permit, missing = self._permit(only_235, task=task_235)
-        self.assertEqual((missing, permit["accepted_residual_risks"]),
-                         ([], (subagent_risk_id(235),)))
-        permit, missing = self._permit(only_235)  # task 220
-        self.assertEqual(missing, ["verified_subagents_disabled"])
-        forged = {"accepted_residual_risks": (subagent_risk_id(220),),
-                  "repository": task_235.repository, "issue_number": 235}
-        self.assertFalse(_gate_ok(forged, "verified_subagents_disabled"))
 
     def test_privileged_workflow_injects_every_owner_variable_readonly_none(self) -> None:
         from pathlib import Path
@@ -450,6 +432,7 @@ class SubagentResidualRiskTests(TestCase):
         for var in OWNER_ATTESTATIONS.values():
             self.assertIn(f"{var}: ${{{{ vars.{var} }}}}", delivery, var)
             self.assertNotIn(var, probe, var)
+        self.assertNotIn("ACCEPT_SUBAGENT_RISK", delivery)
 
 if __name__ == "__main__":
     main()

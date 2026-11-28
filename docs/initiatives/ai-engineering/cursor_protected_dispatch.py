@@ -33,7 +33,7 @@ from managed_cursor_launch import (
 )
 from openhands_issue_contract import PATH, REPO, live_preflight
 from openhands_runner_admission_bridge import caller_json_carries_forbidden_attestation
-from cursor_tasks import CursorTask, TASKS, task_for, task_for_issue_number
+from cursor_tasks import CursorTask, TASKS, registry, task_for, task_for_issue_number
 from sequential_handoff import request_id_for_issue
 
 ISSUE = 220  # first pilot; every other task comes from cursor_tasks.TASKS
@@ -198,22 +198,12 @@ OWNER_ATTESTATIONS = {
     "verified_launch_route_exclusivity": "AI_ENG_ATTEST_SINGLE_LAUNCH_ROUTE",
     "verified_owner_security_gates": "AI_ENG_ATTEST_TARGET_BRANCH_PROTECTED",
     "account_scope_attested": "AI_ENG_ATTEST_CURSOR_KEY_ACCOUNT_SCOPE",
-    # Not an attestation of a control: the owner accepts the risk, set only if
-    # Cursor offers no subagent setting; effective for the #220 task only.
-    "subagent_risk_accepted_task_220": "AI_ENG_ACCEPT_SUBAGENT_RISK_TASK_220",
-    "subagent_risk_accepted_task_235": "AI_ENG_ACCEPT_SUBAGENT_RISK_TASK_235",
 }
 ATTESTED = "true"
-# Each waiver is bound to exactly one registered Haversine task; none carries over.
-SUBAGENT_RISK_KEYS = {220: "subagent_risk_accepted_task_220",
-                      235: "subagent_risk_accepted_task_235"}
-
-
-def subagent_risk_id(issue: int) -> str:
-    return f"subagents_unblocked_accepted_task_{issue}"
-
-
-SUBAGENT_RISK = subagent_risk_id(220)
+# Residual subagent risk is accepted per authorized queue (cursor_queue spec
+# ``accept_subagent_risk``), never per environment variable and never as proof.
+QUEUE_SUBAGENT_RISK = "subagents_unblocked_accepted_by_queue"
+DIGEST64 = re.compile(r"[0-9a-f]{64}\Z")
 
 
 def attestations_from_env(environ: Mapping[str, str] | None = None) -> dict[str, bool]:
@@ -232,8 +222,12 @@ def build_trusted_permit(
     live_models: frozenset[str],
     inventory: Mapping[str, Any] | None,
     task: CursorTask | None = None,
+    queue_binding: Mapping[str, Any] | None = None,
 ) -> tuple[dict[str, Any], list[str]]:
     """Derive the managed-launch permit from workflow-observed evidence only.
+
+    ``queue_binding`` comes only from the queue document in the App-custodied
+    lease ref: {spec_digest, repository, issue, accept_subagent_risk}.
 
     Returns (permit, missing_evidence). Caller JSON never reaches this function.
     """
@@ -252,13 +246,16 @@ def build_trusted_permit(
             "verified_subagents_disabled", "verified_launch_route_exclusivity",
             "verified_owner_security_gates")},
     }
-    # Pilot-only residual risk: never satisfies the "verified" flag (which stays
-    # False and is reported as such); it only waives it for the one task its
-    # own owner variable names. Any other task still needs the attestation.
-    risk_key = (SUBAGENT_RISK_KEYS.get(task.issue)
-                if task.repository == TASK_220.repository else None)
-    subagent_risk = (flags["verified_subagents_disabled"] is not True
-                     and risk_key is not None and attestations.get(risk_key) is True)
+    # Residual risk: never satisfies the "verified" flag (which stays False and
+    # is reported as such); it only waives it for a task of the authorized
+    # queue whose spec says so. No queue, or another task: attestation needed.
+    binding = queue_binding if isinstance(queue_binding, Mapping) else {}
+    bound = (isinstance(binding.get("spec_digest"), str)
+             and DIGEST64.fullmatch(binding["spec_digest"]) is not None
+             and binding.get("repository") == task.repository
+             and binding.get("issue") == task.issue)
+    subagent_risk = (flags["verified_subagents_disabled"] is not True and bound
+                     and binding.get("accept_subagent_risk") is True)
     missing = sorted(k for k, v in flags.items() if v is not True
                      and not (k == "verified_subagents_disabled" and subagent_risk))
     if not isinstance(inventory, Mapping) or inventory.get("status") != "CLEAR":
@@ -272,7 +269,9 @@ def build_trusted_permit(
         "head_sha": main_sha,
         "model_id": task.model,
         "model_allowlist": frozenset({task.model}),
-        "accepted_residual_risks": (subagent_risk_id(task.issue),) if subagent_risk else (),
+        "accepted_residual_risks": (QUEUE_SUBAGENT_RISK,) if subagent_risk else (),
+        "queue_spec_digest": binding["spec_digest"] if bound else None,
+        "queue_task": (task.repository, task.issue) if bound else None,
     }
     return permit, missing
 
@@ -326,6 +325,7 @@ def run_gates_only(
     bundle_builder: Callable[..., dict[str, Any]] | None = None,
     controller: Any = None,
     cursor_create: Any = None,
+    queue_binding: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Owner-triggered path through the real managed launch. Fail-closed.
 
@@ -398,6 +398,7 @@ def run_gates_only(
         ctx, request_id=rid, main_sha=main_sha,
         scope_preflight_passed=True, attestations=attested,
         key_info_ok=key_ok, live_models=models, inventory=inventory, task=task,
+        queue_binding=queue_binding,
     )
     bundle = launch_bundle if launch_bundle is not None else {}
     if not missing and bundle_builder is not None and launch_bundle is None:
@@ -451,7 +452,7 @@ def _github_get(repo: str, path: str) -> dict[str, Any]:
     """
     from cursor_queue import ALLOWED_REPOSITORIES
     if (repo != LEASE_REPO and repo not in ALLOWED_REPOSITORIES
-            and not any(t.repository == repo for t in TASKS)):
+            and not any(t.repository == repo for t in registry())):
         raise ValueError("github_repository_not_allowlisted")
     headers = {"Accept": "application/vnd.github+json",
                "User-Agent": "cursor-protected-dispatch-gates/1"}

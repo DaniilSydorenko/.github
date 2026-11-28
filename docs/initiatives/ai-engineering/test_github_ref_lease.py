@@ -25,7 +25,7 @@ class MemoryGitRef:
         with self._mutex:
             return Snapshot(self.sha, self.tree, copy.deepcopy(self.state))
 
-    def advance(self, observed, new_state):
+    def advance(self, observed, new_state, tree=None):
         with self._mutex:
             if self.fail_on_advance:
                 raise LeaseError("provider outage")
@@ -33,7 +33,18 @@ class MemoryGitRef:
                 raise RefConflict("GitHub rejected non-fast-forward")
             self.sha = format(int(self.sha, 16) + 1, "040x")
             self.state = copy.deepcopy(new_state)
+            self.tree = tree or observed.tree
             return self.sha
+
+    # Ref tree (queue.json, see cursor_queue): one top-level file map per tree.
+    def read_file(self, tree, name):
+        return getattr(self, "files", {}).get(tree, {}).get(name)
+
+    def write_tree(self, base_tree, name, content):
+        self.files = getattr(self, "files", {})
+        new = format(len(self.files) + 0xC0FFEE, "040x")
+        self.files[new] = {**self.files.get(base_tree, {}), name: bytes(content)}
+        return new
 
 
 PR = "https://github.com/DaniilSydorenko/listing-kit/pull/284"
