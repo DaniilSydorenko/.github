@@ -16,6 +16,7 @@ from urllib.request import Request, urlopen
 AGENT = re.compile(r"bc-[0-9a-fA-F-]{36}\Z")
 RUN = re.compile(r"run-[0-9a-fA-F-]{36}\Z")
 TERMINAL = {"FINISHED", "ERROR", "CANCELLED", "EXPIRED"}
+ENUM = re.compile(r"[A-Z_]{1,40}\Z")
 TOKENS = ("inputTokens", "outputTokens", "cacheWriteTokens",
           "cacheReadTokens", "totalTokens")
 
@@ -43,14 +44,20 @@ class LiveCursorReadOnly:
                       headers={"Authorization": "Bearer " + self._key,
                                "Accept": "application/json"},
                       method="GET")
-        try:
-            with urlopen(req, timeout=12) as response:
-                obj = json.load(response)
-        except HTTPError as exc:
-            raise CursorReadError(f"Cursor HTTP {exc.code} (body withheld)",
-                                  status=exc.code) from None
-        except (URLError, TimeoutError, OSError, ValueError, UnicodeError):
-            raise CursorReadError("Cursor transport/response unknown") from None
+        # GET is read-only, so one retry after a transport failure is safe.
+        # HTTP errors are definitive answers and are never retried.
+        for attempt in (1, 2):
+            try:
+                with urlopen(req, timeout=20) as response:
+                    obj = json.load(response)
+                break
+            except HTTPError as exc:
+                raise CursorReadError(f"Cursor HTTP {exc.code} (body withheld)",
+                                      status=exc.code) from None
+            except (URLError, TimeoutError, OSError, ValueError, UnicodeError) as exc:
+                if attempt == 2:
+                    raise CursorReadError("Cursor transport/response unknown ("
+                                          + type(exc).__name__ + ")") from None
         if not isinstance(obj, dict):
             raise CursorReadError("Cursor payload not an object")
         return obj
@@ -76,12 +83,13 @@ def global_run_preflight(api, *, global_account_scope_verified: bool,
     if type(max_pages) is not int or max_pages < 1 or max_pages > 20:
         return {"status": "STOP", "reason": "invalid_page_budget", "can_launch": False}
     seen_agents, seen_cursors = set(), set()
-    cursor = None
+    cursor, phase = None, "list"
     try:
         for _ in range(max_pages):
             params = {"limit": "100"}
             if cursor:
                 params["cursor"] = cursor
+            phase = "list"
             page = api.get_json("/v1/agents", params)
             items = page.get("items")
             if not isinstance(items, list):
@@ -99,10 +107,11 @@ def global_run_preflight(api, *, global_account_scope_verified: bool,
                 if status == "ARCHIVED":
                     continue
                 if status != "IDLE":
-                    raise CursorReadError("unknown agent status")
+                    raise CursorReadError("unknown agent status " + _enum(status))
                 latest = agent.get("latestRunId")
                 if not isinstance(latest, str) or not RUN.fullmatch(latest):
                     raise CursorReadError("latest run unavailable")
+                phase = "run"
                 run = api.get_json(f"/v1/agents/{ident}/runs/{latest}")
                 if run.get("agentId") != ident or run.get("id") != latest:
                     raise CursorReadError("run identity mismatch")
@@ -110,7 +119,7 @@ def global_run_preflight(api, *, global_account_scope_verified: bool,
                     return {"status": "BUSY", "reason": "cursor_run_not_terminal",
                             "can_launch": False, "active_agent": ident}
                 if run.get("status") not in TERMINAL:
-                    raise CursorReadError("unknown run status")
+                    raise CursorReadError("unknown run status " + _enum(run.get("status")))
             cursor = page.get("nextCursor")
             if cursor is None:
                 return {"status": "CLEAR", "reason": "no_active_cursor_agents",
@@ -119,9 +128,18 @@ def global_run_preflight(api, *, global_account_scope_verified: bool,
                 raise CursorReadError("invalid/cyclic pagination")
             seen_cursors.add(cursor)
         raise CursorReadError("pagination incomplete")
-    except (CursorReadError, KeyError, TypeError):
+    except (CursorReadError, KeyError, TypeError) as exc:
+        # Fail closed. detail carries only our own literals, an HTTP status
+        # code or a provider enum: never a response body, id or key.
         return {"status": "STOP", "reason": "cursor_inventory_incomplete",
-                "can_launch": False}
+                "can_launch": False, "agents_checked": len(seen_agents), "phase": phase,
+                "detail": str(exc) if isinstance(exc, CursorReadError)
+                else type(exc).__name__}
+
+
+def _enum(value: object) -> str:
+    """Provider status for diagnostics, only if it is a plain enum token."""
+    return value if isinstance(value, str) and ENUM.fullmatch(value) else "<non-enum>"
 
 
 def model_ids(api) -> frozenset[str]:

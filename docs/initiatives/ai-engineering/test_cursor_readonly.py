@@ -1,4 +1,5 @@
 """No network, no model inference: Cursor inventory safety tests."""
+import io
 import unittest
 from unittest.mock import MagicMock, patch
 
@@ -103,6 +104,48 @@ class CursorInventoryTests(unittest.TestCase):
         api = MagicMock()
         api.get_json.return_value = {"items": [{"id": A, "status": "UNKNOWN"}]}
         self.assertEqual(global_run_preflight(api, global_account_scope_verified=True)["status"], "STOP")
+
+    def test_stop_detail_names_cause_without_provider_content(self):
+        api = MagicMock()
+        api.get_json.return_value = {"items": [{"id": A, "status": "PAUSED"}]}
+        d = global_run_preflight(api, global_account_scope_verified=True)
+        self.assertEqual((d["status"], d["detail"], d["agents_checked"]),
+                         ("STOP", "unknown agent status PAUSED", 1))
+        api.get_json.return_value = {"items": [{"id": A, "status": "secret body <x>"}]}
+        d = global_run_preflight(api, global_account_scope_verified=True)
+        self.assertEqual(d["detail"], "unknown agent status <non-enum>")
+        api.get_json.return_value = {"items": [{"id": "agent-1", "status": "ACTIVE"}]}
+        d = global_run_preflight(api, global_account_scope_verified=True)
+        self.assertEqual((d["detail"], d["agents_checked"]),
+                         ("unknown or duplicated agent identity", 0))
+        api.get_json.side_effect = CursorReadError("Cursor HTTP 403 (body withheld)", status=403)
+        d = global_run_preflight(api, global_account_scope_verified=True)
+        self.assertEqual(d["detail"], "Cursor HTTP 403 (body withheld)")
+        self.assertFalse(d["can_launch"])
+
+    def test_get_retries_once_on_transport_error_never_on_http_error(self):
+        from urllib.error import HTTPError, URLError
+        reader = LiveCursorReadOnly("k")
+        ok = MagicMock()
+        ok.__enter__.return_value = io.BytesIO(b'{"items": []}')
+        with patch("cursor_readonly.urlopen", side_effect=[TimeoutError(), ok]) as u:
+            self.assertEqual(reader.get_json("/v1/agents"), {"items": []})
+            self.assertEqual(u.call_count, 2)
+        with patch("cursor_readonly.urlopen", side_effect=[URLError("x"), TimeoutError()]) as u:
+            with self.assertRaisesRegex(CursorReadError, r"\(TimeoutError\)"):
+                reader.get_json("/v1/agents")
+            self.assertEqual(u.call_count, 2)
+        with patch("cursor_readonly.urlopen",
+                   side_effect=HTTPError("u", 429, "m", {}, None)) as u:
+            with self.assertRaises(CursorReadError) as ctx:
+                reader.get_json("/v1/agents")
+            self.assertEqual((ctx.exception.status, u.call_count), (429, 1))
+
+    def test_stop_detail_reports_failing_phase(self):
+        api = MagicMock()
+        api.get_json.side_effect = [idle(), CursorReadError("Cursor transport/response unknown")]
+        d = global_run_preflight(api, global_account_scope_verified=True)
+        self.assertEqual((d["status"], d["phase"], d["agents_checked"]), ("STOP", "run", 1))
 
     def test_transport_error_stops(self):
         api = MagicMock()

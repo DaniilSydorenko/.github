@@ -352,5 +352,83 @@ class CursorProtectedDispatchTests(TestCase):
             self.assertEqual(cursor_protected_dispatch._live_writers(), (None, None))
 
 
+
+class SubagentResidualRiskTests(TestCase):
+    """Pilot-only accepted risk (#205): waives, never verifies, the subagent gate for #220 only."""
+
+    def setUp(self) -> None:
+        import dataclasses
+        from cursor_protected_dispatch import SUBAGENT_RISK, TASK_220, build_trusted_permit
+        self.risk, self.build, self.task = SUBAGENT_RISK, build_trusted_permit, TASK_220
+        self.other_task = dataclasses.replace(TASK_220, issue=221, order=2)
+        CursorProtectedDispatchTests.setUp(self)  # reuse self.ctx fixture
+        self.base = {k: True for k in OWNER_ATTESTATIONS}
+        self.base["verified_subagents_disabled"] = False
+
+    def _permit(self, attestations, task=None):
+        return self.build(
+            self.ctx, request_id="seq-x", main_sha="f" * 40, scope_preflight_passed=True,
+            attestations=attestations, key_info_ok=True,
+            live_models=frozenset({self.task.model}), inventory={"status": "CLEAR"},
+            task=task or self.task)
+
+    def test_accepted_risk_waives_gate_for_task_220_but_never_marks_verified(self) -> None:
+        permit, missing = self._permit(self.base)
+        self.assertEqual(missing, [])
+        self.assertIs(permit["verified_subagents_disabled"], False)
+        self.assertEqual(permit["accepted_residual_risks"], (self.risk,))
+
+    def test_acceptance_does_not_extend_to_any_other_task(self) -> None:
+        permit, missing = self._permit(self.base, task=self.other_task)
+        self.assertEqual(missing, ["verified_subagents_disabled"])
+        self.assertEqual(permit["accepted_residual_risks"], ())
+
+    def test_without_acceptance_gate_stays_missing(self) -> None:
+        permit, missing = self._permit({**self.base, "subagent_risk_accepted_task_220": False})
+        self.assertEqual(missing, ["verified_subagents_disabled"])
+        self.assertEqual(permit["accepted_residual_risks"], ())
+
+    def test_real_attestation_records_no_residual_risk(self) -> None:
+        permit, missing = self._permit({k: True for k in OWNER_ATTESTATIONS})
+        self.assertEqual(missing, [])
+        self.assertEqual(permit["accepted_residual_risks"], ())
+
+    def test_acceptance_needs_exact_true_env(self) -> None:
+        for value in ("True", "1", "yes", ""):
+            env = {"AI_ENG_ACCEPT_SUBAGENT_RISK_TASK_220": value}
+            self.assertIs(attestations_from_env(env)["subagent_risk_accepted_task_220"], False)
+        self.assertIs(attestations_from_env(
+            {"AI_ENG_ACCEPT_SUBAGENT_RISK_TASK_220": "true"})["subagent_risk_accepted_task_220"], True)
+
+    def test_launch_gate_accepts_risk_only_for_bound_task_and_only_subagents(self) -> None:
+        from managed_cursor_launch import _gate_ok
+        ok = {"accepted_residual_risks": (self.risk,), "verified_subagents_disabled": False,
+              "repository": self.task.repository, "issue_number": 220}
+        self.assertTrue(_gate_ok(ok, "verified_subagents_disabled"))
+        self.assertFalse(_gate_ok({**ok, "issue_number": 221}, "verified_subagents_disabled"))
+        self.assertFalse(_gate_ok({**ok, "repository": "x/y"}, "verified_subagents_disabled"))
+        self.assertFalse(_gate_ok({**ok, "accepted_residual_risks": [self.risk]},
+                                  "verified_subagents_disabled"))
+        self.assertFalse(_gate_ok({**ok, "accepted_residual_risks": ()},
+                                  "verified_subagents_disabled"))
+        for other in ("verified_cursor_billing", "verified_external_billing_excluded",
+                      "verified_launch_route_exclusivity", "verified_account_scope",
+                      "verified_model_allowlist", "verified_owner_security_gates"):
+            self.assertFalse(_gate_ok(ok, other), other)
+
+    def test_launch_gate_and_permit_agree_on_risk_id_and_target(self) -> None:
+        from managed_cursor_launch import ACCEPTABLE_RISKS
+        self.assertEqual(ACCEPTABLE_RISKS, {"verified_subagents_disabled": (
+            self.risk, self.task.repository, self.task.issue)})
+
+    def test_privileged_workflow_injects_every_owner_variable_readonly_none(self) -> None:
+        from pathlib import Path
+        wf = Path(__file__).resolve().parents[3] / ".github" / "workflows"
+        delivery = (wf / "ai-eng-cursor-delivery.yml").read_text()
+        probe = (wf / "ai-eng-cursor-api-probe.yml").read_text()
+        for var in OWNER_ATTESTATIONS.values():
+            self.assertIn(f"{var}: ${{{{ vars.{var} }}}}", delivery, var)
+            self.assertNotIn(var, probe, var)
+
 if __name__ == "__main__":
     main()

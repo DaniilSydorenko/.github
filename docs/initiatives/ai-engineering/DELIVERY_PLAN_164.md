@@ -2,7 +2,7 @@
 
 Current objective: accept one managed Cursor task end to end (Haversine #220 → reviewed PR → owner merge → lease released). Then run the next registered task in sequence (#207). Tracking: HQ #205 (admission and dry run) → #206 (activation and first E2E) → #207 (sequential proof). Budget evidence: #120. Lease and protection: #108.
 
-## Verified baseline (2026-11-27)
+## Verified baseline (2026-11-28)
 
 These are observed facts, not live authorization.
 
@@ -11,15 +11,26 @@ These are observed facts, not live authorization.
   - #208: sanitized provider evidence.
   - #209: self-test stays valid when activation is ON.
   - #210: task model pinned to `composer-2.5`.
+  - #211: approval-free read-only preflight and single-approval lifecycle chain.
+  - #214, #215, #216: sanitized inventory STOP detail, one retry of a read-only GET after a transport failure, and a 15-minute read-only job timeout.
+- **`main`:** `6e6840ee3b4e9886c4c11c6390cb45ef561a3c50`.
 - **Activation:** `PILOT_ACTIVATION_ENABLED = False`.
 - **Lease** `ai-eng-cursor-lease-v1`: `IDLE`, revision 29, ref `df36411`. Six consumed request hashes preserved.
 - **Protected dry run** [46058665166](https://github.com/DaniilSydorenko/.github/actions/runs/46058665166) (`main` `ea43301`):
   - `owner_activation_not_enabled`, `managed_launch_state=DISABLED`, no POST, no lease write.
   - `GET /v1/me` succeeded (`key_info_ok=true`).
   - `GET /v1/models` lists `composer-2.5` but not `composer-2`, so #210 repinned the task model.
+- **Read-only preflight** [46072375294](https://github.com/DaniilSydorenko/.github/actions/runs/46072375294) (`main` `6e6840e`, no approval, success):
+  - `READ_ONLY`, `key_info_ok=true`, `composer-2.5` offered.
+  - Account-wide inventory `CLEAR`: `observed_agents=282`, `no_active_cursor_agents`.
+  - `missing_excluding_attestations=[]`, `cursor_post_attempted=false`, lease `IDLE` rev 29.
+  - The inventory takes about 5 minutes, because it reads the latest run of every non-archived agent.
 - **Attestations in `ai-eng-lease-owner`:**
   - Set: `SPEND_LIMIT_SET` and `TARGET_BRANCH_PROTECTED`. The Haversine `master` ruleset requires `Test and build` and `Gitleaks`, and blocks deletion and force-push.
-  - Not set: `NO_EXTERNAL_BILLING`, `SUBAGENTS_DISABLED`, `SINGLE_LAUNCH_ROUTE`, `CURSOR_KEY_ACCOUNT_SCOPE`.
+  - Set 2026-11-27 from owner statements: `NO_EXTERNAL_BILLING` (no BYOK or external model keys in Cursor) and `SINGLE_LAUNCH_ROUTE` (owner commitment: no parallel or manual launches during the pilot, plus technical BUSY detection).
+  - Not set: `CURSOR_KEY_ACCOUNT_SCOPE` (evidence in hand, owner sets it) and `SUBAGENTS_DISABLED` (no verified provider control).
+- **Owner decisions (2026-11-27):** `composer-2.5` approved. #120: one run within the subscription allowance, on-demand spending disabled, tokens measured, charged cost `UNKNOWN`, accepted. Neither is activation approval.
+- **Subagent control investigation:** the Cloud Agents OpenAPI `CreateAgentRequest` has no field that disables or limits the built-in subagents (`explore`, `shell`, `debug`, `computerUse`, `cursorGuide`); `customSubagents` only adds more. An IDE setting and a `subagentStart` hook are reported on the Cursor forum. Neither is documented for API-launched Cloud Agents, and a hook would need a Haversine change outside #220's scope.
 - **Owner Cursor dashboard (as reported):**
   - Plan and spending: Pro+ at $60/month, on-demand spending disabled.
   - Machines and environments: no self-hosted or personal machines, no custom environments or routing rules, no Cloud Agent secrets or network destinations.
@@ -40,15 +51,15 @@ Bounded standing authorization means one deployment approval covers the whole bo
 
 | # | Blocker | Kind | Exact resolution |
 |---|---|---|---|
-| 1 | `CURSOR_KEY_ACCOUNT_SCOPE` | Owner fact. Technical cross-check available | Run the read-only preflight and compare `cursor_inventory_observed.observed_agents` with the agent count in the Cursor dashboard. If they match and the key is a user key that can see every agent on the account, set `true` |
-| 2 | `NO_EXTERNAL_BILLING` | Owner fact | Confirm no bring-your-own model API keys (OpenAI, Anthropic, Google, Azure or Bedrock) are configured in Cursor. Then set `true` |
-| 3 | `SINGLE_LAUNCH_ROUTE` | Owner operational commitment plus technical detection | Technical: lease singleton for our route, plus an account-wide `GET /v1/agents` immediately before launch (BUSY → STOP). Not technical: `@cursor` on GitHub and Cursor clients can still start agents. Set `true` only if the owner disables those or commits not to use them for the duration of the pilot |
-| 4 | `SUBAGENTS_DISABLED` | Owner fact; may be impossible | Only prompt text forbids subagents, and that is not a control. If Cursor exposes a setting, confirm it is off and set `true`. If not, see the proposal below; do **not** set `true` |
-| 5 | Per-run budget (#120) | Owner decision | See the budget section |
-| 6 | `composer-2.5` cost | Owner approval at GO | #210 merged with activation OFF, because `composer-2` is no longer offered. The paid launch must approve this model explicitly |
+| 1 | `CURSOR_KEY_ACCOUNT_SCOPE` | **Open: owner sets the variable** | Evidence: personal key created by the owner, on Pro+ (a single-user plan), with an account-wide list of 282 agents including archived ones (run 46072375294). Setting it is owner-only |
+| 2 | `NO_EXTERNAL_BILLING` | **Resolved 2026-11-27** | Owner statement: no BYOK or external model keys. Set to `true` |
+| 3 | `SINGLE_LAUNCH_ROUTE` | **Resolved 2026-11-27** | Owner commitment: no parallel or manual launches during the pilot. Technical detection: the account-wide inventory before launch (BUSY → STOP). Set to `true` |
+| 4 | `SUBAGENTS_DISABLED` | **Open: owner risk decision** | No enforceable provider control is verified, so it stays unset. The accepted-risk mechanism for #220 only is ready in #213; the owner merges it and sets the variable only if they accept the risk |
+| 5 | Per-run budget (#120) | **Resolved 2026-11-27** | Owner accepted one run within the subscription allowance; on-demand off, tokens measured, cost `UNKNOWN` |
+| 6 | `composer-2.5` cost | **Resolved 2026-11-27** | Owner approved `composer-2.5` for the pilot |
 | 7 | Activation | Owner GO plus a reviewed PR | A separate minimal PR flips `PILOT_ACTIVATION_ENABLED`. It merges only after 1–6 are resolved and the owner gives explicit GO |
 
-**Pilot-only policy proposal for #4 (requires owner review; not implemented).** If Cursor has no subagent control, keep `verified_subagents_disabled` unsatisfiable in general. Add a separately named owner variable, `AI_ENG_ACCEPT_SUBAGENT_RISK_TASK_220=true`, that the permit accepts **only** for the registered task #220. It is recorded as accepted risk, never as "verified", and is bounded by: one run, the account spending ceiling, owner merge, and the scope/exact-head acceptance of the produced PR. It expires with the #220 lease release. Implementing it requires its own reviewed PR.
+**Pilot-only residual-risk policy for #4 (implemented as a Draft PR; inert until the owner merges it and sets the variable).** If Cursor has no subagent control, `AI_ENG_ATTEST_SUBAGENTS_DISABLED` stays unset and `verified_subagents_disabled` stays `false` in every permit. A separate owner variable, `AI_ENG_ACCEPT_SUBAGENT_RISK_TASK_220=true`, waives that one gate **only** for the registered task (`DaniilSydorenko/haversine-geolocation` #220). The permit and the dispatch result record it as `accepted_residual_risks=["subagents_unblocked_accepted_task_220"]`, never as verified. No other gate can be waived, and the waiver cannot reach any other task, including #207. It is bounded by: one run (replay protection consumes the #220 request id), the account spending ceiling, owner merge, and the scope/exact-head acceptance of the produced PR. The owner deletes the variable after #206 closes.
 
 ## Budget (#120)
 
