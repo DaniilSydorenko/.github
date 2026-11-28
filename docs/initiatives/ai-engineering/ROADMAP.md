@@ -1,10 +1,17 @@
 # AI Engineering Ecosystem — Nine-Phase Roadmap v2
 
 **Status:** OWNER RESEARCH INITIATIVE / NON-ENFORCING / PILOTS 01–03 ACCEPTED / EXECUTION READINESS UNPROVEN  
-**As of:** 2026-11-28 (Cursor managed pilot admission; activation OFF). Earlier dated sections below are preserved history.  
+**As of:** 2026-11-28 (#206 accepted: first managed Cursor task end to end; #207 in preparation). Earlier dated sections below are preserved history.  
 **Owner:** Daniil (personal engineering initiative; not GitHub HQ or a scheduled Autopilot worker)  
 **Canonical strategy for this initiative only:** this file. Product, GitHub HQ, Control Plane, and worker roadmaps keep their own authorities.  
 **Related:** [Operating Rules](OPERATING_RULES.md) · [Budget & Measurement](BUDGET_AND_MEASUREMENT.md)
+
+## 2026-11-28 — Milestone: first managed Cursor task accepted (#206)
+
+- **Flow:** Haversine #220 → one Cursor dispatch → PR #234 (exact head `9f1c199`, docs only, CI green) → owner squash merge `7760a2f` → `RELEASED` → lease `IDLE` revision 35, with replay hashes preserved.
+- **Defects found and fixed during the live run:** #218 (no `startingRef` echo), #219 (token usage), #220 (release after a squash merge).
+- **Tokens:** 733,626 total; charged cost `UNKNOWN`. The model variant is not verifiable through the API.
+- **#207:** next task Haversine #235, a real V2 options-validation defect with Vitest regressions. Task admission is a Draft PR awaiting owner review. No agent launched.
 
 ## 2026-11-28 — Cursor admission: preflight CLEAR, owner decisions recorded
 
