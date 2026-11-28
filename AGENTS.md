@@ -1,6 +1,19 @@
 # GitHub HQ — agent entry point
 
-## Execution-first mandate (2026-11-25)
+## Current operating mode: Maximum Safe Throughput (2026-11-28)
+
+The #164 pilot is **complete** (#206 and #207 accepted). Current work is the **operational completion** of Engineering Autopilot, per the [owner-approved roadmap](https://github.com/DaniilSydorenko/.github/issues/207#issuecomment-7231706196). The canonical checklist is [DELIVERY_PLAN_164.md § Operational completion](docs/initiatives/ai-engineering/DELIVERY_PLAN_164.md#operational-completion-checklist). Implementation issues: #226 (queue), #229 (OPS-2 preparation), #230 (OPS-3 autonomous execution), #231 (OPS-4 merge and repair), #232 (OPS-5 multi-repo and private control plane), #233 (OPS-6 control contract and UI), #234 (OPS-7 final acceptance); usage evidence #120.
+
+- **Loop per session:** recover the canonical state once, then implement the highest-priority dependency-ready task with focused regression tests. Run local checks, open a PR, verify exact-head CI, integrate within delegated authority, verify `main`, update the issue and checklist, and **continue to the next eligible task**. Do not stop after one issue, commit or PR.
+- **One active implementation writer, serial integration.** Prefer several coherent sequential PRs over one oversized PR. No dependent work on an unaccepted baseline.
+- **Owner-only:** paid agent launches, new privileged authorization policies, protected-environment approvals, security or credential changes, new infrastructure, high-risk changes, releases and production deployments, and product decisions that cannot be inferred. Batch these into one request. Asking for throughput is not blanket authorization for them.
+- **Confidentiality:** this repository, its refs and its Actions logs are **public**. Never store or log metadata of private repositories here: issue numbers, paths, branches, PRs, SHAs or task text (for example `listing-kit` or `engineering-handbook`).
+- **Unchanged:** every security, domain-authority, budget, approval and writer-coordination rule below. Never fabricate evidence; `UNKNOWN` cost stays `UNKNOWN`.
+
+The 2026-11-25 sections below are **historical pilot guidance**, kept for audit. Where they conflict with this section on process (such as "one coherent fix per round"), this section wins. On security and authority they still apply.
+
+
+## Historical: execution-first mandate for the #164 pilot (2026-11-25, completed)
 
 For the OpenHands #164 pilot, this mandate supersedes conflicting procedural guidance, but never security, owner approval, budget, scope or single-writer controls.
 
@@ -14,7 +27,7 @@ For the OpenHands #164 pilot, this mandate supersedes conflicting procedural gui
 - Report only the actual code change, test outcome, integration outcome and remaining actionable blocker. Do not claim a test passed merely because it was written.
 
 
-## Delivery-first pilot override (2026-11-25)
+## Historical: delivery-first pilot override (2026-11-25, completed)
 
 For #164 only, this section supersedes older planning, cadence, delegation-discovery and reporting requirements, not security or domain authority. The current goal is one accepted #217 agent result, not a general orchestration platform.
 
