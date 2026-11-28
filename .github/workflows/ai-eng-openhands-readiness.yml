@@ -248,9 +248,11 @@ jobs:
           with open('/tmp/ai-eng-real-target-verdict.json', encoding='utf-8') as source:
               result = json.load(source)
           assert result['decision'] == 'STOP'
-          assert result['reason'] == 'live_authorization_not_integrated'
-          assert result['sdk_invocation'] is False
-          print('PASS: actual Haversine checkout is valid and execution remains disabled')
+          # 'target already exists' since the managed Cursor pilot merged
+          # docs/agent-pilot-proof.md into Haversine master (#206, 7760a2f).
+          assert result['reason'] in ('live_authorization_not_integrated', 'target already exists')
+          assert result.get('sdk_invocation') is not True
+          print('PASS: execution remains disabled against the actual Haversine checkout')
           PY
       - name: Verify real OpenHands SDK imports (no model invocation)
         run: |
