@@ -6,6 +6,9 @@ on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
     paths:
+      # Every managed-Cursor module and its tests (queue, preparation, cycle, ...).
+      - 'docs/initiatives/ai-engineering/cursor_*.py'
+      - 'docs/initiatives/ai-engineering/test_cursor_*.py'
       - 'docs/initiatives/ai-engineering/github_ref_lease.py'
       - 'docs/initiatives/ai-engineering/test_github_ref_lease.py'
       - 'docs/initiatives/ai-engineering/singleton_admission.py'
