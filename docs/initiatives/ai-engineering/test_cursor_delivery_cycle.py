@@ -950,6 +950,49 @@ class StartingShaSourceTests(unittest.TestCase):
         self.assertEqual(store.state["pr_url"], ISSUE_URL)  # nothing bound
         self.assertEqual(out["detail"]["reason"], "pr_head_not_descended_from_starting_sha")
 
+    def _bound(self):
+        store = lease_in("VERIFYING", pr_url=PR)
+        return store
+
+    def _release(self, routes, store):
+        return advance(store=store, gh=FakeGH(routes), cursor_api=self.EchoCursor([]),
+                       ctx=CTX, attestations=ALL_ATTESTED, dispatch=lambda s: self.fail("no"),
+                       max_polls=2, interval_s=0, sleep=lambda _: None)
+
+    def test_squash_merged_bound_pr_releases_against_pr_base_not_moved_default(self):
+        # After the owner squash-merges, master is the squash commit (MERGE),
+        # which the PR head never descends from.
+        merged = pr_body(state="closed", merged=True, merged_by=OWNER)
+        merged["base"]["sha"] = START
+        routes = {**gh_routes(pr=merged, open_prs=[]), self.MASTER: {"object": {"sha": MERGE}},
+                  f"/repos/{REPO}/compare/{MERGE}...{HEAD}": {"status": "diverged",
+                                                             "behind_by": 1}}
+        store = self._bound()
+        out = self._release(routes, store)
+        self.assertEqual(out["outcome"], "RELEASED", out)
+        self.assertEqual((out["starting_sha"], out["starting_sha_source"]),
+                         (START, "github_bound_pr_base"))
+        self.assertEqual(store.state["phase"], "IDLE")
+
+    def test_bound_pr_without_github_base_sha_holds(self):
+        merged = pr_body(state="closed", merged=True, merged_by=OWNER)
+        routes = {**gh_routes(pr=merged, open_prs=[]), self.MASTER: {"object": {"sha": MERGE}}}
+        store = self._bound()
+        out = self._release(routes, store)
+        self.assertEqual((out["outcome"], out["reason"]), ("HOLD", "starting_sha_unverifiable"))
+        self.assertEqual(store.state["phase"], "VERIFYING")
+
+    def test_bound_pr_base_that_head_does_not_descend_from_fails_closed(self):
+        merged = pr_body(state="closed", merged=True, merged_by=OWNER)
+        merged["base"]["sha"] = HEAD2
+        routes = {**gh_routes(pr=merged, open_prs=[]), self.MASTER: {"object": {"sha": MERGE}},
+                  f"/repos/{REPO}/compare/{HEAD2}...{HEAD}": {"status": "diverged",
+                                                             "behind_by": 2}}
+        store = self._bound()
+        out = self._release(routes, store)
+        self.assertNotEqual(out["outcome"], "RELEASED", out)
+        self.assertEqual(store.state["phase"], "VERIFYING")
+
     def test_no_source_at_all_holds(self):
         out, store = self.verify([], {})
         self.assertEqual((out["outcome"], out["reason"], out["provider_starting_ref"]),

@@ -107,6 +107,18 @@ def _starting_sha(cursor_api: Any, gh: Any, agent_id: str,
     return None, "unavailable", echo
 
 
+def _bound_pr_base_sha(gh: Any, task: CursorTask, pr_url: Any) -> str | None:
+    match = PR_URL.fullmatch(pr_url) if isinstance(pr_url, str) else None
+    if not match or match.group(1) != task.repository:
+        return None
+    try:
+        pr = gh.get_json(f"/repos/{task.repository}/pulls/{int(match.group(2))}")
+    except Exception:  # noqa: BLE001 - unknown => HOLD
+        return None
+    sha = ((pr or {}).get("base") or {}).get("sha") if isinstance(pr, dict) else None
+    return sha if isinstance(sha, str) and SHA.fullmatch(sha) else None
+
+
 def step_verifying(*, controller: Controller, state: Mapping[str, Any], task: CursorTask,
                    gh: Any, cursor_api: Any) -> dict[str, Any]:
     rid, agent_id = state["request_id"], state.get("agent_id")
@@ -114,6 +126,12 @@ def step_verifying(*, controller: Controller, state: Mapping[str, Any], task: Cu
     if cursor_api is None:
         return _out("verify", "HOLD", reason="cursor_api_unavailable")
     starting, source_kind, echo = _starting_sha(cursor_api, gh, agent_id, task)
+    if pr_url != source and source_kind != "provider_echo":
+        # Already bound: ancestry was proven at bind time against the then
+        # default head. A squash merge moves the default head to a commit the
+        # PR head never descends from, so re-check against the bound PR's own
+        # base SHA as GitHub records it. Still fails closed if unreadable.
+        starting, source_kind = _bound_pr_base_sha(gh, task, pr_url), "github_bound_pr_base"
     if starting is None:
         return _out("verify", "HOLD", reason="starting_sha_unverifiable",
                     provider_starting_ref=echo)
