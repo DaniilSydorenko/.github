@@ -26,7 +26,7 @@ from cursor_bundle_builder import build_launch_bundle, open_pull_requests
 from cursor_execution_observer import (
     github_actions_run_id, observe_once, observe_run, provider_quiescent, reconcile_dispatching,
 )
-from cursor_pr_binding import PR_URL, discover_and_verify
+from cursor_pr_binding import PR_URL, SHA, discover_and_verify
 from cursor_protected_dispatch import (
     APPROVED_OPERATION, LEASE_REF, LEASE_REPO, OWNER_ATTESTATIONS, ProtectedCursorContext,
     attestations_from_env, live_lease_state, owner_workflow_env_ok,
@@ -52,6 +52,12 @@ def _out(step: str, outcome: str, **fields: Any) -> dict[str, Any]:
     return {"step": step, "outcome": outcome, "automatic_merge": False, **fields}
 
 
+def _with_fields(**extra: Any) -> Callable[..., dict[str, Any]]:
+    def out(step: str, outcome: str, **fields: Any) -> dict[str, Any]:
+        return _out(step, outcome, **extra, **fields)
+    return out
+
+
 def _task_from_lease(state: Mapping[str, Any]) -> CursorTask | None:
     source = state.get("source_issue_url") or ""
     parts = source.split("/")
@@ -60,17 +66,45 @@ def _task_from_lease(state: Mapping[str, Any]) -> CursorTask | None:
     return None
 
 
-def _starting_sha(cursor_api: Any, agent_id: str, task: CursorTask) -> str | None:
-    """The startingRef we sent, read back from the deterministic agent."""
+def _repo_matches(url: Any, repository: str) -> bool:
+    """Provider repo URL, with or without scheme or .git (RunGit omits the scheme)."""
+    if not isinstance(url, str):
+        return False
+    u = url.strip().lower().removeprefix("https://").removeprefix("http://")
+    return u.removesuffix("/").removesuffix(".git") == "github.com/" + repository.lower()
+
+
+def _starting_sha(cursor_api: Any, gh: Any, agent_id: str,
+                  task: CursorTask) -> tuple[str | None, str, str]:
+    """Return (sha, source, provider_echo) for the PR ancestry check.
+
+    Preferred: the startingRef we sent, read back from the deterministic agent.
+    The public API does not document echoing it back, so when it is absent or
+    not a full SHA, use the task default-branch head read from GitHub. Requiring
+    the PR head to descend from the CURRENT default head (behind_by == 0) is
+    never weaker: a moved default branch makes the check fail closed.
+    """
+    echo = "agent_unreadable"
     try:
         agent = cursor_api.get_json(f"/v1/agents/{agent_id}")
-    except Exception:  # noqa: BLE001 - any provider failure => unknown
-        return None
-    repos = agent.get("repos") if isinstance(agent, dict) else None
-    want = "https://github.com/" + task.repository
-    refs = [r.get("startingRef") for r in repos or [] if isinstance(r, dict) and r.get("url") == want]
-    ref = refs[0] if len(refs) == 1 else None
-    return ref if isinstance(ref, str) and len(ref) == 40 else None
+        repos = agent.get("repos") if isinstance(agent, dict) else None
+        refs = [r.get("startingRef") for r in repos or []
+                if isinstance(r, dict) and _repo_matches(r.get("url"), task.repository)]
+        ref = refs[0] if len(refs) == 1 else None
+        if isinstance(ref, str) and SHA.fullmatch(ref):
+            return ref, "provider_echo", "sha"
+        echo = ("repo_not_reported" if not refs else "ambiguous_repo" if len(refs) > 1
+                else "absent" if ref is None else "not_a_full_sha")
+    except Exception:  # noqa: BLE001 - any provider failure => use GitHub
+        pass
+    try:
+        ref = gh.get_json(f"/repos/{task.repository}/git/ref/heads/{task.default_branch}")
+        sha = ((ref or {}).get("object") or {}).get("sha")
+    except Exception:  # noqa: BLE001 - unknown => HOLD
+        return None, "unavailable", echo
+    if isinstance(sha, str) and SHA.fullmatch(sha):
+        return sha, "github_default_branch_head", echo
+    return None, "unavailable", echo
 
 
 def step_verifying(*, controller: Controller, state: Mapping[str, Any], task: CursorTask,
@@ -79,9 +113,12 @@ def step_verifying(*, controller: Controller, state: Mapping[str, Any], task: Cu
     source, pr_url = state.get("source_issue_url"), state.get("pr_url")
     if cursor_api is None:
         return _out("verify", "HOLD", reason="cursor_api_unavailable")
-    starting = _starting_sha(cursor_api, agent_id, task)
+    starting, source_kind, echo = _starting_sha(cursor_api, gh, agent_id, task)
     if starting is None:
-        return _out("verify", "HOLD", reason="starting_sha_unverifiable")
+        return _out("verify", "HOLD", reason="starting_sha_unverifiable",
+                    provider_starting_ref=echo)
+    out = _with_fields(starting_sha=starting, starting_sha_source=source_kind,
+                        provider_starting_ref=echo)
     if pr_url == source:
         obs = observe_once(cursor_api, agent_id, state.get("run_id"), now=0)
         branches = obs.get("branches", [])
@@ -90,13 +127,13 @@ def step_verifying(*, controller: Controller, state: Mapping[str, Any], task: Cu
     found = discover_and_verify(gh, task, provider_branches=branches, starting_sha=starting,
                                 allow_merged=pr_url != source)
     if found["decision"] == "NO_PR":
-        return _out("verify", "OWNER_ACTION", reason="no_pr_produced",
+        return out("verify", "OWNER_ACTION", reason="no_pr_produced",
                     owner_action="reject with pr_url = " + str(source))
     if found["decision"] == "REJECTED":
-        return _out("verify", "OWNER_ACTION", reason=found["reason"],
+        return out("verify", "OWNER_ACTION", reason=found["reason"],
                     owner_action="reject with pr_url = " + str(pr_url))
     if found["decision"] != "BIND":
-        return _out("verify", "HOLD", reason=found["reason"], detail=found)
+        return out("verify", "HOLD", reason=found["reason"], detail=found)
     if pr_url == source:
         controller.bind_generated_pr(rid, expected_issue_url=source,
                                      generated_pr_url=found["pr_url"])
@@ -104,15 +141,15 @@ def step_verifying(*, controller: Controller, state: Mapping[str, Any], task: Cu
     if verdict["status"] == "INTEGRATED":
         controller.release_verified(rid, provider_terminal=True, integration_accepted=True,
                                     manual_approval=True)
-        return _out("verify", "RELEASED", pr=found["pr_url"], acceptance=verdict,
+        return out("verify", "RELEASED", pr=found["pr_url"], acceptance=verdict,
                     next_task="select via sequential_handoff (previous_pr input)")
     if verdict["status"] == ELIGIBLE:
-        return _out("verify", "INTEGRATION_READY", pr=found["pr_url"], acceptance=verdict,
+        return out("verify", "INTEGRATION_READY", pr=found["pr_url"], acceptance=verdict,
                     owner_action="review and merge the exact head; then run advance")
     if verdict["status"] == "REJECTED":
-        return _out("verify", "OWNER_ACTION", pr=found["pr_url"], acceptance=verdict,
+        return out("verify", "OWNER_ACTION", pr=found["pr_url"], acceptance=verdict,
                     owner_action="close the PR, then run reject")
-    return _out("verify", "HOLD", pr=found["pr_url"], acceptance=verdict)
+    return out("verify", "HOLD", pr=found["pr_url"], acceptance=verdict)
 
 
 def advance(*, store: Any, gh: Any, cursor_api: Any, ctx: Any,
