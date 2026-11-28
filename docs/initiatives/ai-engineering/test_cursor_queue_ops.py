@@ -8,7 +8,9 @@ from unittest.mock import patch
 import cursor_queue as q
 import cursor_queue_ops as ops
 import cursor_tasks
-from test_cursor_queue import AUTH, LK, TreeRef, spec
+from test_cursor_queue import AUTH, HV, LK as PRIVATE, TreeRef, spec
+
+LK = HV  # queue targets must be public while the control plane is public
 
 
 class FakeGH:
@@ -24,7 +26,7 @@ class FakeGH:
 
 def lk_routes(**over):
     routes = {
-        f"/repos/{LK}": {"default_branch": "main"},
+        f"/repos/{LK}": {"default_branch": "main", "private": False},
         f"/repos/{LK}/rules/branches/main": [
             {"type": "pull_request"},
             {"type": "required_status_checks",
@@ -66,6 +68,16 @@ class BuildSpecTests(unittest.TestCase):
         for reason, over in cases.items():
             with self.subTest(reason), self.assertRaisesRegex(q.QueueError, reason):
                 ops.build_spec(FakeGH(lk_routes(**over)), dict(REQUEST))
+
+    def test_private_repository_is_refused_before_any_read(self):
+        gh = FakeGH({})
+        for repo in (PRIVATE, "DaniilSydorenko/engineering-handbook"):
+            with self.subTest(repo), self.assertRaisesRegex(q.QueueError, "private"):
+                ops.build_spec(gh, {**REQUEST, "repository": repo})
+        self.assertEqual(gh.calls, [])  # nothing about the target was fetched or logged
+        routes = lk_routes(**{f"/repos/{LK}": {"default_branch": "main", "private": True}})
+        with self.assertRaisesRegex(q.QueueError, "public"):
+            ops.build_spec(FakeGH(routes), dict(REQUEST))
 
     def test_request_shape_and_repository(self):
         for bad in ({**REQUEST, "repository": "someone/else"},

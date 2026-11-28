@@ -30,6 +30,14 @@ ALLOWED_REPOSITORIES = frozenset({
     "DaniilSydorenko/listing-kit",
     "DaniilSydorenko/engineering-handbook",
 })
+# The HQ repository, its refs and its Actions logs are PUBLIC: a protected ref
+# restricts writes, not reads. Queue metadata for a private repository (issue
+# numbers, paths, PRs, SHAs) must never be stored or logged here. These targets
+# need a private control plane (owner decision, see #226) and are refused.
+PRIVATE_REPOSITORIES = frozenset({
+    "DaniilSydorenko/listing-kit",
+    "DaniilSydorenko/engineering-handbook",
+})
 STATES = ("PENDING", "RUNNING", "DONE", "BLOCKED")
 # Progress moves forward only; BLOCKED is terminal until the owner submits a new spec.
 TRANSITIONS = {"PENDING": {"RUNNING", "BLOCKED"}, "RUNNING": {"DONE", "BLOCKED"},
@@ -62,6 +70,11 @@ def _tasks(spec: Mapping[str, Any]) -> tuple[CursorTask, ...]:
     return tuple(out)
 
 
+def task_identity(task: CursorTask) -> tuple[str, int]:
+    """Issue numbers are only unique per repository."""
+    return task.repository, task.issue
+
+
 def validate_spec(spec: Any) -> tuple[CursorTask, ...]:
     """Return the CursorTasks a spec authorizes, or raise QueueError."""
     try:
@@ -71,6 +84,7 @@ def validate_spec(spec: Any) -> tuple[CursorTask, ...]:
                 or spec["schema"] != SCHEMA
                 or not isinstance(spec["queue_id"], str) or not QUEUE_ID.fullmatch(spec["queue_id"])
                 or spec["repository"] not in ALLOWED_REPOSITORIES
+                or spec["repository"] in PRIVATE_REPOSITORIES
                 or not isinstance(spec["default_branch"], str)
                 or not re.fullmatch(r"[A-Za-z0-9._/-]{1,100}", spec["default_branch"])
                 or spec["model"] != DEFAULT_MODEL

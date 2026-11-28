@@ -49,6 +49,9 @@ def build_spec(gh: Any, request: Any) -> dict[str, Any]:
     repository = request.get("repository")
     if repository not in q.ALLOWED_REPOSITORIES:
         raise q.QueueError("repository not allowlisted")
+    if repository in q.PRIVATE_REPOSITORIES:
+        # Checked before any read, so nothing about the target reaches public logs.
+        raise q.QueueError("private repository needs a private control plane")
     issues = request.get("issues")
     if (not isinstance(issues, list) or not issues
             or any(type(n) is not int or n <= 0 for n in issues)):
@@ -59,7 +62,9 @@ def build_spec(gh: Any, request: Any) -> dict[str, Any]:
             or not isinstance(deps, dict) or not set(deps) <= {str(n) for n in issues}):
         raise q.QueueError("allowed_paths must name exactly the queued issues")
     repo = gh.get_json(f"/repos/{repository}")
-    branch = repo.get("default_branch") if isinstance(repo, dict) else None
+    if not isinstance(repo, dict) or repo.get("private") is not False:
+        raise q.QueueError("target repository is not verifiably public")
+    branch = repo.get("default_branch")
     if not isinstance(branch, str) or not branch:
         raise q.QueueError("target default branch unreadable")
     checks = required_checks(gh, repository, branch)
