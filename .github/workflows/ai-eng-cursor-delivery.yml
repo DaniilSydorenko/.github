@@ -19,7 +19,7 @@ on:
         description: 'Registered task issue (cursor_tasks.TASKS)'
         required: true
         type: choice
-        options: ['220']
+        options: ['220', '235']
       bootstrap:
         description: 'advance from IDLE with no previous accepted managed merge (owner bootstrap)'
         type: boolean
@@ -100,6 +100,7 @@ jobs:
           AI_ENG_ATTEST_TARGET_BRANCH_PROTECTED: ${{ vars.AI_ENG_ATTEST_TARGET_BRANCH_PROTECTED }}
           AI_ENG_ATTEST_CURSOR_KEY_ACCOUNT_SCOPE: ${{ vars.AI_ENG_ATTEST_CURSOR_KEY_ACCOUNT_SCOPE }}
           AI_ENG_ACCEPT_SUBAGENT_RISK_TASK_220: ${{ vars.AI_ENG_ACCEPT_SUBAGENT_RISK_TASK_220 }}
+          AI_ENG_ACCEPT_SUBAGENT_RISK_TASK_235: ${{ vars.AI_ENG_ACCEPT_SUBAGENT_RISK_TASK_235 }}
           INPUT_ACTION: ${{ inputs.action }}
           INPUT_BOOTSTRAP: ${{ inputs.bootstrap }}
           INPUT_PREVIOUS_PR: ${{ inputs.previous_pr }}

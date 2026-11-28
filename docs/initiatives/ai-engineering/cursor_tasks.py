@@ -44,6 +44,9 @@ class CursorTask:
 
 TASKS: tuple[CursorTask, ...] = (
     CursorTask(HAVERSINE, 220, 1, (ISSUE_220_PATH,), HAVERSINE_REQUIRED_CHECKS),
+    # #207 sequential task: reject non-object distance options (Haversine #235).
+    CursorTask(HAVERSINE, 235, 2, ("spec/v2-distance.spec.ts", "spec/v2-nearest.spec.ts",
+                                   "src/v2/distance.ts"), HAVERSINE_REQUIRED_CHECKS),
 )
 
 

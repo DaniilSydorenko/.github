@@ -417,9 +417,30 @@ class SubagentResidualRiskTests(TestCase):
             self.assertFalse(_gate_ok(ok, other), other)
 
     def test_launch_gate_and_permit_agree_on_risk_id_and_target(self) -> None:
+        from cursor_protected_dispatch import SUBAGENT_RISK_KEYS, subagent_risk_id
         from managed_cursor_launch import ACCEPTABLE_RISKS
-        self.assertEqual(ACCEPTABLE_RISKS, {"verified_subagents_disabled": (
-            self.risk, self.task.repository, self.task.issue)})
+        self.assertEqual(ACCEPTABLE_RISKS, {"verified_subagents_disabled": frozenset(
+            (subagent_risk_id(i), self.task.repository, i) for i in SUBAGENT_RISK_KEYS)})
+        self.assertEqual(set(SUBAGENT_RISK_KEYS.values()) - set(OWNER_ATTESTATIONS), set())
+
+    def test_waiver_never_carries_over_between_tasks(self) -> None:
+        from cursor_tasks import task_for_issue_number
+        from managed_cursor_launch import _gate_ok
+        from cursor_protected_dispatch import subagent_risk_id
+        task_235 = task_for_issue_number(235)
+        only_220 = {**self.base, "subagent_risk_accepted_task_235": False}
+        permit, missing = self._permit(only_220, task=task_235)
+        self.assertEqual(missing, ["verified_subagents_disabled"])
+        self.assertEqual(permit["accepted_residual_risks"], ())
+        only_235 = {**self.base, "subagent_risk_accepted_task_220": False}
+        permit, missing = self._permit(only_235, task=task_235)
+        self.assertEqual((missing, permit["accepted_residual_risks"]),
+                         ([], (subagent_risk_id(235),)))
+        permit, missing = self._permit(only_235)  # task 220
+        self.assertEqual(missing, ["verified_subagents_disabled"])
+        forged = {"accepted_residual_risks": (subagent_risk_id(220),),
+                  "repository": task_235.repository, "issue_number": 235}
+        self.assertFalse(_gate_ok(forged, "verified_subagents_disabled"))
 
     def test_privileged_workflow_injects_every_owner_variable_readonly_none(self) -> None:
         from pathlib import Path
