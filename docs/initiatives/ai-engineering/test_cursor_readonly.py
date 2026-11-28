@@ -147,6 +147,52 @@ class CursorInventoryTests(unittest.TestCase):
         d = global_run_preflight(api, global_account_scope_verified=True)
         self.assertEqual((d["status"], d["phase"], d["agents_checked"]), ("STOP", "run", 1))
 
+    def _slow_api(self, statuses, delay=0.05):
+        import threading, time
+        agents = [{"id": f"bc-00000000-0000-0000-0000-{i:012d}", "status": "IDLE",
+                   "latestRunId": f"run-00000000-0000-0000-0000-{i:012d}"} for i in range(len(statuses))]
+        lock, calls = threading.Lock(), []
+
+        class Api:
+            def get_json(_self, path, params=None):
+                with lock:
+                    calls.append(path)
+                if path == "/v1/agents":
+                    return {"items": agents}
+                time.sleep(delay)
+                i = int(path.rsplit("-", 1)[1])
+                if statuses[i] == "ERR":
+                    raise CursorReadError("Cursor HTTP 500 (body withheld)", status=500)
+                return {"id": agents[i]["latestRunId"], "agentId": agents[i]["id"],
+                        "status": statuses[i]}
+        return Api(), calls
+
+    def test_concurrent_scan_equals_sequential_and_is_faster(self):
+        import time
+        api, calls = self._slow_api(["FINISHED"] * 12)
+        t0 = time.monotonic()
+        seq = global_run_preflight(api, global_account_scope_verified=True, concurrency=1)
+        t_seq = time.monotonic() - t0
+        t0 = time.monotonic()
+        par = global_run_preflight(api, global_account_scope_verified=True, concurrency=6)
+        t_par = time.monotonic() - t0
+        self.assertEqual(seq, par)
+        self.assertEqual(par["status"], "CLEAR")
+        self.assertEqual(len([c for c in calls if "/runs/" in c]), 24)  # nobody skipped
+        self.assertLess(t_par, t_seq / 2)
+
+    def test_concurrent_scan_reports_first_busy_in_list_order_and_fails_closed(self):
+        api, _ = self._slow_api(["FINISHED", "RUNNING", "FINISHED", "CREATING"], delay=0)
+        out = global_run_preflight(api, global_account_scope_verified=True, concurrency=4)
+        self.assertEqual((out["status"], out["active_agent"][-1]), ("BUSY", "1"))
+        api, _ = self._slow_api(["FINISHED", "FINISHED", "ERR", "FINISHED"], delay=0)
+        out = global_run_preflight(api, global_account_scope_verified=True, concurrency=4)
+        self.assertEqual((out["status"], out["phase"]), ("STOP", "run"))
+        self.assertIn("500", out["detail"])
+        for bad in (0, 17, "4"):
+            self.assertEqual(global_run_preflight(api, global_account_scope_verified=True,
+                                                  concurrency=bad)["reason"], "invalid_concurrency")
+
     def test_transport_error_stops(self):
         api = MagicMock()
         api.get_json.side_effect = CursorReadError("API inaccessible")
