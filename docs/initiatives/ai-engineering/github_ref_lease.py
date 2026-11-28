@@ -6,6 +6,7 @@ cannot both fast-forward the same ref. Never automatically expire leases.
 """
 from __future__ import annotations
 
+import base64
 import hashlib
 import json
 import re
@@ -41,6 +42,8 @@ class Snapshot:
 class Store(Protocol):
     def read(self) -> Snapshot: ...
     def advance(self, observed: Snapshot, state: dict[str, Any]) -> str: ...
+    # Lease transitions never pass ``tree``: the observed tree (and the queue
+    # file in it, see cursor_queue) is carried forward unchanged.
 
 
 def check_state(s: dict[str, Any]) -> None:
@@ -316,11 +319,47 @@ class GitHubRefStore:
         check_state(state)
         return Snapshot(sha, tree, state)
 
-    def advance(self, observed: Snapshot, state: dict[str, Any]) -> str:
+    def read_file(self, tree: str, name: str) -> bytes | None:
+        """One top-level blob of a ref tree; None only when it is absent."""
+        if not SHA.fullmatch(tree) or not re.fullmatch(r"[a-z][a-z0-9_.-]{0,40}", name):
+            raise LeaseError("invalid tree read")
+        listing = self._call("GET", "/git/trees/" + tree)
+        entries = listing.get("tree")
+        if not isinstance(entries, list) or listing.get("truncated") is True:
+            raise LeaseError("ref tree unreadable")
+        found = [e for e in entries if isinstance(e, dict) and e.get("path") == name]
+        if not found:
+            return None
+        if len(found) != 1 or found[0].get("type") != "blob" or not SHA.fullmatch(
+                str(found[0].get("sha"))):
+            raise LeaseError("ref tree entry invalid")
+        blob = self._call("GET", "/git/blobs/" + found[0]["sha"])
+        if blob.get("encoding") != "base64" or not isinstance(blob.get("content"), str):
+            raise LeaseError("ref blob unreadable")
+        return base64.b64decode(blob["content"])
+
+    def write_tree(self, base_tree: str, name: str, content: bytes) -> str:
+        """New tree = base tree with one top-level blob replaced (not yet referenced)."""
+        if not SHA.fullmatch(base_tree) or not re.fullmatch(r"[a-z][a-z0-9_.-]{0,40}", name):
+            raise LeaseError("invalid tree write")
+        tree = self._call("POST", "/git/trees", {"base_tree": base_tree, "tree": [{
+            "path": name, "mode": "100644", "type": "blob",
+            "content": content.decode("utf-8")}]})
+        sha = tree.get("sha")
+        if not isinstance(sha, str) or not SHA.fullmatch(sha):
+            raise LeaseError("tree create outcome unknown; stop")
+        return sha
+
+    def advance(self, observed: Snapshot, state: dict[str, Any],
+                tree: str | None = None) -> str:
         check_state(state)
         check_state(observed.state)
         if not SHA.fullmatch(observed.sha) or not SHA.fullmatch(observed.tree):
             raise LeaseError("invalid previous commit")
+        if tree is not None and (not SHA.fullmatch(tree) or state["phase"] != observed.state["phase"]
+                                 or {**state, "revision": 0} != {**observed.state, "revision": 0}):
+            # A tree (queue) write must carry the lease state forward unchanged.
+            raise LeaseError("queue write must not change the lease state")
         if state["revision"] != observed.state["revision"] + 1:
             raise LeaseError("non-monotonic revision")
         prior = observed.state["consumed_request_hashes"]
@@ -353,7 +392,7 @@ class GitHubRefStore:
                 raise LeaseError("unverified or repeated issue-to-PR binding")
         message = PREFIX + json.dumps(state, sort_keys=True, separators=(",", ":"))
         new_commit = self._call("POST", "/git/commits", {
-            "message": message, "tree": observed.tree, "parents": [observed.sha]
+            "message": message, "tree": tree or observed.tree, "parents": [observed.sha]
         })
         sha = new_commit.get("sha")
         if not isinstance(sha, str) or not SHA.fullmatch(sha):
