@@ -21,7 +21,7 @@ from lease_ruleset_candidate import ReadOnly as RulesetReader, public_readonly_p
 from preview_one import preview_one
 from sequential_handoff import preview_next_after_merge
 
-PILOT_ACTIVATION_ENABLED = False
+PILOT_ACTIVATION_ENABLED = True
 
 # The only permit gate an owner may accept as residual risk instead of proving
 # it, and only for the registered pilot task: (risk id, repository, issue).

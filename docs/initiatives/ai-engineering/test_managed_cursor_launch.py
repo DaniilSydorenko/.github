@@ -76,6 +76,9 @@ class ManagedLaunchTests(TestCase):
         values.update(kwargs)
         return launch_single_approved_pr(**values)
 
+    # Kill-switch path stays covered after activation (#206): pin it OFF.
+    @patch("managed_cursor_launch.PILOT_ACTIVATION_ENABLED", False)
+    @patch("cursor_protected_dispatch.PILOT_ACTIVATION_ENABLED", False)
     def test_default_code_level_kill_switch_zero_network_zero_lease(self):
         result = self.dispatch()
         self.assertEqual(result["state"], "DISABLED")
