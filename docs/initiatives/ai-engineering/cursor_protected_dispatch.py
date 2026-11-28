@@ -443,17 +443,23 @@ def run_gates_only(
 
 
 def _github_get(repo: str, path: str) -> dict[str, Any]:
-    """Unauthenticated public GET; the repository is always explicit."""
-    if repo != LEASE_REPO and not any(t.repository == repo for t in TASKS):
+    """Read-only GET; the repository is always explicit and allowlisted.
+
+    Authenticated with GH_TOKEN when present (least privilege: the job's
+    read-only GITHUB_TOKEN), because unauthenticated reads share the runner
+    IP rate limit (preflight 46138457389 failed closed on it).
+    """
+    from cursor_queue import ALLOWED_REPOSITORIES
+    if (repo != LEASE_REPO and repo not in ALLOWED_REPOSITORIES
+            and not any(t.repository == repo for t in TASKS)):
         raise ValueError("github_repository_not_allowlisted")
+    headers = {"Accept": "application/vnd.github+json",
+               "User-Agent": "cursor-protected-dispatch-gates/1"}
+    token = os.environ.get("GH_TOKEN")
+    if token:
+        headers["Authorization"] = "Bearer " + token
     request = urllib.request.Request(
-        f"https://api.github.com/repos/{repo}{path}",
-        headers={
-            "Accept": "application/vnd.github+json",
-            "User-Agent": "cursor-protected-dispatch-gates/1",
-        },
-        method="GET",
-    )
+        f"https://api.github.com/repos/{repo}{path}", headers=headers, method="GET")
     with urllib.request.urlopen(request, timeout=15) as response:
         body = json.load(response)
     if not isinstance(body, dict):
