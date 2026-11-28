@@ -2,7 +2,28 @@
 
 Current objective: accept one managed Cursor task end to end (Haversine #220 → reviewed PR → owner merge → lease released). Then run the next registered task in sequence (#207). Tracking: HQ #205 (admission and dry run) → #206 (activation and first E2E) → #207 (sequential proof). Budget evidence: #120. Lease and protection: #108.
 
-## Verified baseline (2026-11-28)
+## Current status (2026-11-28)
+
+- **#205: closed.** The activation-OFF dry run [46081552315](https://github.com/DaniilSydorenko/.github/actions/runs/46081552315) had `permit_missing_evidence=[]`.
+- **#206: accepted and closed.** The first managed Cursor task ran end to end:
+
+| Stage | Evidence |
+|---|---|
+| Activation | #212 (`8fac491`) merged after owner GO #220 |
+| Launch | [46087972278](https://github.com/DaniilSydorenko/.github/actions/runs/46087972278): exactly one dispatch; agent `bc-09b95ce8-e90c-5449-9dd5-209043eec6b3`, run `run-38ff24fb-c410-480b-9e75-3a3912d05131` |
+| Fixes found live | #218: the provider omits `startingRef`, so ancestry is checked against the GitHub default head. #219: read-only token usage. #220: after a squash merge, a bound PR is checked against its GitHub `base.sha` (found before the owner merge) |
+| Integration | [46090411782](https://github.com/DaniilSydorenko/.github/actions/runs/46090411782) `INTEGRATION_READY`; Haversine #234, exact head `9f1c199`, `docs/agent-pilot-proof.md` only, `Test and build` and `Gitleaks` green |
+| Owner merge | squash `7760a2f` by the owner |
+| Release | [46091661106](https://github.com/DaniilSydorenko/.github/actions/runs/46091661106) `RELEASED`, acceptance `INTEGRATED`; lease `IDLE` revision 35, seven replay hashes preserved |
+| Tokens | input 110,474 / output 9,584 / cache read 613,568 / cache write 0 / total 733,626; charged cost `UNKNOWN` ([46090702636](https://github.com/DaniilSydorenko/.github/actions/runs/46090702636)) |
+
+- **Not verified:** the model variant. `composer-2.5` was sent without `params`, so its default variant ran. The agent self-reports `composer-2.5-fast`, and the API exposes no field for the model actually used.
+- **#207: in preparation, no agent launched.**
+  - Haversine #217 and #226 are already implemented on `master`. #232's premise is wrong: with a huge radius, `distance()` throws before `nearest()` compares anything.
+  - Next task: Haversine [#235](https://github.com/DaniilSydorenko/haversine-geolocation/issues/235). A V1-style positional unit (`distance(a, b, 'm')`) is silently returned in kilometres, contrary to the documented contract. Fix in `src/v2/distance.ts`, with Vitest regressions.
+  - The task-specific admission is a Draft PR awaiting owner review. The #220 subagent waiver does not carry over.
+
+## Admission baseline (2026-11-28, before #206)
 
 These are observed facts, not live authorization.
 
@@ -51,13 +72,13 @@ Bounded standing authorization means one deployment approval covers the whole bo
 
 | # | Blocker | Kind | Exact resolution |
 |---|---|---|---|
-| 1 | `CURSOR_KEY_ACCOUNT_SCOPE` | **Open: owner sets the variable** | Evidence: personal key created by the owner, on Pro+ (a single-user plan), with an account-wide list of 282 agents including archived ones (run 46072375294). Setting it is owner-only |
+| 1 | `CURSOR_KEY_ACCOUNT_SCOPE` | **Resolved 2026-11-28** (owner set it) | Evidence: personal key created by the owner, on Pro+ (a single-user plan), with an account-wide list of 282 agents including archived ones (run 46072375294). Setting it is owner-only |
 | 2 | `NO_EXTERNAL_BILLING` | **Resolved 2026-11-27** | Owner statement: no BYOK or external model keys. Set to `true` |
 | 3 | `SINGLE_LAUNCH_ROUTE` | **Resolved 2026-11-27** | Owner commitment: no parallel or manual launches during the pilot. Technical detection: the account-wide inventory before launch (BUSY → STOP). Set to `true` |
-| 4 | `SUBAGENTS_DISABLED` | **Open: owner risk decision** | No enforceable provider control is verified, so it stays unset. The accepted-risk mechanism for #220 only is ready in #213; the owner merges it and sets the variable only if they accept the risk |
+| 4 | `SUBAGENTS_DISABLED` | **Resolved for #220 only** (#213 merged; owner accepted the risk) | No enforceable provider control is verified, so it stays unset. The accepted-risk mechanism for #220 only is ready in #213; the owner merges it and sets the variable only if they accept the risk |
 | 5 | Per-run budget (#120) | **Resolved 2026-11-27** | Owner accepted one run within the subscription allowance; on-demand off, tokens measured, cost `UNKNOWN` |
 | 6 | `composer-2.5` cost | **Resolved 2026-11-27** | Owner approved `composer-2.5` for the pilot |
-| 7 | Activation | Owner GO plus a reviewed PR | A separate minimal PR flips `PILOT_ACTIVATION_ENABLED`. It merges only after 1–6 are resolved and the owner gives explicit GO |
+| 7 | Activation | **Resolved 2026-11-28** (#212 merged after GO #220) | A separate minimal PR flips `PILOT_ACTIVATION_ENABLED`. It merges only after 1–6 are resolved and the owner gives explicit GO |
 
 **Pilot-only residual-risk policy for #4 (implemented as a Draft PR; inert until the owner merges it and sets the variable).** If Cursor has no subagent control, `AI_ENG_ATTEST_SUBAGENTS_DISABLED` stays unset and `verified_subagents_disabled` stays `false` in every permit. A separate owner variable, `AI_ENG_ACCEPT_SUBAGENT_RISK_TASK_220=true`, waives that one gate **only** for the registered task (`DaniilSydorenko/haversine-geolocation` #220). The permit and the dispatch result record it as `accepted_residual_risks=["subagents_unblocked_accepted_task_220"]`, never as verified. No other gate can be waived, and the waiver cannot reach any other task, including #207. It is bounded by: one run (replay protection consumes the #220 request id), the account spending ceiling, owner merge, and the scope/exact-head acceptance of the produced PR. The owner deletes the variable after #206 closes.
 
