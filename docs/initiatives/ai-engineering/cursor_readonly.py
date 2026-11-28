@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import time
 from urllib.error import HTTPError, URLError
 from urllib.parse import quote, urlencode
 from urllib.request import Request, urlopen
@@ -58,6 +59,7 @@ class LiveCursorReadOnly:
                 if attempt == 2:
                     raise CursorReadError("Cursor transport/response unknown ("
                                           + type(exc).__name__ + ")") from None
+                time.sleep(1.0)  # let a dropped keep-alive / throttled connection recover
         if not isinstance(obj, dict):
             raise CursorReadError("Cursor payload not an object")
         return obj
@@ -70,7 +72,9 @@ def from_environment() -> LiveCursorReadOnly:
     return LiveCursorReadOnly(key)
 
 
-RUN_READ_CONCURRENCY = 6  # bounded parallel GETs; same evidence, same fail-closed result
+# Bounded parallel GETs; same evidence, same fail-closed result. 6 workers drew
+# RemoteDisconnected from the provider live (run 46144384113); 3 plus a retry pause.
+RUN_READ_CONCURRENCY = 3
 
 
 def _read_run(api, ident: str, latest: str) -> dict:

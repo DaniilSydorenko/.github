@@ -123,6 +123,7 @@ class CursorInventoryTests(unittest.TestCase):
         self.assertEqual(d["detail"], "Cursor HTTP 403 (body withheld)")
         self.assertFalse(d["can_launch"])
 
+    @patch("cursor_readonly.time.sleep", lambda _s: None)
     def test_get_retries_once_on_transport_error_never_on_http_error(self):
         from urllib.error import HTTPError, URLError
         reader = LiveCursorReadOnly("k")
