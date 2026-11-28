@@ -32,7 +32,7 @@ from cursor_protected_dispatch import (
     attestations_from_env, live_lease_state, owner_workflow_env_ok,
     protected_context_from_env, run_gates_only, task_for_context,
 )
-from cursor_readonly import global_run_preflight
+from cursor_readonly import CursorReadError, global_run_preflight, token_usage_readonly
 from cursor_tasks import TASKS, CursorTask, task_for, task_for_issue_number
 from github_ref_lease import Controller, GitHubRefStore, LeaseError, fingerprint
 
@@ -391,9 +391,17 @@ def readonly_preflight(*, lease_state_reader: Callable[[], Mapping[str, Any]],
     # under the account-scope attestation before any launch).
     inventory = (global_run_preflight(cursor_api, global_account_scope_verified=True)
                  if cursor_api is not None else None)
+    # #206 acceptance evidence: provider-measured tokens for the leased run.
+    # GET only; charged cost is never inferred (always UNKNOWN).
+    usage = None
+    if cursor_api is not None and state.get("agent_id") and state.get("run_id"):
+        try:
+            usage = token_usage_readonly(cursor_api, state["agent_id"], state["run_id"])
+        except CursorReadError as exc:
+            usage = {"status": "UNAVAILABLE", "detail": str(exc), "charged_cost": "UNKNOWN"}
     return _out("preflight", "READ_ONLY", read_only=True, lease_phase=phase,
                 lease_revision=state.get("revision"), lease_request_id=state.get("request_id"),
-                gates=gates, cursor_inventory_observed=inventory,
+                gates=gates, cursor_inventory_observed=inventory, token_usage=usage,
                 attestations="evaluated_only_in_privileged_run")
 
 

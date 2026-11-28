@@ -749,6 +749,38 @@ class SingleApprovalChainTests(unittest.TestCase):
 class ReadOnlyPreflightTests(unittest.TestCase):
     OWNER_ENV = {**CliTests.OWNER_ENV, "AI_ENG_OWNER_GO_ISSUE": str(TASK.issue)}
 
+    def test_readonly_preflight_reports_leased_run_token_usage_cost_unknown(self):
+        from cursor_delivery_cycle import readonly_preflight
+        usage = {"inputTokens": 10, "outputTokens": 5, "cacheWriteTokens": 2,
+                 "cacheReadTokens": 3, "totalTokens": 20}
+
+        class UsageCursor(FakeCursor):
+            def get_json(self, path, params=None):
+                if path == f"/v1/agents/{AGENT}/usage":
+                    self.calls.append(path)
+                    return {"runs": [{"id": params["runId"], "usage": usage}]}
+                return super().get_json(path, params)
+
+        state = {"phase": "VERIFYING", "revision": 34, "request_id": RID,
+                 "agent_id": AGENT, "run_id": RUN}
+        cursor = UsageCursor(agents=[])
+        out = readonly_preflight(lease_state_reader=lambda: state, cursor_api=cursor,
+                                 dispatch=lambda s: self.fail("no dispatch outside IDLE"))
+        self.assertEqual(out["token_usage"], {"agent_id": AGENT, "run_id": RUN,
+                                              "tokens": usage, "charged_cost": "UNKNOWN"})
+        bad = FakeCursor(agents=[])  # no usage route -> AssertionError is not swallowed
+        bad.get_json = lambda path, params=None: (_ for _ in ()).throw(
+            CursorReadError("Cursor HTTP 404 (body withheld)", status=404)) \
+            if path.endswith("/usage") else FakeCursor.get_json(bad, path, params)
+        out = readonly_preflight(lease_state_reader=lambda: state, cursor_api=bad,
+                                 dispatch=lambda s: self.fail("no dispatch"))
+        self.assertEqual(out["token_usage"], {"status": "UNAVAILABLE",
+                                              "detail": "Cursor HTTP 404 (body withheld)",
+                                              "charged_cost": "UNKNOWN"})
+        idle = readonly_preflight(lease_state_reader=lambda: {"phase": "IDLE"},
+                                  cursor_api=None, dispatch=lambda s: {})
+        self.assertIsNone(idle["token_usage"])
+
     def test_readonly_context_is_separate_from_privileged_context(self):
         from cursor_delivery_cycle import READONLY_OPERATION, readonly_context_from_env
         from cursor_protected_dispatch import protected_context_from_env
