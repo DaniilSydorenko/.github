@@ -201,19 +201,9 @@ OWNER_ATTESTATIONS = {
     # Not an attestation of a control: the owner accepts the risk, set only if
     # Cursor offers no subagent setting; effective for the #220 task only.
     "subagent_risk_accepted_task_220": "AI_ENG_ACCEPT_SUBAGENT_RISK_TASK_220",
-    "subagent_risk_accepted_task_235": "AI_ENG_ACCEPT_SUBAGENT_RISK_TASK_235",
 }
 ATTESTED = "true"
-# Each waiver is bound to exactly one registered Haversine task; none carries over.
-SUBAGENT_RISK_KEYS = {220: "subagent_risk_accepted_task_220",
-                      235: "subagent_risk_accepted_task_235"}
-
-
-def subagent_risk_id(issue: int) -> str:
-    return f"subagents_unblocked_accepted_task_{issue}"
-
-
-SUBAGENT_RISK = subagent_risk_id(220)
+SUBAGENT_RISK = "subagents_unblocked_accepted_task_220"
 
 
 def attestations_from_env(environ: Mapping[str, str] | None = None) -> dict[str, bool]:
@@ -253,12 +243,12 @@ def build_trusted_permit(
             "verified_owner_security_gates")},
     }
     # Pilot-only residual risk: never satisfies the "verified" flag (which stays
-    # False and is reported as such); it only waives it for the one task its
-    # own owner variable names. Any other task still needs the attestation.
-    risk_key = (SUBAGENT_RISK_KEYS.get(task.issue)
-                if task.repository == TASK_220.repository else None)
+    # False and is reported as such); it only waives it for the registered
+    # #220 task. Any other task, including #207, still needs the attestation.
     subagent_risk = (flags["verified_subagents_disabled"] is not True
-                     and risk_key is not None and attestations.get(risk_key) is True)
+                     and attestations.get("subagent_risk_accepted_task_220") is True
+                     and (task.repository, task.issue)
+                     == (TASK_220.repository, TASK_220.issue))
     missing = sorted(k for k, v in flags.items() if v is not True
                      and not (k == "verified_subagents_disabled" and subagent_risk))
     if not isinstance(inventory, Mapping) or inventory.get("status") != "CLEAR":
@@ -272,7 +262,7 @@ def build_trusted_permit(
         "head_sha": main_sha,
         "model_id": task.model,
         "model_allowlist": frozenset({task.model}),
-        "accepted_residual_risks": (subagent_risk_id(task.issue),) if subagent_risk else (),
+        "accepted_residual_risks": (SUBAGENT_RISK,) if subagent_risk else (),
     }
     return permit, missing
 
