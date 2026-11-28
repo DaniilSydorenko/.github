@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import json
 import os
-import re
 from typing import Any
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
@@ -25,21 +24,25 @@ from sequential_handoff import preview_next_after_merge
 PILOT_ACTIVATION_ENABLED = True
 
 # The only permit gate an owner may accept as residual risk instead of proving
-# it, and only through an authorized queue (cursor_queue): the permit must carry
-# the queue spec digest and the queue task it was derived for.
+# it; each entry is bound to one registered task: (risk id, repository, issue).
 # For use only if Cursor exposes no subagent control; see DELIVERY_PLAN_164.md.
-ACCEPTABLE_RISKS = {"verified_subagents_disabled": "subagents_unblocked_accepted_by_queue"}
+ACCEPTABLE_RISKS = {
+    "verified_subagents_disabled": frozenset({
+        ("subagents_unblocked_accepted_task_220", "DaniilSydorenko/haversine-geolocation", 220),
+        ("subagents_unblocked_accepted_task_235", "DaniilSydorenko/haversine-geolocation", 235),
+    }),
+}
 
 
 def _gate_ok(permit: dict[str, Any], key: str) -> bool:
     if permit.get(key) is True:
         return True
-    risk = ACCEPTABLE_RISKS.get(key)
     risks = permit.get("accepted_residual_risks")
-    digest = permit.get("queue_spec_digest")
-    return (risk is not None and isinstance(risks, tuple) and risk in risks
-            and isinstance(digest, str) and re.fullmatch(r"[0-9a-f]{64}", digest) is not None
-            and permit.get("queue_task") == (permit.get("repository"), permit.get("issue_number")))
+    if not isinstance(risks, tuple):
+        return False
+    return any(risk in risks and permit.get("repository") == repo
+               and permit.get("issue_number") == issue
+               for risk, repo, issue in ACCEPTABLE_RISKS.get(key, ()))
 
 
 def _trusted_lease_ref_audit(controller: Controller) -> bool:

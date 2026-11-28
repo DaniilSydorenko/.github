@@ -33,9 +33,7 @@ from cursor_protected_dispatch import (
     protected_context_from_env, run_gates_only, task_for_context,
 )
 from cursor_readonly import CursorReadError, global_run_preflight, token_usage_readonly
-import cursor_queue
-import cursor_queue_ops
-from cursor_tasks import TASKS, CursorTask, activate, registry, task_for, task_for_issue_number
+from cursor_tasks import TASKS, CursorTask, task_for, task_for_issue_number
 from github_ref_lease import Controller, GitHubRefStore, LeaseError, fingerprint
 
 REJECT_OPERATION = "cursor-lease-reject"
@@ -236,7 +234,7 @@ def reject(*, store: Any, gh: Any, cursor_api: Any, request_id: str,
         return _out("reject", "STOP", reason="lease_phase_not_terminal", lease_phase=state.get("phase"))
     source = state.get("source_issue_url") or ""
     repo = "/".join(source.split("/")[3:5])
-    if not any(t.repository == repo for t in registry()):
+    if not any(t.repository == repo for t in TASKS):
         return _out("reject", "STOP", reason="lease_repository_not_allowlisted")
 
     # Rejection evidence (runtime): PR closed unmerged, or no Cursor PR exists.
@@ -294,33 +292,6 @@ def _live() -> tuple[Any, Any, Any] | None:
     return GitHubRefStore(LEASE_REPO, token, LEASE_REF), LiveGitHub(gh_token), cursor_api
 
 
-def _queue_summary(doc: Mapping[str, Any] | None) -> dict[str, Any] | None:
-    if doc is None:
-        return None
-    head = cursor_queue.next_task(doc)
-    return {"queue_id": doc["spec"]["queue_id"], "revision": doc["revision"],
-            "repository": doc["spec"]["repository"], "spec_digest": doc["spec_digest"],
-            "authorization": doc["authorization"],
-            "accept_subagent_risk": doc["spec"]["accept_subagent_risk"],
-            "max_launches": doc["spec"]["max_launches"],
-            "tasks": [{"issue": t["issue"], "order": t["order"],
-                       "state": doc["progress"][str(t["issue"])]["state"],
-                       "allowed_paths": t["allowed_paths"],
-                       "required_checks": t["required_checks"]} for t in doc["spec"]["tasks"]],
-            "next": None if head is None else head.issue}
-
-
-def _load_queue(store: Any) -> dict[str, Any] | None:
-    """Queue from the lease ref tree; activates its tasks. QueueError = STOP."""
-    doc = cursor_queue.load(store, store.read())
-    if doc is not None:
-        activate(cursor_queue.validate_document(doc))
-        head = cursor_queue.next_task(doc)
-        if not os.environ.get("AI_ENG_OWNER_GO_ISSUE") and head is not None:
-            os.environ["AI_ENG_OWNER_GO_ISSUE"] = str(head.issue)
-    return doc
-
-
 def _readonly_main() -> dict[str, Any]:
     """No lease-writer token is read; a present one is refused (wrong job)."""
     from cursor_readonly import CursorReadError, from_environment
@@ -328,39 +299,24 @@ def _readonly_main() -> dict[str, Any]:
 
     if os.environ.get("AI_ENG_LEASE_WRITER_TOKEN"):
         return _out("preflight", "STOP", reason="writer_credential_in_readonly_job")
-    if not owner_workflow_env_ok(operation=READONLY_OPERATION):
+    if readonly_context_from_env() is None:
         return _out("preflight", "STOP", reason="readonly_workflow_context_missing_or_untrusted")
     gh_token = os.environ.get("GH_TOKEN")
     if not gh_token:
         return _out("preflight", "STOP", reason="github_token_missing")
-    # Authenticated read (the job's read-only GITHUB_TOKEN): a write would be refused.
-    store = GitHubRefStore(LEASE_REPO, gh_token, LEASE_REF)
-    try:
-        doc = _load_queue(store)
-    except LeaseError as exc:
-        return _out("preflight", "STOP", reason="queue_unreadable_or_invalid", detail=str(exc),
-                    read_only=True)
     try:
         cursor_api = from_environment() if os.environ.get("CURSOR_API_KEY") else None
     except CursorReadError:
         cursor_api = None
     gh = LiveGitHub(gh_token)
-    if readonly_context_from_env() is not None:
-        dispatch = _live_dispatch(gh, cursor_api, bootstrap=True, previous_pr=None,
-                                  readonly=True, queue_doc=doc)
-    else:
-        def dispatch(_state: Mapping[str, Any]) -> dict[str, Any]:
-            return {"decision": "STOP", "reason": "no_queue_task_to_evaluate"}
-    result = readonly_preflight(lease_state_reader=lambda: store.read().state,
-                                cursor_api=cursor_api, dispatch=dispatch)
-    return {**result, "queue": _queue_summary(doc)}
+    return readonly_preflight(
+        lease_state_reader=live_lease_state, cursor_api=cursor_api,
+        dispatch=_live_dispatch(gh, cursor_api, bootstrap=True, previous_pr=None, readonly=True))
 
 
 def _live_dispatch(gh: Any, cursor_api: Any, *, bootstrap: bool,
                    previous_pr: int | None,
-                   readonly: bool = False,
-                   queue_doc: Mapping[str, Any] | None = None
-                   ) -> Callable[[Mapping[str, Any]], dict[str, Any]]:
+                   readonly: bool = False) -> Callable[[Mapping[str, Any]], dict[str, Any]]:
     from cursor_protected_dispatch import _live_writers, live_main_sha
     from openhands_issue_contract import live_preflight
     from trusted_github_evidence import collect_task_evidence
@@ -370,17 +326,6 @@ def _live_dispatch(gh: Any, cursor_api: Any, *, bootstrap: bool,
         task = task_for_context(ctx)
         if task is None:
             return {"decision": "STOP", "reason": "protected_workflow_context_missing_or_untrusted"}
-        boot, prev, binding = bootstrap, previous_pr, None
-        if queue_doc is None and not readonly:
-            # New paid work comes only from an owner-authorized queue (#226).
-            return {"decision": "STOP", "reason": "no_queue_submitted"}
-        if queue_doc is not None:
-            gate = cursor_queue_ops.dispatch_gate(queue_doc, task)
-            if gate is not None and not readonly:
-                return {"decision": "STOP", "reason": gate}
-            prev = cursor_queue_ops.previous_pr(queue_doc)
-            boot = prev is None
-            binding = cursor_queue_ops.binding(queue_doc, task)
         collected = collect_task_evidence(task.repository, task.issue, transport=gh)
 
         def preflight() -> dict[str, Any]:
@@ -395,8 +340,8 @@ def _live_dispatch(gh: Any, cursor_api: Any, *, bootstrap: bool,
             del inventory  # provider evidence already enforced by the permit
             return build_launch_bundle(gh, task, collected=collected, main_sha=main_sha,
                                        lease_state=lease_state,
-                                       owner_bootstrap_authorized=boot,
-                                       previous_pr_number=prev)
+                                       owner_bootstrap_authorized=bootstrap,
+                                       previous_pr_number=previous_pr)
 
         # Read-only: no writer, no POST client, no attestations, whatever the
         # activation flag or environment says. The permit can never be complete.
@@ -405,8 +350,7 @@ def _live_dispatch(gh: Any, cursor_api: Any, *, bootstrap: bool,
             ctx, issue_preflight=preflight, lease_state_reader=lambda: dict(lease_state),
             main_sha_reader=lambda: live_main_sha(task), cursor_api=cursor_api,
             attestations={} if readonly else attestations_from_env(), bundle_builder=builder,
-            controller=controller, cursor_create=cursor_create,
-            queue_binding=None if readonly else binding)
+            controller=controller, cursor_create=cursor_create)
 
     return dispatch
 
@@ -526,26 +470,6 @@ def advance_until_owner_action(
     return {**result, "lifecycle_steps": trail}
 
 
-def _submit_main(store: Any, gh: Any, args: Any) -> dict[str, Any]:
-    if not owner_workflow_env_ok(operation=APPROVED_OPERATION):
-        return _out("queue", "STOP", reason="protected_workflow_context_missing_or_untrusted")
-    run_id, actor = os.environ["GITHUB_RUN_ID"], os.environ["GITHUB_ACTOR"]
-    expected = None if args.expected_queue_revision in (None, "", "none") \
-        else int(args.expected_queue_revision)
-    try:
-        if args.action == "submit-queue":
-            spec = cursor_queue_ops.build_spec(gh, json.loads(args.request_json))
-            doc = cursor_queue.submit(store, spec, workflow_run_id=run_id, actor=actor,
-                                      expected_queue_revision=expected)
-        else:
-            order = [int(x) for x in args.issue_order.split(",")]
-            doc = cursor_queue.reorder(store, order, workflow_run_id=run_id, actor=actor,
-                                       expected_queue_revision=expected)
-    except (LeaseError, ValueError, TypeError) as exc:
-        return _out("queue", "STOP", reason="queue_change_refused", detail=str(exc))
-    return _out("queue", "QUEUE_WRITTEN", queue=_queue_summary(doc))
-
-
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser()
     sub = parser.add_subparsers(dest="action", required=True)
@@ -559,12 +483,6 @@ def main(argv: list[str] | None = None) -> int:
     rej.add_argument("--expected-lease-sha", required=True)
     rej.add_argument("--pr-url", required=True)
     sub.add_parser("preflight")
-    subq = sub.add_parser("submit-queue")
-    subq.add_argument("--request-json", required=True)
-    subq.add_argument("--expected-queue-revision")
-    reo = sub.add_parser("reorder-queue")
-    reo.add_argument("--issue-order", required=True)
-    reo.add_argument("--expected-queue-revision", required=True)
     args = parser.parse_args(argv)
     if args.action == "preflight":
         result = _readonly_main()
@@ -575,16 +493,6 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps(_out("setup", "STOP", reason="github_tokens_missing"), sort_keys=True))
         return 3
     store, gh, cursor_api = live
-    if args.action in ("submit-queue", "reorder-queue"):
-        result = _submit_main(store, gh, args)
-        print(json.dumps(result, sort_keys=True, default=str))
-        return 0 if result.get("outcome") == "QUEUE_WRITTEN" else 3
-    try:
-        doc = _load_queue(store)
-    except LeaseError as exc:
-        result = _out(args.action, "STOP", reason="queue_unreadable_or_invalid", detail=str(exc))
-        print(json.dumps(result, sort_keys=True, default=str))
-        return 3
     if args.action == "advance":
         if protected_context_from_env() is None:
             result = _out("advance", "STOP", reason="protected_workflow_context_missing_or_untrusted")
@@ -597,17 +505,11 @@ def main(argv: list[str] | None = None) -> int:
                     attestations=attestations_from_env(), dispatch=once,
                     max_polls=args.max_polls),
                 dispatch=_live_dispatch(gh, cursor_api, bootstrap=args.bootstrap,
-                                        previous_pr=args.previous_pr, queue_doc=doc))
+                                        previous_pr=args.previous_pr))
     else:
         result = reject(store=store, gh=gh, cursor_api=cursor_api, request_id=args.request_id,
                         expected_lease_sha=args.expected_lease_sha, pr_url=args.pr_url,
                         owner_authorized=owner_workflow_env_ok(operation=REJECT_OPERATION))
-    if doc is not None:
-        try:
-            cursor_queue_ops.sync_progress(store, doc, result,
-                                           workflow_run_id=os.environ.get("GITHUB_RUN_ID", ""))
-        except LeaseError as exc:
-            result = {**result, "queue_progress_error": str(exc)}
     print(json.dumps(result, sort_keys=True, default=str))
     return 0 if result.get("outcome") not in ("STOP",) else 3
 

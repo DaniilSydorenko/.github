@@ -67,42 +67,20 @@ def validate_registry(tasks: tuple[CursorTask, ...] = TASKS) -> None:
             raise ValueError("task depends on itself")
 
 
-# The owner queue (cursor_queue, stored in the lease ref) replaces the static
-# registry for a run once loaded; TASKS stays only as the legacy history.
-_ACTIVE: tuple[CursorTask, ...] | None = None
-
-
-def activate(tasks: tuple[CursorTask, ...]) -> None:
-    """Use an owner-authorized queue's tasks for this process (see cursor_queue)."""
-    global _ACTIVE
-    validate_registry(tasks)
-    _ACTIVE = tuple(tasks)
-
-
-def deactivate() -> None:
-    global _ACTIVE
-    _ACTIVE = None
-
-
-def registry() -> tuple[CursorTask, ...]:
-    return TASKS if _ACTIVE is None else _ACTIVE
-
-
 def task_for(repository: str, issue: int) -> CursorTask | None:
-    for t in registry():
+    for t in TASKS:
         if t.repository == repository and t.issue == issue:
             return t
     return None
 
 
 def task_for_issue_number(issue: int) -> CursorTask | None:
-    """Unique within one registry: a queue covers exactly one repository."""
-    matches = [t for t in registry() if t.issue == issue]
+    matches = [t for t in TASKS if t.issue == issue]
     return matches[0] if len(matches) == 1 else None
 
 
 def queue_for(repository: str) -> list[CursorTask]:
-    return sorted((t for t in registry() if t.repository == repository), key=lambda t: t.order)
+    return sorted((t for t in TASKS if t.repository == repository), key=lambda t: t.order)
 
 
 validate_registry()
